@@ -1,13 +1,13 @@
 'use strict';
 
-// Voz de la cuenta "Somos Ratas": orgullosamente ahorrativos, cero clickbait,
-// se dirige a la audiencia como ratones/ratitas. Ver IDENTITY.md.
+// Voz de la cuenta "El Dato Sapo": el sapo que sapea el dato bueno antes que nadie,
+// pasándote la oferta con tono cercano y picado de Chile. Ver IDENTITY.md.
 const INTROS = [
-  '🐭 Ratas reportándose, encontramos la posta',
-  '🧀 Ratita, esto no te lo puedes perder',
-  '🐭 Las ratas cazamos, no pagamos de más',
-  '👀 Ojo ratones, esta hay que cazarla',
-  '🐭 Reporte rata del día, aguanten',
+  '🐸 SAPEO DEL DÍA, cachen esto',
+  '🐸 Les paso el dato antes que se acabe',
+  '👀 Dato sapo: esta oferta no se las pueden perder',
+  '🐸 Andábamos sapeando y encontramos esta joyita',
+  '🔥 Dato filtrado directo pa\' ustedes',
 ];
 
 function formatCLP(price) {
@@ -28,10 +28,10 @@ function buildCaption(product, affiliateLink) {
     price,
     rating,
     '',
-    'Link para comprar 👇 (afiliado, ratón honesto)',
+    'Link para comprar 👇 (afiliado, dato transparente)',
     affiliateLink,
     '',
-    '#somosratas #ratachile #ofertaschile #mercadolibrechile #ratasunidas',
+    '#eldatosapo #datochile #ofertaschile #mercadolibrechile #datosapo',
   ].join('\n');
 }
 
@@ -50,14 +50,13 @@ async function buildCaptionWithClaude(product, affiliateLink) {
         {
           role: 'user',
           content:
-            'Escribe un caption de Instagram en español chileno para la cuenta "Somos Ratas": ' +
-            'la personalidad es la de un ratón orgullosamente ahorrativo que caza la mejor oferta ' +
-            'de Mercado Libre para no pagar de más, y se la comparte a sus "ratones/ratitas" ' +
-            '(la audiencia). Tono cercano, picante y con humor chileno, nunca burlón con la gente ' +
-            'de pocos recursos — la marca celebra ser ahorrativo, no se ríe de la pobreza. ' +
-            'Puedes usar guiños de roedor (🐭🧀) con moderación, sin abusar. ' +
+            'Escribe un caption de Instagram en español chileno para la cuenta "El Dato Sapo": ' +
+            'la personalidad es la del "sapo" (en chileno: el que sapea/pasa el dato) que se entera ' +
+            'primero de la oferta buena en Mercado Libre y se la pasa a su gente antes que nadie. ' +
+            'Tono cercano, picado, cómplice ("te paso el dato", "sapeamos esto pa\' ti"), humor chileno, ' +
+            'nunca burlón ni agresivo. Puedes usar el guiño de sapo (🐸) con moderación, sin abusar. ' +
             'Usa 2-4 emojis en total, incluye el precio, y termina con 3-5 hashtags en español chileno ' +
-            'sobre ofertas (incluye #somosratas). ' +
+            'sobre ofertas (incluye #eldatosapo). ' +
             'No inventes datos que no te doy (rating, precio, título). No incluyas el link, yo lo agrego después.\n\n' +
             `Producto: ${product.title}\n` +
             `Precio: ${formatCLP(product.price)}\n` +

@@ -1,7 +1,7 @@
-# Somos Ratas 🐭 — Ofertas Mercado Libre → Instagram
+# El Dato Sapo 🐸 — Ofertas Mercado Libre → Instagram
 
 Sistema que todos los días investiga los productos más vendidos y mejor calificados de
-Mercado Libre Chile, genera posts (captura + caption con la voz de "Somos Ratas" + link de
+Mercado Libre Chile, genera posts (captura + caption con la voz de "El Dato Sapo" + link de
 afiliado) y los deja listos como borrador — y los publica automático en Instagram si hay
 credenciales de Meta Graph API configuradas.
 

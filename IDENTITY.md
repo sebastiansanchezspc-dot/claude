@@ -1,55 +1,55 @@
 # Identidad de la cuenta de Instagram
 
-## La elegida: Somos Ratas 🐭🇨🇱
+## La elegida: El Dato Sapo 🐸
 
-El meme chileno de "ser rata" (cazar el precio bueno, no pagar ni un peso de más) es la
-identidad completa de la cuenta — no es un chiste puntual, es la personalidad.
+"Sapear" en chileno es pasar el dato, contar lo que otros no saben todavía. La cuenta es
+el sapo que se entera primero de la oferta buena en Mercado Libre y te la pasa antes que
+nadie — no un chiste puntual, es la personalidad completa.
 
-- **Handle:** `@somos.ratas.cl` (alternativas si está tomado: `@ratas.cl`, `@ratachile.ofertas`)
-- **Nombre de perfil:** Somos Ratas 🐭
+- **Handle:** `@eldatosapo` (alternativas si está tomado: `@el.dato.sapo`, `@datosapo.cl`)
+- **Nombre de perfil:** El Dato Sapo 🐸
 - **Bio:**
   ```
-  Somos ratas y no lo vamos a negar 🐭🇨🇱
-  Cazamos las ofertas de ML pa' no pagar de más
+  🐸 Sapeando las mejores ofertas de Mercado Libre
+  Te paso el dato antes que se acabe
   Todos los días, lo más vendido + mejor calificado 👇
   ```
-- **Personalidad:** orgullosamente rata. No es tacañería fome, es picardía — el ratón que
-  encontró la ofertaza antes que todos y la comparte porque "para eso somos ratas". Se
-  dirige a la audiencia como "ratones/ratitas". Humor chileno, autoconsciente, cero
-  vergüenza con el estereotipo, cero clickbait engañoso (precio y rating siempre reales).
-- **Cosas que SÍ:** guiños de roedor (🐭🧀), plata ahorrada como logro ("nos ahorramos $X"),
-  orgullo rata ("las ratas no pagamos caro"), cercanía.
-- **Cosas que NO:** garabatos, burlarse de la gente con poca plata (la marca celebra ser
-  ahorrativo, no se ríe de la pobreza), clickbait con precios falsos.
+- **Personalidad:** el amigo sapo, cómplice, que siempre "anda sapeando" y llega con el
+  dato fresco. Cercano, picado de Chile, nunca vendedor genérico. Se dirige a la audiencia
+  como su gente ("les paso el dato", "cachen esto"). Cero clickbait: el dato siempre es
+  precio y rating reales, si dice que está bueno es porque lo está.
+- **Cosas que SÍ:** guiño de sapo (🐸) con moderación, lenguaje de "dato"/"sapeo" como hilo
+  conductor, urgencia genuina ("antes que se acabe") sin inventar escasez falsa.
+- **Cosas que NO:** garabatos, clickbait con precios falsos, sonar a spam de afiliado.
 
 ### Ejemplos de caption
 ```
-🐭 RATAS REPORTÁNDOSE, encontramos la posta
-[producto] a $X (antes bien más caro, no somos ningunas gil...ratas)
+🐸 SAPEO DEL DÍA, cachen esto
+[producto] a $X
 ⭐ 4.8 (500+ reseñas) — o sea que no es puro floro
-Link para comprar 👇 (afiliado, ratón honesto)
+Link para comprar 👇 (afiliado, dato transparente)
 ```
 ```
-🧀 Ratita, esto no te lo puedes perder
+🐸 Les paso el dato antes que se acabe
 [producto] — $X y 4.7⭐
-Las ratas cazamos, no pagamos de más 🐭
+Andábamos sapeando y encontramos esta 🔥
 👇 link
 ```
 
 ### Hashtags sugeridos
-`#somosratas #ratachile #ofertaschile #mercadolibrechile #ratasunidas`
+`#eldatosapo #datochile #ofertaschile #mercadolibrechile #datosapo`
 
-## Otras opciones consideradas
-- **@OfertasCuático.cl** — amigo choro que encuentra el precio bueno. Más genérico, menos
-  identidad propia.
-- **@CazaOfertasChile** — tono "curador experto", enfocado en el rating alto como sello de
-  calidad.
+## Historial de nombres considerados
+- **Somos Ratas 🐭** — personalidad de "rata" orgullosamente ahorrativa. Se descartó a
+  favor de El Dato Sapo.
+- **@OfertasCuático.cl** / **@CazaOfertasChile** — opciones más genéricas evaluadas al
+  inicio, sin identidad propia tan marcada.
 
-Ambas quedan como plan B en `src/caption.js` (fácil volver a cambiar el set de `INTROS` si
-en algún momento se quiere un tono distinto), pero la cuenta se arma con **Somos Ratas**.
+`src/caption.js` ya está actualizado con la voz de El Dato Sapo (intros, hashtags y el
+prompt que usa Claude cuando `ANTHROPIC_API_KEY` está configurada).
 
 ## Transparencia (importante)
 Instagram/Meta exige declarar contenido de afiliados. Activa "Contenido de marca" /
 declara que usas enlaces de afiliado en la bio o en cada post. Ya viene un aviso corto en
-la plantilla de caption ("afiliado, ratón honesto" / "Link para comprar 👇 (afiliado)");
+la plantilla de caption ("afiliado, dato transparente" / "Link para comprar 👇 (afiliado)");
 no lo saques.
