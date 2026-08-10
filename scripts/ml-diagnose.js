@@ -58,6 +58,10 @@ async function main() {
       `https://api.mercadolibre.com/highlights/${SITE}/category/${firstCategory.id}`,
       accessToken,
     );
+    if (highlightsResult.ok) {
+      console.log('   Respuesta completa de highlights:');
+      console.log(JSON.stringify(highlightsResult.json, null, 2));
+    }
 
     const firstItemId = highlightsResult.json?.content?.[0]?.id || highlightsResult.json?.highlights?.[0];
     if (firstItemId) {
