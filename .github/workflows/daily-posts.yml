@@ -13,12 +13,11 @@ permissions:
 
 jobs:
   generate:
-    # OJO: Mercado Libre bloqueó las peticiones desde la IP de este entorno con un 403
-    # "PolicyAgent" al probar la API. Los runners ubuntu-latest de GitHub también usan
-    # rangos de IP de datacenter y pueden recibir el mismo bloqueo. Si eso pasa acá,
-    # cambia `runs-on: ubuntu-latest` por `runs-on: self-hosted` con un runner corriendo
-    # en tu PC/servidor (IP residencial). Ver SETUP.md, sección "Runner self-hosted".
-    runs-on: ubuntu-latest
+    # Mercado Libre bloquea con 403 las peticiones a su API desde IPs de datacenter,
+    # incluyendo los runners ubuntu-latest de GitHub (confirmado). Por eso este job
+    # corre en un runner self-hosted (tu PC/servidor con IP residencial).
+    # Ver SETUP.md, sección "Runner self-hosted", para instalarlo.
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
