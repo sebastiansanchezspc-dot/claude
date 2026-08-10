@@ -1,15 +1,37 @@
 # SETUP: cómo dejar el sistema funcionando
 
 Este sistema hace, todos los días:
-1. **Investiga** en Mercado Libre Chile las búsquedas en tendencia y, dentro de ellas, los
-   productos más vendidos (`sort=sold_quantity_desc`) que además tengan buen rating
-   (por defecto ≥4.5⭐ y ≥10 reseñas).
+1. **Consigue productos** de dos formas posibles:
+   - **Automático**: busca en Mercado Libre Chile los más vendidos y mejor calificados
+     (por defecto ≥4.5⭐ y ≥10 reseñas). *Actualmente bloqueado* — ver sección "Estado
+     actual" más abajo.
+   - **Manual**: lee los links que pongas en `manual-products.txt` (uno por línea). Si ese
+     archivo tiene links, el sistema los usa en vez de buscar automático.
 2. **Genera un post** por producto: captura de pantalla, caption en tono chileno-amigable
    y link de afiliado.
 3. Deja todo guardado como borrador en `posts/<fecha>/`.
 4. Si están las credenciales de Instagram configuradas, **publica automático**.
 
 Nada de esto queda "andando solo" hasta que completes los pasos de abajo.
+
+---
+
+## Estado actual: camino manual activo
+
+La API de Mercado Libre está bloqueando `/search`, `/items` y `/reviews` para esta app
+(confirmado con pruebas reales — ver el historial de commits para el detalle). Mientras se
+resuelve eso (con soporte de Mercado Libre o el programa de Afiliados), el sistema usa el
+**camino manual**:
+
+1. Edita `manual-products.txt` en el repo (se puede hacer directo desde GitHub.com en el
+   celular, no hace falta la PC) y pega ahí los links de los productos que quieres publicar
+   (uno por línea, líneas que empiezan con `#` se ignoran).
+2. Cuando corra el workflow (por el cron diario, o disparándolo manual desde la pestaña
+   Actions), va a leer esos links, armar los posts, publicarlos, y borrar los links ya
+   usados de `manual-products.txt` para no repetir.
+3. Si `manual-products.txt` no tiene links esa vez, el sistema intenta el camino automático
+   (que hoy no va a encontrar nada por el bloqueo, pero el código ya queda listo para
+   cuando se desbloquee).
 
 ---
 

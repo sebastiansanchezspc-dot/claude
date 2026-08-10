@@ -1,0 +1,8 @@
+# Un link de producto de Mercado Libre por línea (el link normal del producto,
+# no de búsqueda). Líneas que empiecen con # se ignoran.
+#
+# Ejemplo:
+# https://articulo.mercadolibre.cl/MLC-123456789-producto-ejemplo-_JM
+#
+# El sistema procesa los links de acá cada vez que corre, arma los posts, y
+# borra los links ya procesados de esta lista (para no repetir el mismo post).

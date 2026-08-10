@@ -3,7 +3,8 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const { findTopProducts } = require('./research');
+const { findTopProducts, findManualProducts } = require('./research');
+const { readManualProductUrls, clearManualProductUrls } = require('./manualProducts');
 const { buildAffiliateLink } = require('./affiliateLink');
 const { buildCaptionWithClaude } = require('./caption');
 const { screenshotProduct } = require('./screenshot');
@@ -14,11 +15,23 @@ async function main() {
   const minRating = Number(process.env.MIN_RATING || 4.5);
   const minReviews = Number(process.env.MIN_REVIEWS || 10);
 
-  console.log(`Buscando los ${topN} productos más vendidos y mejor calificados en ${site}...`);
-  const products = await findTopProducts({ site, keywordLimit: 15, perKeyword: 5, minRating, minReviews, topN });
+  const manualUrls = readManualProductUrls();
+  let products;
+  if (manualUrls.length > 0) {
+    console.log(`Usando ${manualUrls.length} link(s) de manual-products.txt...`);
+    products = (await findManualProducts(manualUrls)).slice(0, topN);
+    if (products.length > 0) {
+      // Solo se limpia si se pudo leer algo; si todo falló, se deja la lista para
+      // reintentar en la próxima corrida en vez de perder los links.
+      clearManualProductUrls();
+    }
+  } else {
+    console.log(`Buscando los ${topN} productos más vendidos y mejor calificados en ${site}...`);
+    products = await findTopProducts({ site, keywordLimit: 15, perKeyword: 5, minRating, minReviews, topN });
+  }
 
   if (products.length === 0) {
-    console.log('No se encontraron productos que cumplan los criterios hoy. No se generan posts.');
+    console.log('No hay productos para generar posts hoy (ni manuales ni automáticos).');
     return;
   }
 
