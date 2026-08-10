@@ -1,6 +1,7 @@
 'use strict';
 
 const { getTrendingKeywords, searchBestSelling, getItemReviews } = require('./mercadolibre');
+const { scrapeProductPage, extractItemId } = require('./productPage');
 
 // Plan B si el endpoint de tendencias no está disponible para esta app (algunas apps de
 // Mercado Libre no tienen habilitado /trends por defecto). Categorías amplias y populares.
@@ -70,4 +71,27 @@ async function findTopProducts({
   return qualified.slice(0, topN);
 }
 
-module.exports = { findTopProducts };
+// Procesa una lista de links de producto puestos a mano (manual-products.txt) en vez
+// de descubrirlos por API/búsqueda.
+async function findManualProducts(urls) {
+  const products = [];
+  for (const url of urls) {
+    try {
+      const data = await scrapeProductPage(url);
+      products.push({
+        id: extractItemId(url) || url,
+        title: data.title || 'Producto de Mercado Libre',
+        price: data.price,
+        rating: data.rating ?? 0,
+        totalReviews: data.totalReviews ?? 0,
+        permalink: url,
+        sourceKeyword: 'manual',
+      });
+    } catch (e) {
+      console.warn(`No se pudo leer datos de ${url}: ${e.message}`);
+    }
+  }
+  return products;
+}
+
+module.exports = { findTopProducts, findManualProducts };

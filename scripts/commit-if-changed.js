@@ -15,12 +15,12 @@ const dateStr = new Date().toISOString().slice(0, 10);
 
 run('git config user.name "ofertas-bot"');
 run('git config user.email "actions@users.noreply.github.com"');
-run('git add posts/');
+run('git add posts/ manual-products.txt');
 
-const status = execSync('git status --porcelain -- posts/').toString().trim();
+const status = execSync('git status --porcelain -- posts/ manual-products.txt').toString().trim();
 if (status) {
   run(`git commit -m "${prefix}: ${dateStr}"`);
   run('git push');
 } else {
-  console.log('Sin cambios en posts/, no se commitea.');
+  console.log('Sin cambios en posts/ ni manual-products.txt, no se commitea.');
 }
