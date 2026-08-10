@@ -1,9 +1,28 @@
 'use strict';
 
-const { getTrendingKeywords, searchBestSelling, getItemReviews } = require('./mercadolibre');
+const { searchBestSelling, getItemDetails } = require('./mercadolibre');
 
-// Recorre las búsquedas en tendencia, junta los productos más vendidos de cada una,
-// y se queda con los que cumplen el mínimo de rating y de reseñas.
+// La API de "tendencias" de Mercado Libre también está bloqueada para tráfico no
+// autenticado, así que en vez de tendencias en tiempo real usamos una lista fija
+// de categorías/búsquedas amplias y populares. No es "lo más buscado hoy", es una
+// muestra de categorías donde buscamos lo más vendido y mejor calificado. Ajusta
+// esta lista cuando quieras.
+const SEED_CATEGORIES = [
+  'notebook',
+  'celular',
+  'smart tv',
+  'audifonos bluetooth',
+  'zapatillas',
+  'aspiradora robot',
+  'freidora de aire',
+  'smartwatch',
+  'parlante bluetooth',
+  'cafetera',
+];
+
+// Recorre las categorías, junta los productos más vendidos de cada una (el sitio ya
+// los devuelve ordenados por ventas), visita cada ficha para leer rating/reseñas
+// reales, y se queda con los que cumplen el mínimo configurado.
 async function findTopProducts({
   site,
   keywordLimit = 15,
@@ -12,40 +31,38 @@ async function findTopProducts({
   minReviews = 10,
   topN = 5,
 }) {
-  const keywords = await getTrendingKeywords(site, keywordLimit);
-  if (keywords.length === 0) {
-    console.warn('No se obtuvieron palabras en tendencia; revisa conectividad/bloqueo de IP hacia Mercado Libre.');
-  }
+  const categories = SEED_CATEGORIES.slice(0, keywordLimit);
 
   const seen = new Set();
   const candidates = [];
 
-  for (const keyword of keywords) {
+  for (const category of categories) {
     let items;
     try {
-      items = await searchBestSelling(site, keyword, perKeyword);
+      items = await searchBestSelling(site, category, perKeyword);
     } catch (e) {
-      console.warn(`Búsqueda falló para "${keyword}": ${e.message}`);
+      console.warn(`Búsqueda falló para "${category}": ${e.message}`);
       continue;
     }
     for (const item of items) {
       if (seen.has(item.id)) continue;
       seen.add(item.id);
-      candidates.push({ ...item, sourceKeyword: keyword });
+      candidates.push({ ...item, sourceKeyword: category });
     }
   }
 
   const qualified = [];
   for (const item of candidates) {
-    const reviews = await getItemReviews(item.id);
-    const rating = reviews?.rating_average ?? 0;
-    const totalReviews = reviews?.total_reviews ?? reviews?.total ?? 0;
+    if (qualified.length >= topN * 3) break;
+    const details = await getItemDetails(item.permalink);
+    const rating = details.rating ?? 0;
+    const totalReviews = details.totalReviews ?? 0;
     if (rating >= minRating && totalReviews >= minReviews) {
-      qualified.push({ ...item, rating, totalReviews });
+      qualified.push({ ...item, price: details.price ?? item.price, rating, totalReviews });
     }
   }
 
-  qualified.sort((a, b) => (b.sold_quantity ?? 0) - (a.sold_quantity ?? 0) || b.rating - a.rating);
+  qualified.sort((a, b) => b.rating - a.rating);
 
   return qualified.slice(0, topN);
 }
