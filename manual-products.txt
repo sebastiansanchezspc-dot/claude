@@ -6,3 +6,4 @@
 #
 # El sistema procesa los links de acá cada vez que corre, arma los posts, y
 # borra los links ya procesados de esta lista (para no repetir el mismo post).
+https://www.mercadolibre.cl/magnesio-bisglicinato-dua-labs-120-capsulas-para-60-dias/p/MLC62418212?pdp_filters=deal%3AMLC1422857-1&extra_comm=false&brand_comm=false#polycard_client=affiliates&wid=MLC3509359594&sid=affiliates
