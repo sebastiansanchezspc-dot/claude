@@ -63,15 +63,43 @@ async function main() {
       console.log(JSON.stringify(highlightsResult.json, null, 2));
     }
 
-    const firstItemId = highlightsResult.json?.content?.[0]?.id || highlightsResult.json?.highlights?.[0];
+    // Solo type "ITEM" corresponde a una publicación individual (con precio/permalink
+    // propios). "PRODUCT" y "USER_PRODUCT" son otras entidades de catálogo de ML.
+    const content = highlightsResult.json?.content || [];
+    const firstItemEntry = content.find((c) => c.type === 'ITEM');
+    const firstItemId = firstItemEntry?.id;
+
     if (firstItemId) {
-      console.log(`\nUsando item de prueba: ${firstItemId}\n`);
-      await check(`Item (/items/${firstItemId})`, `https://api.mercadolibre.com/items/${firstItemId}`, accessToken);
+      console.log(`\nUsando item tipo ITEM de prueba: ${firstItemId}\n`);
+      const itemResult = await check(
+        `Item (/items/${firstItemId})`,
+        `https://api.mercadolibre.com/items/${firstItemId}`,
+        accessToken,
+      );
+      if (itemResult.ok) {
+        console.log('   Campos clave del item:');
+        console.log(
+          JSON.stringify(
+            {
+              id: itemResult.json.id,
+              title: itemResult.json.title,
+              price: itemResult.json.price,
+              permalink: itemResult.json.permalink,
+              sold_quantity: itemResult.json.sold_quantity,
+              thumbnail: itemResult.json.thumbnail,
+            },
+            null,
+            2,
+          ),
+        );
+      }
       await check(
         `Reviews (/reviews/item/${firstItemId})`,
         `https://api.mercadolibre.com/reviews/item/${firstItemId}`,
         accessToken,
       );
+    } else {
+      console.log('\nNo hubo ningún resultado tipo ITEM en esta categoría.');
     }
   }
 }
