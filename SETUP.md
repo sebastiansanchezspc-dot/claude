@@ -13,17 +13,17 @@ Nada de esto queda "andando solo" hasta que completes los pasos de abajo.
 
 ---
 
-## 0. Bloqueo de IP de Mercado Libre — CONFIRMADO, requiere runner self-hosted
+## 0. Runner self-hosted (por qué existe)
 
-Se probó y se confirmó: la API pública de Mercado Libre (`api.mercadolibre.com`) bloquea
-con `403 Forbidden` las peticiones que vienen de IPs de datacenter, incluyendo los runners
-`ubuntu-latest` de GitHub Actions. No es un bug del código, es un bloqueo de Mercado Libre
-por rango de IP.
+El acceso sin autenticar a Mercado Libre está bloqueado (probado y confirmado): la API
+pública devuelve `403 Forbidden` sin importar la IP, y el sitio web exige login para ver
+resultados de búsqueda incluso navegando con un navegador real. Por eso el sistema usa la
+**API oficial autenticada con OAuth** (sección 0-bis) en vez de tráfico anónimo.
 
-Por eso el job `generate` de `.github/workflows/daily-posts.yml` está configurado como
-`runs-on: self-hosted` — necesita correr en un equipo con IP residencial normal (tu PC).
-Los jobs `deploy-pages` y `publish` siguen en `ubuntu-latest` sin problema, porque no le
-pegan a la API de Mercado Libre.
+El job `generate` de `.github/workflows/daily-posts.yml` sigue corriendo en
+`runs-on: self-hosted` (tu PC) porque ahí es donde se hace el setup inicial del token de
+Mercado Libre — el `refresh_token` queda guardado en el disco de ese equipo, no en GitHub.
+Los jobs `deploy-pages` y `publish` siguen en `ubuntu-latest` sin problema.
 
 ### Cómo instalar el runner self-hosted (una vez)
 
@@ -38,18 +38,43 @@ pegan a la API de Mercado Libre.
    a la hora del cron (13:00 UTC) o cuando lo dispares manual.
 4. Si quieres que quede corriendo solo sin tener que abrir la terminal cada vez, en el
    mismo directorio del runner hay un script para instalarlo como servicio:
-   `sudo ./svc.sh install && sudo ./svc.sh start` (Linux/Mac) o el equivalente que te
-   indique la documentación de GitHub para Windows (`./svc.sh` no aplica en Windows, ahí
-   usa el instalador de servicio que trae el runner).
+   `sudo ./svc.sh install && sudo ./svc.sh start` (Linux/Mac) o el instalador de servicio
+   que trae el runner para Windows.
 
 **Importante:** si el equipo está apagado o el runner no está corriendo a la hora del
 cron, esa corrida del día simplemente no se ejecuta (no genera error, solo no pasa nada).
-Si quieres 100% de confiabilidad sin depender de que tu PC esté prendida, la alternativa
-es un proxy residencial de pago (ej. Bright Data, Smartproxy) usado desde un runner
-`ubuntu-latest` normal — avísame si en algún momento prefieres ese camino y lo integro.
 
-Antes de confiar en el cron diario, **corre `npm run research` una vez desde tu propio PC**
-(ver sección 5) para confirmar que ahí sí puedes llegar a la API de Mercado Libre.
+---
+
+## 0-bis. API oficial de Mercado Libre (OAuth)
+
+Esto reemplaza el acceso anónimo bloqueado. Requiere tu cuenta de Mercado Libre (la misma
+de afiliados sirve).
+
+1. Ve a **developers.mercadolibre.com/devcenter**, inicia sesión con tu cuenta de ML, y
+   crea una aplicación nueva ("Crear aplicación"). Nombre y descripción los que quieras.
+2. En **"Redirect URI"** pon `https://www.mercadolibre.cl/` (no necesita ser un servidor
+   funcional propio, solo sirve para que el navegador te muestre la URL con el código al
+   final — lo copias de la barra de direcciones aunque la página en sí no cargue nada útil).
+3. Guarda el **Client ID** y el **Client secret** que te muestra — esos son tus
+   `ML_APP_ID` y `ML_APP_SECRET`. Guárdalos como secrets de GitHub (sección 4) y también en
+   tu `.env` local (para el paso 5).
+4. Arma esta URL reemplazando `TU_APP_ID` por tu Client ID, y ábrela en el navegador:
+   ```
+   https://auth.mercadolibre.cl/authorization?response_type=code&client_id=TU_APP_ID&redirect_uri=https://www.mercadolibre.cl/
+   ```
+5. Inicia sesión con tu cuenta de Mercado Libre y autoriza la app. Vas a terminar en una
+   URL tipo `https://www.mercadolibre.cl/?code=TG-XXXXXXXX...` — copia el valor de `code`
+   de la barra de direcciones (aunque la página muestre error, el código igual está ahí).
+6. **En el mismo PC donde corre el runner self-hosted**, dentro de la carpeta del repo:
+   ```bash
+   cp .env.example .env   # si no lo habías hecho, y completa ML_APP_ID / ML_APP_SECRET
+   npm install             # si no lo habías hecho
+   node scripts/ml-oauth-setup.js "EL_CODE_QUE_COPIASTE" "https://www.mercadolibre.cl/"
+   ```
+   Esto deja el `refresh_token` guardado en tu carpeta de usuario (no en el repo, no se
+   sube a git). El sistema lo va renovando solo en cada corrida — no necesitas repetir
+   este paso salvo que el token se invalide por completo (poco frecuente).
 
 ---
 
@@ -127,11 +152,16 @@ tu sesión de GitHub). En ese caso hay dos opciones:
 
 | Secret | De dónde sale |
 |---|---|
+| `ML_APP_ID` | App de Mercado Libre (sección 0-bis) |
+| `ML_APP_SECRET` | App de Mercado Libre (sección 0-bis) |
 | `ML_AFFILIATE_MATT_TOOL` | Panel de Afiliados ML (sección 1) |
 | `ML_AFFILIATE_MATT_WORD` | Panel de Afiliados ML (sección 1) |
 | `IG_BUSINESS_ACCOUNT_ID` | Meta Graph API (sección 2) |
 | `IG_ACCESS_TOKEN` | Meta Graph API (sección 2) |
 | `ANTHROPIC_API_KEY` | Opcional, solo si quieres captions generados con Claude en vez de plantilla fija |
+
+El `refresh_token` de Mercado Libre **no** va en los secrets de GitHub — queda guardado
+localmente en el equipo del runner (ver sección 0-bis, paso 6).
 
 ---
 
