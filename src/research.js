@@ -2,6 +2,21 @@
 
 const { getTrendingKeywords, searchBestSelling, getItemReviews } = require('./mercadolibre');
 
+// Plan B si el endpoint de tendencias no está disponible para esta app (algunas apps de
+// Mercado Libre no tienen habilitado /trends por defecto). Categorías amplias y populares.
+const FALLBACK_CATEGORIES = [
+  'notebook',
+  'celular',
+  'smart tv',
+  'audifonos bluetooth',
+  'zapatillas',
+  'aspiradora robot',
+  'freidora de aire',
+  'smartwatch',
+  'parlante bluetooth',
+  'cafetera',
+];
+
 // Recorre las búsquedas en tendencia, junta los productos más vendidos de cada una,
 // y se queda con los que cumplen el mínimo de rating y de reseñas.
 async function findTopProducts({
@@ -12,9 +27,14 @@ async function findTopProducts({
   minReviews = 10,
   topN = 5,
 }) {
-  const keywords = await getTrendingKeywords(site, keywordLimit);
+  let keywords = [];
+  try {
+    keywords = await getTrendingKeywords(site, keywordLimit);
+  } catch (e) {
+    console.warn(`No se pudo obtener tendencias (${e.message}), uso categorías fijas de respaldo.`);
+  }
   if (keywords.length === 0) {
-    console.warn('No se obtuvieron palabras en tendencia; revisa el token/credenciales de Mercado Libre.');
+    keywords = FALLBACK_CATEGORIES.slice(0, keywordLimit);
   }
 
   const seen = new Set();
