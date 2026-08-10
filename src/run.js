@@ -4,6 +4,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { findTopProducts } = require('./research');
+const { closeBrowser } = require('./mercadolibre');
 const { buildAffiliateLink } = require('./affiliateLink');
 const { buildCaptionWithClaude } = require('./caption');
 const { screenshotProduct } = require('./screenshot');
@@ -16,6 +17,7 @@ async function main() {
 
   console.log(`Buscando los ${topN} productos más vendidos y mejor calificados en ${site}...`);
   const products = await findTopProducts({ site, keywordLimit: 15, perKeyword: 5, minRating, minReviews, topN });
+  await closeBrowser();
 
   if (products.length === 0) {
     console.log('No se encontraron productos que cumplan los criterios hoy. No se generan posts.');
