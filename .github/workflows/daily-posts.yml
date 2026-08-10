@@ -1,0 +1,94 @@
+name: Ofertas Mercado Libre -> Instagram
+
+on:
+  schedule:
+    # 13:00 UTC ~ 09:00/10:00 Chile según horario de verano. Ajusta a gusto.
+    - cron: '0 13 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  generate:
+    # OJO: Mercado Libre bloqueó las peticiones desde la IP de este entorno con un 403
+    # "PolicyAgent" al probar la API. Los runners ubuntu-latest de GitHub también usan
+    # rangos de IP de datacenter y pueden recibir el mismo bloqueo. Si eso pasa acá,
+    # cambia `runs-on: ubuntu-latest` por `runs-on: self-hosted` con un runner corriendo
+    # en tu PC/servidor (IP residencial). Ver SETUP.md, sección "Runner self-hosted".
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Generar investigación y posts del día
+        run: npm run research
+        env:
+          ML_SITE: MLC
+          POSTS_PER_DAY: '5'
+          MIN_RATING: '4.5'
+          MIN_REVIEWS: '10'
+          ML_AFFILIATE_MATT_TOOL: ${{ secrets.ML_AFFILIATE_MATT_TOOL }}
+          ML_AFFILIATE_MATT_WORD: ${{ secrets.ML_AFFILIATE_MATT_WORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Commitear posts generados
+        run: |
+          git config user.name "ofertas-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add posts/
+          git diff --cached --quiet || git commit -m "posts: $(date -u +%F)"
+          git push
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: posts
+
+  deploy-pages:
+    needs: generate
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  publish:
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+
+      - name: Publicar en Instagram (si hay credenciales configuradas)
+        run: npm run publish
+        env:
+          PAGES_BASE_URL: ${{ needs.deploy-pages.outputs.page_url }}
+          IG_BUSINESS_ACCOUNT_ID: ${{ secrets.IG_BUSINESS_ACCOUNT_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+
+      - name: Commitear estado de publicación
+        run: |
+          git config user.name "ofertas-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add posts/
+          git diff --cached --quiet || git commit -m "publish: $(date -u +%F)"
+          git push

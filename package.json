@@ -1,0 +1,18 @@
+{
+  "name": "ml-ig-ofertas-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Investigacion diaria de los productos mejor vendidos y calificados de Mercado Libre Chile, generacion de posts con capturas y link de afiliado, y publicacion automatica en Instagram.",
+  "scripts": {
+    "research": "node src/run.js",
+    "publish": "node src/publish.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.47.0"
+  }
+}
