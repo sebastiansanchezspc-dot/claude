@@ -13,26 +13,40 @@ Nada de esto queda "andando solo" hasta que completes los pasos de abajo.
 
 ---
 
-## 0. Aviso importante: bloqueo de IP de Mercado Libre
+## 0. Bloqueo de IP de Mercado Libre — CONFIRMADO, requiere runner self-hosted
 
-Al probar la API pública de Mercado Libre (`api.mercadolibre.com`) desde este entorno,
-las peticiones fueron bloqueadas con un `403 PolicyAgent` (protección anti-bot/anti-datacenter
-de Mercado Libre). Esto **no es un bug del código**: es un bloqueo a nivel de IP.
+Se probó y se confirmó: la API pública de Mercado Libre (`api.mercadolibre.com`) bloquea
+con `403 Forbidden` las peticiones que vienen de IPs de datacenter, incluyendo los runners
+`ubuntu-latest` de GitHub Actions. No es un bug del código, es un bloqueo de Mercado Libre
+por rango de IP.
 
-Los runners `ubuntu-latest` de GitHub Actions también corren en rangos de IP de datacenter,
-así que es posible que el workflow falle en el paso "Generar investigación y posts" con el
-mismo error. Si eso pasa, tienes dos caminos:
+Por eso el job `generate` de `.github/workflows/daily-posts.yml` está configurado como
+`runs-on: self-hosted` — necesita correr en un equipo con IP residencial normal (tu PC).
+Los jobs `deploy-pages` y `publish` siguen en `ubuntu-latest` sin problema, porque no le
+pegan a la API de Mercado Libre.
 
-- **Runner self-hosted (recomendado, gratis):** instala un runner de GitHub Actions en tu
-  PC o un servidor con IP residencial/normal, y deja el equipo prendido a la hora del cron
-  (o usa un mini servidor que ya tengas encendido 24/7).
-  1. En GitHub: `Settings → Actions → Runners → New self-hosted runner`.
-  2. Sigue las instrucciones (descargar, configurar, `./run.sh`).
-  3. En `.github/workflows/daily-posts.yml`, cambia `runs-on: ubuntu-latest` por
-     `runs-on: self-hosted` en el job `generate`.
-- **Proxy residencial de pago** (ej. Bright Data, Smartproxy): defines la variable de entorno
-  `HTTPS_PROXY` antes de correr `npm run research`. No está integrado en el código porque
-  depende del proveedor que elijas; si quieres que lo agregue, dime cuál usas.
+### Cómo instalar el runner self-hosted (una vez)
+
+1. En el repo: `Settings → Actions → Runners → New self-hosted runner`.
+2. Elige tu sistema operativo (Windows/Mac/Linux) — GitHub te muestra los comandos exactos
+   para tu caso, cópialos y pégalos en una terminal (en Windows, PowerShell) en ese orden:
+   descargar el paquete del runner, configurarlo (`./config.sh` o `config.cmd`, te va a
+   pedir la URL del repo y un token — ambos ya te los da la misma pantalla), y por último
+   iniciarlo (`./run.sh` o `run.cmd`).
+3. Mientras esa ventana de terminal quede abierta y el equipo prendido/conectado a
+   internet, el runner queda "escuchando" y disponible para correr el job todos los días
+   a la hora del cron (13:00 UTC) o cuando lo dispares manual.
+4. Si quieres que quede corriendo solo sin tener que abrir la terminal cada vez, en el
+   mismo directorio del runner hay un script para instalarlo como servicio:
+   `sudo ./svc.sh install && sudo ./svc.sh start` (Linux/Mac) o el equivalente que te
+   indique la documentación de GitHub para Windows (`./svc.sh` no aplica en Windows, ahí
+   usa el instalador de servicio que trae el runner).
+
+**Importante:** si el equipo está apagado o el runner no está corriendo a la hora del
+cron, esa corrida del día simplemente no se ejecuta (no genera error, solo no pasa nada).
+Si quieres 100% de confiabilidad sin depender de que tu PC esté prendida, la alternativa
+es un proxy residencial de pago (ej. Bright Data, Smartproxy) usado desde un runner
+`ubuntu-latest` normal — avísame si en algún momento prefieres ese camino y lo integro.
 
 Antes de confiar en el cron diario, **corre `npm run research` una vez desde tu propio PC**
 (ver sección 5) para confirmar que ahí sí puedes llegar a la API de Mercado Libre.
