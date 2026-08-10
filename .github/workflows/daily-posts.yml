@@ -13,10 +13,12 @@ permissions:
 
 jobs:
   generate:
-    # Mercado Libre bloquea con 403 las peticiones a su API desde IPs de datacenter,
-    # incluyendo los runners ubuntu-latest de GitHub (confirmado). Por eso este job
-    # corre en un runner self-hosted (tu PC/servidor con IP residencial).
-    # Ver SETUP.md, sección "Runner self-hosted", para instalarlo.
+    # El acceso sin autenticar de Mercado Libre (API y sitio) está bloqueado; ahora
+    # usamos la API oficial con OAuth (ver src/mlAuth.js). Se mantiene en
+    # self-hosted porque ahí es donde ya se hizo el setup inicial del token
+    # (el refresh_token vive en el disco de este equipo, no en GitHub). Si en
+    # algún momento confirman que el token autenticado también funciona desde
+    # ubuntu-latest, se puede volver a un runner de GitHub sin problema.
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
@@ -36,26 +38,14 @@ jobs:
           POSTS_PER_DAY: '5'
           MIN_RATING: '4.5'
           MIN_REVIEWS: '10'
+          ML_APP_ID: ${{ secrets.ML_APP_ID }}
+          ML_APP_SECRET: ${{ secrets.ML_APP_SECRET }}
           ML_AFFILIATE_MATT_TOOL: ${{ secrets.ML_AFFILIATE_MATT_TOOL }}
           ML_AFFILIATE_MATT_WORD: ${{ secrets.ML_AFFILIATE_MATT_WORD }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Commitear posts generados
-        shell: bash
-        run: |
-          git config user.name "ofertas-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add posts/
-          git diff --cached --quiet || git commit -m "posts: $(date -u +%F)"
-          git push
-
-      - name: Subir capturas de diagnóstico (si las hay)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug
-          path: debug/
-          if-no-files-found: ignore
+        run: node scripts/commit-if-changed.js posts
 
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -94,9 +84,4 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
 
       - name: Commitear estado de publicación
-        run: |
-          git config user.name "ofertas-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add posts/
-          git diff --cached --quiet || git commit -m "publish: $(date -u +%F)"
-          git push
+        run: node scripts/commit-if-changed.js publish
