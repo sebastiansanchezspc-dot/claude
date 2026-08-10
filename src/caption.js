@@ -1,11 +1,13 @@
 'use strict';
 
+// Voz de la cuenta "Somos Ratas": orgullosamente ahorrativos, cero clickbait,
+// se dirige a la audiencia como ratones/ratitas. Ver IDENTITY.md.
 const INTROS = [
-  '¡Ojo con esta ofertaza, chiquillos! 🔥',
-  '¡Encontramos la posta del día, cabros! 😱🛒',
-  '¡Aguanten que esto está regalado! 💸',
-  '¡Se las dejamos calentitas! 🙌',
-  '¡Esta se las tenía que compartir sí o sí! 👀',
+  '🐭 Ratas reportándose, encontramos la posta',
+  '🧀 Ratita, esto no te lo puedes perder',
+  '🐭 Las ratas cazamos, no pagamos de más',
+  '👀 Ojo ratones, esta hay que cazarla',
+  '🐭 Reporte rata del día, aguanten',
 ];
 
 function formatCLP(price) {
@@ -26,10 +28,10 @@ function buildCaption(product, affiliateLink) {
     price,
     rating,
     '',
-    'Link para comprar 👇 (afiliado)',
+    'Link para comprar 👇 (afiliado, ratón honesto)',
     affiliateLink,
     '',
-    '#ofertas #mercadolibrechile #ofertaschile #descuentos #compraschile',
+    '#somosratas #ratachile #ofertaschile #mercadolibrechile #ratasunidas',
   ].join('\n');
 }
 
@@ -48,9 +50,14 @@ async function buildCaptionWithClaude(product, affiliateLink) {
         {
           role: 'user',
           content:
-            'Escribe un caption de Instagram en español chileno, tono amigable, cercano y entusiasta ' +
-            '(como un amigo que encuentra ofertas, no como vendedor genérico), para este producto de Mercado Libre. ' +
-            'Usa 2-4 emojis, incluye el precio, y termina con 3-5 hashtags relevantes en español chileno sobre ofertas. ' +
+            'Escribe un caption de Instagram en español chileno para la cuenta "Somos Ratas": ' +
+            'la personalidad es la de un ratón orgullosamente ahorrativo que caza la mejor oferta ' +
+            'de Mercado Libre para no pagar de más, y se la comparte a sus "ratones/ratitas" ' +
+            '(la audiencia). Tono cercano, picante y con humor chileno, nunca burlón con la gente ' +
+            'de pocos recursos — la marca celebra ser ahorrativo, no se ríe de la pobreza. ' +
+            'Puedes usar guiños de roedor (🐭🧀) con moderación, sin abusar. ' +
+            'Usa 2-4 emojis en total, incluye el precio, y termina con 3-5 hashtags en español chileno ' +
+            'sobre ofertas (incluye #somosratas). ' +
             'No inventes datos que no te doy (rating, precio, título). No incluyas el link, yo lo agrego después.\n\n' +
             `Producto: ${product.title}\n` +
             `Precio: ${formatCLP(product.price)}\n` +

@@ -1,36 +1,55 @@
 # Identidad de la cuenta de Instagram
 
-Tono general para todas las opciones: cercano, entusiasta, "el amigo/a que caza las ofertas
-por ti", nada de lenguaje corporativo. Trato de "tú"/"cabros/chiquillos" con humor chileno,
-sin caer en garabatos ni en clickbait engañoso (siempre mostrando precio y rating reales).
+## La elegida: Somos Ratas 🐭🇨🇱
 
-## Opción 1 — @OfertasCuático.cl
-- **Bio:** "Las ofertas más cuáticas de Mercado Libre 🇨🇱🔥 | Todos los días, los productos
-  mejor vendidos y mejor calificados | Compra con confianza 👇"
-- **Personalidad:** el amigo choro que siempre encuentra el precio bueno antes que nadie.
-- **Ejemplo de caption:** "¡Aguanten cabros, esta está regalada! 🔥 [producto] a $X con
-  4.8⭐ y +500 reseñas. Link de compra 👇"
+El meme chileno de "ser rata" (cazar el precio bueno, no pagar ni un peso de más) es la
+identidad completa de la cuenta — no es un chiste puntual, es la personalidad.
 
-## Opción 2 — @CazaOfertasChile
-- **Bio:** "Cazando las mejores ofertas de Mercado Libre para ti 🎯🇨🇱 | Solo productos con
-  +4.5⭐ | Nuevo hallazgo todos los días"
-- **Personalidad:** más "curador experto" que amigo, enfocado en la garantía de calidad
-  (rating alto) como diferenciador.
+- **Handle:** `@somos.ratas.cl` (alternativas si está tomado: `@ratas.cl`, `@ratachile.ofertas`)
+- **Nombre de perfil:** Somos Ratas 🐭
+- **Bio:**
+  ```
+  Somos ratas y no lo vamos a negar 🐭🇨🇱
+  Cazamos las ofertas de ML pa' no pagar de más
+  Todos los días, lo más vendido + mejor calificado 👇
+  ```
+- **Personalidad:** orgullosamente rata. No es tacañería fome, es picardía — el ratón que
+  encontró la ofertaza antes que todos y la comparte porque "para eso somos ratas". Se
+  dirige a la audiencia como "ratones/ratitas". Humor chileno, autoconsciente, cero
+  vergüenza con el estereotipo, cero clickbait engañoso (precio y rating siempre reales).
+- **Cosas que SÍ:** guiños de roedor (🐭🧀), plata ahorrada como logro ("nos ahorramos $X"),
+  orgullo rata ("las ratas no pagamos caro"), cercanía.
+- **Cosas que NO:** garabatos, burlarse de la gente con poca plata (la marca celebra ser
+  ahorrativo, no se ríe de la pobreza), clickbait con precios falsos.
 
-## Opción 3 — @LaOfertaDelDía.cl
-- **Bio:** "Todos los días, la posta de Mercado Libre 👀💸 | Lo más vendido + mejor calificado
-  | Ofertas verificadas, cero chamullo"
-- **Personalidad:** directa y honesta, con foco en "cero chamullo" (transparencia sobre que
-  son links de afiliado).
+### Ejemplos de caption
+```
+🐭 RATAS REPORTÁNDOSE, encontramos la posta
+[producto] a $X (antes bien más caro, no somos ningunas gil...ratas)
+⭐ 4.8 (500+ reseñas) — o sea que no es puro floro
+Link para comprar 👇 (afiliado, ratón honesto)
+```
+```
+🧀 Ratita, esto no te lo puedes perder
+[producto] — $X y 4.7⭐
+Las ratas cazamos, no pagamos de más 🐭
+👇 link
+```
 
-## Recomendación
-Opción 1 (@OfertasCuático.cl) es la más "bien chilena" en el nombre mismo y da pie a un tono
-de voz jugado sin perder cercanía. Las tres funcionan con el sistema tal cual está armado —
-solo cambia el texto de bio en el perfil y, si quieres, el set de `INTROS` en `src/caption.js`
-para que calce con la personalidad elegida.
+### Hashtags sugeridos
+`#somosratas #ratachile #ofertaschile #mercadolibrechile #ratasunidas`
+
+## Otras opciones consideradas
+- **@OfertasCuático.cl** — amigo choro que encuentra el precio bueno. Más genérico, menos
+  identidad propia.
+- **@CazaOfertasChile** — tono "curador experto", enfocado en el rating alto como sello de
+  calidad.
+
+Ambas quedan como plan B en `src/caption.js` (fácil volver a cambiar el set de `INTROS` si
+en algún momento se quiere un tono distinto), pero la cuenta se arma con **Somos Ratas**.
 
 ## Transparencia (importante)
 Instagram/Meta exige declarar contenido de afiliados. Activa "Contenido de marca" /
-declara que usas enlaces de afiliado en la bio o en cada post (ej. "Los links son de
-afiliado, sin costo extra para ti 🙌"). Ya viene un aviso corto en la plantilla de caption
-("Link para comprar 👇 (afiliado)"); no lo saques.
+declara que usas enlaces de afiliado en la bio o en cada post. Ya viene un aviso corto en
+la plantilla de caption ("afiliado, ratón honesto" / "Link para comprar 👇 (afiliado)");
+no lo saques.
