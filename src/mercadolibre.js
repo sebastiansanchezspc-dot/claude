@@ -10,9 +10,30 @@
 'use strict';
 
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+const DEBUG_DIR = path.join(__dirname, '..', 'debug');
+const debugSaved = new Set();
+
+// Guarda screenshot + HTML de una página, una sola vez por "tipo" (para no llenar
+// el workflow de capturas). Sirve para diagnosticar cuando los selectores no
+// encuentran lo esperado, sin necesitar acceso directo al sitio.
+async function saveDebug(page, kind) {
+  if (debugSaved.has(kind)) return;
+  debugSaved.add(kind);
+  try {
+    fs.mkdirSync(DEBUG_DIR, { recursive: true });
+    await page.screenshot({ path: path.join(DEBUG_DIR, `${kind}.png`), fullPage: true });
+    fs.writeFileSync(path.join(DEBUG_DIR, `${kind}.html`), await page.content());
+    console.log(`[debug] guardado debug/${kind}.png y .html`);
+  } catch (e) {
+    console.warn(`[debug] no se pudo guardar "${kind}": ${e.message}`);
+  }
+}
 
 let browserPromise = null;
 function getBrowser() {
@@ -71,7 +92,7 @@ async function searchBestSelling(site, query, limit = 5) {
   try {
     const slug = query.trim().toLowerCase().replace(/\s+/g, '-');
     const url = `https://listado.mercadolibre.cl/${encodeURIComponent(slug)}_OrderId_SOLD_QUANTITY_DESC`;
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
     await page.waitForTimeout(1500);
 
     const items = await page.$$eval(
@@ -92,6 +113,13 @@ async function searchBestSelling(site, query, limit = 5) {
         }),
     );
 
+    console.log(
+      `[ML] búsqueda "${query}" (status ${response ? response.status() : '?'}) -> ${items.length} tarjetas encontradas`,
+    );
+    if (items.length === 0) {
+      await saveDebug(page, `search-${slug}`);
+    }
+
     return items
       .filter((i) => i.permalink && i.title)
       .map((i) => ({ ...i, id: extractItemId(i.permalink) }))
@@ -110,7 +138,7 @@ async function getItemDetails(permalink) {
   try {
     await page.goto(permalink, { waitUntil: 'domcontentloaded', timeout: 25000 });
     await page.waitForTimeout(1000);
-    return await page.evaluate(() => {
+    const details = await page.evaluate(() => {
       const ratingEl = document.querySelector(
         '.ui-pdp-review__rating, .ui-review-capability__rating__average',
       );
@@ -126,6 +154,10 @@ async function getItemDetails(permalink) {
       const price = priceEl ? Number(priceEl.textContent.replace(/\./g, '').replace(/[^\d]/g, '')) : null;
       return { rating, totalReviews, price };
     });
+    if (details.rating === null) {
+      await saveDebug(page, 'item-sin-rating');
+    }
+    return details;
   } catch (e) {
     return { rating: null, totalReviews: 0, price: null };
   } finally {
