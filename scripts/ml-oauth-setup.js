@@ -24,6 +24,15 @@ async function main() {
   }
 
   const tokens = await exchangeCodeForTokens({ clientId, clientSecret, code, redirectUri });
+  if (!tokens.refresh_token) {
+    console.error(
+      'Mercado Libre no devolvió un refresh_token. Lo más probable: en la configuración de tu ' +
+        'app (developers.mercadolibre.com/devcenter → tu app → Configuración y scopes → ' +
+        '"Flujos OAuth"), la casilla "Refresh Token" está sin marcar. Márcala, guarda, saca un ' +
+        'code nuevo (se invalida el anterior) y corre este script de nuevo.',
+    );
+    process.exit(1);
+  }
   storeRefreshToken(tokens.refresh_token);
   console.log(`Listo. Refresh token guardado en ${TOKEN_FILE}`);
   console.log('Ya puedes correr "npm run research" o el workflow normalmente.');
