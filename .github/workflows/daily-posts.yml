@@ -47,9 +47,13 @@ jobs:
       - name: Commitear posts generados
         run: node scripts/commit-if-changed.js posts
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Subir capturas de diagnóstico (si las hay)
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          path: posts
+          name: debug
+          path: debug/
+          if-no-files-found: ignore
 
   deploy-pages:
     needs: generate
@@ -63,6 +67,16 @@ jobs:
       page_url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      # actions/upload-pages-artifact necesita bash internamente, y el runner
+      # self-hosted de Windows no lo tiene disponible - por eso este paso se
+      # movió acá (ubuntu-latest trae bash). Se re-clona el repo (ya con el
+      # commit de "generate" pusheado) solo para empaquetar posts/.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: posts
       - id: deployment
         uses: actions/deploy-pages@v4
 
