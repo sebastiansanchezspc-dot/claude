@@ -1,6 +1,11 @@
 # Renueva Automotriz 🚗
 
-App de gestión para automotoras: stock de autos, ventas, comisiones, caja y gastos.
+App de gestión de ventas multi-rubro: stock, ventas, comisiones, caja y gastos.
+Soporta 3 rubros activables independientemente: **Automotriz** 🚗, **Inmobiliaria** 🏠 y
+**Retail general** 🛍️. Cada rubro tiene sus propios campos (ej: patente en Automotriz,
+dirección en Inmobiliaria, SKU/talla en Retail) y Retail además maneja **stock por
+cantidad** (múltiples unidades por producto), mientras Automotriz e Inmobiliaria manejan
+**ítem único** (1 auto o 1 propiedad = 1 venta).
 
 **Stack:** React + Vite + TailwindCSS · Supabase (PostgreSQL + Auth + RLS) · Deploy en Vercel.
 
@@ -19,11 +24,15 @@ sheets desde abajo para formularios, toasts arriba al centro.
 2. Ve a **Project Settings → API** y copia:
    - `Project URL` → será `VITE_SUPABASE_URL`
    - `anon public key` → será `VITE_SUPABASE_ANON_KEY`
-3. Ve a **SQL Editor**, pega el contenido completo de
-   [`supabase/migrations/001_schema.sql`](supabase/migrations/001_schema.sql) y ejecútalo.
-   Esto crea las 6 tablas (`profiles`, `vendedores`, `autos`, `ventas`, `gastos`, `temas`),
-   activa Row Level Security, define las políticas por rol y el trigger que crea un `profile`
-   automáticamente cuando alguien se registra en `auth.users` (con rol por defecto `vendedor`).
+3. Ve a **SQL Editor**, pega y ejecuta en orden:
+   1. [`supabase/migrations/001_schema.sql`](supabase/migrations/001_schema.sql) — crea las
+      6 tablas base (`profiles`, `vendedores`, `autos`, `ventas`, `gastos`, `temas`), activa
+      Row Level Security, define las políticas por rol y el trigger que crea un `profile`
+      automáticamente cuando alguien se registra en `auth.users` (rol por defecto `vendedor`).
+   2. [`supabase/migrations/002_multirubro.sql`](supabase/migrations/002_multirubro.sql) —
+      generaliza `autos` a una tabla `items` multi-rubro (con `rubro`, `atributos jsonb`,
+      `sku`, `stock_cantidad`) y crea `negocio_config` (qué rubros están activos). Si es un
+      proyecto nuevo, igual ejecuta ambos en orden: 001 primero, 002 después.
 4. (Alternativa con CLI): si prefieres usar el CLI de Supabase:
    ```bash
    npm install -g supabase
@@ -93,18 +102,41 @@ npm run preview   # sirve el build localmente
 
 ```
 src/
-  lib/            supabase.js, themes.js, format.js
-  hooks/          useAuth.jsx, useTheme.jsx
+  lib/            supabase.js, themes.js, format.js, rubros.js
+  hooks/          useAuth.jsx, useTheme.jsx, useNegocio.jsx
   components/
     ui/           Sheet, Toast, PBtn, FMoney, FSel, Pip, Empty, PagosBlock
     TabBar.jsx, Header.jsx
   pages/          Dashboard, Stock, Ventas, Caja, Equipo, Gastos, Ajustes, Login
   App.jsx         Router + protección de rutas por rol
 supabase/
-  migrations/001_schema.sql   tablas + RLS + triggers
+  migrations/001_schema.sql       tablas base + RLS + triggers
+  migrations/002_multirubro.sql   autos -> items multi-rubro + negocio_config
 ```
 
-## 6. Roles
+## 6. Rubros (verticales de negocio)
+
+Los rubros activos se eligen en **Ajustes → Rubros activos** (solo admin) y se guardan en
+`negocio_config.rubros_activos`. Cuando hay más de un rubro activo, Stock muestra pestañas
+para filtrar y el formulario de ingreso pide primero elegir el rubro del ítem.
+
+| Rubro | Ítem se llama | Código | Campos propios | Modo de stock |
+|---|---|---|---|---|
+| 🚗 Automotriz | Auto | Patente | Marca, modelo, año, km, color, tipo | Ítem único (1 auto = 1 venta) |
+| 🏠 Inmobiliaria | Propiedad | Rol de avalúo | Operación (venta/arriendo), tipo, dirección, comuna, m², dormitorios, baños | Ítem único |
+| 🛍️ Retail general | Producto | SKU | Marca, categoría, talla/variante | Por cantidad (stock se descuenta en cada venta) |
+
+La definición de campos por rubro vive en [`src/lib/rubros.js`](src/lib/rubros.js) — para
+agregar un rubro nuevo (ej. Maquinaria, Náutica) solo hay que agregar una entrada ahí con su
+lista de `campos`, sin tocar el esquema de base de datos (los campos propios del rubro se
+guardan en la columna `atributos jsonb` de `items`).
+
+**Cómo funciona el costo unitario:** al ingresar un ítem de Retail con cantidad > 1, el costo
+total ingresado se divide en `costo_unitario = costo / cantidad`. Cada venta descuenta la
+cantidad vendida del `stock_cantidad` y calcula su ganancia usando ese costo unitario. En
+Automotriz/Inmobiliaria la cantidad siempre es 1, así que `costo_unitario = costo`.
+
+## 7. Roles
 
 | Rol       | Stock         | Ventas                  | Caja | Equipo | Gastos | Ajustes |
 |-----------|---------------|--------------------------|------|--------|--------|---------|

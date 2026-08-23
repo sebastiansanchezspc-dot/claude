@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
+import { getRubro } from '../lib/rubros.js'
 import Header from '../components/Header.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import PBtn from '../components/ui/PBtn.jsx'
@@ -21,8 +22,8 @@ const METODOS_VENTA = [
 
 function emptyForm() {
   return {
-    auto_id: '', fecha: hoyISO(), vendedor_id: '',
-    precio_venta: 0, comision_tipo: 'pct', comision_valor: 0,
+    item_id: '', fecha: hoyISO(), vendedor_id: '',
+    precio_venta: 0, comision_tipo: 'pct', comision_valor: 0, cantidad: 1,
     pagos: [{ metodo: 'efectivo', monto: 0 }],
     cliente_nombre: '', cliente_fono: '',
   }
@@ -33,35 +34,43 @@ function calcComision(tipo, valor, precioVenta) {
   return Number(valor) || 0
 }
 
-function VentaForm({ initial, autosDisponibles, vendedores, onCancel, onSaved, isEdit }) {
+function VentaForm({ initial, itemsDisponibles, vendedores, onCancel, onSaved, isEdit }) {
   const toast = useToast()
   const [form, setForm] = useState(initial || emptyForm())
   const [saving, setSaving] = useState(false)
 
-  const autoSeleccionado = useMemo(
-    () => autosDisponibles.find((a) => a.id === form.auto_id),
-    [autosDisponibles, form.auto_id]
+  const itemSeleccionado = useMemo(
+    () => itemsDisponibles.find((a) => a.id === form.item_id),
+    [itemsDisponibles, form.item_id]
   )
+  const rubro = itemSeleccionado ? getRubro(itemSeleccionado.rubro) : null
 
-  const costo = autoSeleccionado?.costo ?? initial?.costo ?? 0
+  const costoUnitario = itemSeleccionado?.costo_unitario ?? initial?.costo ?? 0
+  const cantidad = rubro?.usaStock ? Math.max(1, Number(form.cantidad) || 1) : 1
+  const costo = costoUnitario * cantidad
   const comision = calcComision(form.comision_tipo, form.comision_valor, form.precio_venta)
   const ganancia = (Number(form.precio_venta) || 0) - costo - comision
+  const stockMax = itemSeleccionado ? itemSeleccionado.stock_cantidad : 1
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.auto_id) { toast.error('Selecciona un auto'); return }
+    if (!form.item_id) { toast.error('Selecciona un ítem'); return }
     if (!form.vendedor_id) { toast.error('Selecciona un vendedor'); return }
     if (!pagosCuadran(form.pagos, form.precio_venta)) {
       toast.error('Los pagos deben sumar exacto al precio de venta')
       return
     }
+    if (rubro?.usaStock && !isEdit && cantidad > stockMax) {
+      toast.error(`Solo quedan ${stockMax} unidades disponibles`)
+      return
+    }
     setSaving(true)
 
     const payload = {
-      auto_id: form.auto_id, fecha: form.fecha, vendedor_id: form.vendedor_id,
+      item_id: form.item_id, fecha: form.fecha, vendedor_id: form.vendedor_id,
       pagos: form.pagos, cliente_nombre: form.cliente_nombre, cliente_fono: form.cliente_fono,
       comision_tipo: form.comision_tipo, comision_valor: form.comision_valor,
-      precio_venta: form.precio_venta, costo, ganancia, comision,
+      precio_venta: form.precio_venta, costo, ganancia, comision, cantidad,
     }
 
     if (isEdit) {
@@ -70,10 +79,19 @@ function VentaForm({ initial, autosDisponibles, vendedores, onCancel, onSaved, i
     } else {
       const { error } = await supabase.from('ventas').insert(payload)
       if (error) { toast.error('Error: ' + error.message); setSaving(false); return }
-      await supabase.from('autos').update({
-        estado: 'vendido', precio_venta: form.precio_venta, fecha_venta: form.fecha,
-        vendedor_venta_id: form.vendedor_id, cliente_nombre: form.cliente_nombre, cliente_fono: form.cliente_fono,
-      }).eq('id', form.auto_id)
+
+      if (rubro?.usaStock) {
+        const restante = stockMax - cantidad
+        await supabase.from('items').update({
+          stock_cantidad: Math.max(0, restante),
+          estado: restante <= 0 ? 'agotado' : 'disponible',
+        }).eq('id', form.item_id)
+      } else {
+        await supabase.from('items').update({
+          estado: 'vendido', precio_venta: form.precio_venta, fecha_venta: form.fecha,
+          vendedor_venta_id: form.vendedor_id, cliente_nombre: form.cliente_nombre, cliente_fono: form.cliente_fono,
+        }).eq('id', form.item_id)
+      }
     }
 
     setSaving(false)
@@ -84,10 +102,10 @@ function VentaForm({ initial, autosDisponibles, vendedores, onCancel, onSaved, i
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <FSel
-        label="Auto" required disabled={isEdit}
-        value={form.auto_id}
-        onChange={(v) => setForm({ ...form, auto_id: v })}
-        options={autosDisponibles.map((a) => ({ value: a.id, label: `${a.marca} ${a.modelo} · ${a.patente}` }))}
+        label="Ítem" required disabled={isEdit}
+        value={form.item_id}
+        onChange={(v) => setForm({ ...form, item_id: v, cantidad: 1 })}
+        options={itemsDisponibles.map((it) => ({ value: it.id, label: `${getRubro(it.rubro).emoji} ${it.nombre}${it.sku ? ' · ' + it.sku : ''}` }))}
       />
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
@@ -97,7 +115,14 @@ function VentaForm({ initial, autosDisponibles, vendedores, onCancel, onSaved, i
         <FSel label="Vendedor" required value={form.vendedor_id} onChange={(v) => setForm({ ...form, vendedor_id: v })} options={vendedores.map((v) => ({ value: v.id, label: v.nombre }))} />
       </div>
 
-      <FMoney label="Precio de venta" required value={form.precio_venta} onChange={(v) => setForm({ ...form, precio_venta: v })} />
+      {rubro?.usaStock && (
+        <label className="block">
+          <span className="block text-xs text-white/50 mb-1">Cantidad * (disponibles: {stockMax})</span>
+          <input required type="number" min="1" max={isEdit ? undefined : stockMax} disabled={isEdit} value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent disabled:opacity-50" />
+        </label>
+      )}
+
+      <FMoney label="Precio de venta (total)" required value={form.precio_venta} onChange={(v) => setForm({ ...form, precio_venta: v })} />
 
       <div className="grid grid-cols-2 gap-3">
         <FSel label="Tipo comisión" value={form.comision_tipo} onChange={(v) => setForm({ ...form, comision_tipo: v })} options={[{ value: 'pct', label: '% Porcentaje' }, { value: 'monto', label: 'Monto fijo' }]} />
@@ -141,10 +166,9 @@ function VentaForm({ initial, autosDisponibles, vendedores, onCancel, onSaved, i
 }
 
 export default function Ventas() {
-  const { rol, profile } = useAuth()
-  const toast = useToast()
+  const { rol } = useAuth()
   const [ventas, setVentas] = useState([])
-  const [autos, setAutos] = useState([])
+  const [items, setItems] = useState([])
   const [vendedores, setVendedores] = useState([])
   const [loading, setLoading] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -155,11 +179,11 @@ export default function Ventas() {
     setLoading(true)
     const [{ data: v }, { data: a }, { data: ve }] = await Promise.all([
       supabase.from('ventas').select('*').order('fecha', { ascending: false }),
-      supabase.from('autos').select('*'),
+      supabase.from('items').select('*'),
       supabase.from('vendedores').select('*').eq('activo', true),
     ])
     setVentas(v || [])
-    setAutos(a || [])
+    setItems(a || [])
     setVendedores(ve || [])
     setLoading(false)
   }
@@ -183,7 +207,7 @@ export default function Ventas() {
     return acc
   }, { bruto: 0, ganancia: 0, comisiones: 0 })
 
-  const autosDisponibles = autos.filter((a) => a.estado === 'disponible' || a.id === editando?.auto_id)
+  const itemsDisponibles = items.filter((a) => a.estado === 'disponible' || a.id === editando?.item_id)
 
   function openNueva() {
     setEditando(null)
@@ -237,11 +261,14 @@ export default function Ventas() {
         ) : (
           <div className="space-y-2">
             {misVentas.map((v) => {
-              const auto = autos.find((a) => a.id === v.auto_id)
+              const item = items.find((a) => a.id === v.item_id)
               return (
                 <button key={v.id} onClick={() => openEditar(v)} className="w-full text-left rounded-2xl bg-surface border border-white/5 p-3.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white">{auto ? `${auto.marca} ${auto.modelo}` : 'Auto'}</p>
+                    <p className="text-sm font-semibold text-white">
+                      {item ? `${getRubro(item.rubro).emoji} ${item.nombre}` : 'Ítem'}
+                      {v.cantidad > 1 && <span className="text-white/40 font-normal"> ×{v.cantidad}</span>}
+                    </p>
                     <p className="text-sm font-bold text-white">{clp(v.precio_venta)}</p>
                   </div>
                   <div className="flex items-center justify-between mt-1">
@@ -260,7 +287,7 @@ export default function Ventas() {
           key={editando?.id || 'nueva'}
           initial={editando}
           isEdit={!!editando}
-          autosDisponibles={autosDisponibles}
+          itemsDisponibles={itemsDisponibles}
           vendedores={vendedores}
           onCancel={() => setSheetOpen(false)}
           onSaved={handleSaved}

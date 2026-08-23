@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
+import { useNegocio } from '../hooks/useNegocio.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import { THEMES } from '../lib/themes.js'
+import { RUBROS_LIST } from '../lib/rubros.js'
 import Header from '../components/Header.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import PBtn from '../components/ui/PBtn.jsx'
@@ -20,6 +22,7 @@ const ROLES = [
 export default function Ajustes() {
   const { rol, signOut } = useAuth()
   const { themeKey, setTheme } = useTheme()
+  const { rubrosActivos, updateRubros, nombreNegocio, updateNombre } = useNegocio()
   const toast = useToast()
   const navigate = useNavigate()
   const [usuarios, setUsuarios] = useState([])
@@ -28,6 +31,28 @@ export default function Ajustes() {
   const [nombre, setNombre] = useState('')
   const [nuevoRol, setNuevoRol] = useState('vendedor')
   const [inviting, setInviting] = useState(false)
+  const [nombreNegocioInput, setNombreNegocioInput] = useState(nombreNegocio)
+
+  useEffect(() => { setNombreNegocioInput(nombreNegocio) }, [nombreNegocio])
+
+  async function toggleRubro(key) {
+    const activo = rubrosActivos.includes(key)
+    const next = activo ? rubrosActivos.filter((r) => r !== key) : [...rubrosActivos, key]
+    if (next.length === 0) {
+      toast.error('Debe quedar al menos un rubro activo')
+      return
+    }
+    const { error } = await updateRubros(next)
+    if (error) toast.error(error.message)
+    else toast.success('Rubros actualizados')
+  }
+
+  async function handleNombreBlur() {
+    if (nombreNegocioInput.trim() && nombreNegocioInput !== nombreNegocio) {
+      const { error } = await updateNombre(nombreNegocioInput.trim())
+      if (!error) toast.success('Nombre del negocio actualizado')
+    }
+  }
 
   useEffect(() => {
     if (rol !== 'admin') return
@@ -68,6 +93,44 @@ export default function Ajustes() {
     <>
       <Header title="⚙️ Ajustes" />
       <div className="px-4 py-4 space-y-5">
+        {rol === 'admin' && (
+          <div>
+            <label className="block mb-3">
+              <span className="block text-xs text-white/50 mb-1">Nombre del negocio</span>
+              <input
+                value={nombreNegocioInput}
+                onChange={(e) => setNombreNegocioInput(e.target.value)}
+                onBlur={handleNombreBlur}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent"
+              />
+            </label>
+            <p className="text-xs text-white/40 mb-2 px-1">Rubros activos</p>
+            <div className="rounded-2xl bg-surface border border-white/5 divide-y divide-white/5">
+              {RUBROS_LIST.map((r) => {
+                const activo = rubrosActivos.includes(r.key)
+                return (
+                  <button
+                    key={r.key}
+                    onClick={() => toggleRubro(r.key)}
+                    className="w-full flex items-center justify-between px-3.5 py-3 text-left"
+                  >
+                    <div>
+                      <p className="text-sm text-white/90">{r.emoji} {r.label}</p>
+                      <p className="text-[11px] text-white/40">{r.itemLabelPlural}</p>
+                    </div>
+                    <span className={`w-10 h-6 rounded-full relative transition ${activo ? 'bg-accent' : 'bg-white/10'}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition ${activo ? 'left-[18px]' : 'left-0.5'}`} />
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[11px] text-white/30 mt-2 px-1">
+              Cada rubro activo agrega su propia pestaña y campos en Stock (Autos, Propiedades o Productos).
+            </p>
+          </div>
+        )}
+
         <div>
           <p className="text-xs text-white/40 mb-2 px-1">Tema de color</p>
           <div className="grid grid-cols-5 gap-2.5">

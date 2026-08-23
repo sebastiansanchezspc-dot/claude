@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useNegocio } from '../hooks/useNegocio.jsx'
+import { getRubro } from '../lib/rubros.js'
 import Header from '../components/Header.jsx'
 import Empty from '../components/ui/Empty.jsx'
 import Pip from '../components/ui/Pip.jsx'
@@ -17,11 +19,11 @@ function monthRange(offset = 0) {
 
 export default function Dashboard() {
   const { rol } = useAuth()
+  const { rubrosActivos } = useNegocio()
   const [loading, setLoading] = useState(true)
   const [ventas, setVentas] = useState([])
   const [gastos, setGastos] = useState([])
-  const [autos, setAutos] = useState([])
-  const [seisMeses, setSeisMeses] = useState([])
+  const [items, setItems] = useState([])
 
   useEffect(() => {
     async function load() {
@@ -33,12 +35,12 @@ export default function Dashboard() {
         rol === 'admin'
           ? supabase.from('gastos').select('*').gte('fecha', start.toISOString().slice(0, 10))
           : Promise.resolve({ data: [] }),
-        supabase.from('autos').select('id, marca, modelo, estado'),
+        supabase.from('items').select('id, rubro, nombre, estado'),
       ])
 
       setVentas(v || [])
       setGastos(g || [])
-      setAutos(a || [])
+      setItems(a || [])
       setLoading(false)
     }
     load()
@@ -156,9 +158,18 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="rounded-2xl bg-surface border border-white/5 p-4 flex items-center justify-between">
-          <p className="text-xs text-white/40">Autos en stock disponibles</p>
-          <Pip tone="disponible">{autos.filter((a) => a.estado === 'disponible').length}</Pip>
+        <div className="rounded-2xl bg-surface border border-white/5 p-4 space-y-2">
+          <p className="text-xs text-white/40">Ítems disponibles en stock</p>
+          {rubrosActivos.map((rk) => {
+            const r = getRubro(rk)
+            const disponibles = items.filter((it) => it.rubro === rk && it.estado === 'disponible').length
+            return (
+              <div key={rk} className="flex items-center justify-between">
+                <span className="text-sm text-white/70">{r.emoji} {r.itemLabelPlural}</span>
+                <Pip tone="disponible">{disponibles}</Pip>
+              </div>
+            )
+          })}
         </div>
       </div>
     </>

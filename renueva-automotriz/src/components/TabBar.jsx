@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 
 const ALL_TABS = [
   { to: '/', emoji: '🏠', label: 'Resumen', roles: ['admin', 'vendedor', 'readonly'] },
-  { to: '/stock', emoji: '🚗', label: 'Stock', roles: ['admin', 'vendedor', 'readonly'] },
+  { to: '/stock', emoji: '📦', label: 'Stock', roles: ['admin', 'vendedor', 'readonly'] },
   { to: '/ventas', emoji: '💰', label: 'Ventas', roles: ['admin', 'vendedor', 'readonly'] },
   { to: '/caja', emoji: '🧮', label: 'Caja', roles: ['admin'] },
   { to: '/equipo', emoji: '👥', label: 'Equipo', roles: ['admin'] },

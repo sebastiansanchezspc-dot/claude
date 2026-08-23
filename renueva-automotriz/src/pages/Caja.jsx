@@ -28,7 +28,7 @@ function rangoDesdeModo(modo, refDate) {
 
 export default function Caja() {
   const [ventas, setVentas] = useState([])
-  const [autos, setAutos] = useState([])
+  const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [modo, setModo] = useState('mes')
   const [desde, setDesde] = useState(hoyISO())
@@ -39,10 +39,10 @@ export default function Caja() {
       setLoading(true)
       const [{ data: v }, { data: a }] = await Promise.all([
         supabase.from('ventas').select('*'),
-        supabase.from('autos').select('id, marca, modelo'),
+        supabase.from('items').select('id, nombre'),
       ])
       setVentas(v || [])
-      setAutos(a || [])
+      setItems(a || [])
       setLoading(false)
     }
     load()
@@ -133,11 +133,11 @@ export default function Caja() {
           ) : (
             <div className="divide-y divide-white/5">
               {ventasPeriodo.map((v) => {
-                const auto = autos.find((a) => a.id === v.auto_id)
+                const item = items.find((a) => a.id === v.item_id)
                 return (
                   <div key={v.id} className="py-2.5">
                     <div className="flex justify-between text-sm">
-                      <span className="text-white/90">{auto ? `${auto.marca} ${auto.modelo}` : 'Venta'}</span>
+                      <span className="text-white/90">{item ? item.nombre : 'Venta'}</span>
                       <span className="text-white font-semibold">{clp(v.precio_venta)}</span>
                     </div>
                     <p className="text-[11px] text-white/40">{fechaCL(v.fecha)} · {(v.pagos || []).map((p) => METODOS.find((m) => m.key === p.metodo)?.label).join(', ')}</p>
