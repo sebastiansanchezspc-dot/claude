@@ -31,8 +31,13 @@ sheets desde abajo para formularios, toasts arriba al centro.
       automáticamente cuando alguien se registra en `auth.users` (rol por defecto `vendedor`).
    2. [`supabase/migrations/002_multirubro.sql`](supabase/migrations/002_multirubro.sql) —
       generaliza `autos` a una tabla `items` multi-rubro (con `rubro`, `atributos jsonb`,
-      `sku`, `stock_cantidad`) y crea `negocio_config` (qué rubros están activos). Si es un
-      proyecto nuevo, igual ejecuta ambos en orden: 001 primero, 002 después.
+      `sku`, `stock_cantidad`) y crea `negocio_config` (qué rubros están activos).
+   3. [`supabase/migrations/003_planes.sql`](supabase/migrations/003_planes.sql) — agrega
+      planes de suscripción (`plan` + `max_usuarios` en `negocio_config`) y dos triggers de
+      seguridad: bloquea crear un usuario nuevo si ya se alcanzó el límite del plan, y evita
+      que el último admin se autodegrade sin dejar un reemplazo.
+
+   Si es un proyecto nuevo, igual ejecuta los 3 en orden: 001, luego 002, luego 003.
 4. (Alternativa con CLI): si prefieres usar el CLI de Supabase:
    ```bash
    npm install -g supabase
@@ -136,7 +141,34 @@ total ingresado se divide en `costo_unitario = costo / cantidad`. Cada venta des
 cantidad vendida del `stock_cantidad` y calcula su ganancia usando ese costo unitario. En
 Automotriz/Inmobiliaria la cantidad siempre es 1, así que `costo_unitario = costo`.
 
-## 7. Roles
+## 7. Planes de suscripción
+
+El número de usuarios (admin + vendedores + solo lectura) está limitado por el plan activo,
+elegible en **Ajustes → Plan de suscripción** (solo admin):
+
+| Plan | Usuarios | Pensado para |
+|---|---|---|
+| Standard | 1 | Solo el admin, sin equipo |
+| Media | hasta 3 | Admin + 2 vendedores/readonly |
+| Premium | hasta 7 | Admin + hasta 6 vendedores/readonly |
+
+Siempre debe quedar **un usuario admin** (los demás son `vendedor` o `readonly`) y **al menos
+uno**. El límite se refuerza en dos niveles:
+
+- **UI:** el botón "+ Invitar" se deshabilita al llegar al máximo del plan.
+- **Base de datos:** un trigger (`trg_limite_usuarios` en `003_planes.sql`) bloquea la
+  creación de un nuevo `profile` si ya se alcanzó `max_usuarios`, y otro trigger
+  (`trg_ultimo_admin`) impide degradar al último admin sin dejar reemplazo. Así el límite se
+  cumple aunque la invitación se dispare fuera de la app (ej. directo desde el dashboard de
+  Supabase).
+
+Bajar de plan con más usuarios activos de los que el nuevo plan permite se bloquea desde la
+UI (`useNegocio.updatePlan`) pidiendo eliminar/desactivar usuarios primero. Este flujo no
+incluye cobro real (no hay integración de pagos); es un control de acceso interno. Para
+cobrar automáticamente habría que sumar Stripe (o similar) y sincronizar `negocio_config.plan`
+vía webhook.
+
+## 8. Roles
 
 | Rol       | Stock         | Ventas                  | Caja | Equipo | Gastos | Ajustes |
 |-----------|---------------|--------------------------|------|--------|--------|---------|
@@ -148,14 +180,14 @@ El tab bar inferior solo muestra las secciones a las que el rol tiene acceso. `G
 accesible desde el header de `Caja` (solo admin). `Ajustes` es accesible desde el ícono ⚙️
 del header, para todos los roles (con la gestión de usuarios visible solo para admin).
 
-## 7. Temas de color
+## 9. Temas de color
 
 10 temas intercambiables, guardados por usuario en la tabla `temas` (con fallback a
 `localStorage` mientras carga la sesión): azul, grafito, dorado, esmeralda, volcán, lavanda,
 magenta, cobre, hielo, carbón. Se eligen desde **Ajustes** con preview visual real de cada
 paleta.
 
-## 8. Formato de dinero
+## 10. Formato de dinero
 
 Todos los inputs de dinero (`FMoney`) muestran `$` + puntos de miles en tiempo real mientras
 se escribe (formato `es-CL`), por ejemplo al escribir `12000000` se ve `$12.000.000`. Los

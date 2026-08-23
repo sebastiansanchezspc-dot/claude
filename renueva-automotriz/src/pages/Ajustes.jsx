@@ -7,6 +7,7 @@ import { useNegocio } from '../hooks/useNegocio.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import { THEMES } from '../lib/themes.js'
 import { RUBROS_LIST } from '../lib/rubros.js'
+import { PLANES_LIST, getPlan } from '../lib/planes.js'
 import Header from '../components/Header.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import PBtn from '../components/ui/PBtn.jsx'
@@ -22,7 +23,9 @@ const ROLES = [
 export default function Ajustes() {
   const { rol, signOut } = useAuth()
   const { themeKey, setTheme } = useTheme()
-  const { rubrosActivos, updateRubros, nombreNegocio, updateNombre } = useNegocio()
+  const { rubrosActivos, updateRubros, nombreNegocio, updateNombre, plan, maxUsuarios, totalUsuarios, updatePlan, refreshUsuarios } = useNegocio()
+  const planActual = getPlan(plan)
+  const enLimite = totalUsuarios >= maxUsuarios
   const toast = useToast()
   const navigate = useNavigate()
   const [usuarios, setUsuarios] = useState([])
@@ -54,13 +57,34 @@ export default function Ajustes() {
     }
   }
 
-  useEffect(() => {
+  async function loadUsuarios() {
     if (rol !== 'admin') return
-    supabase.from('profiles').select('*').order('created_at').then(({ data }) => setUsuarios(data || []))
-  }, [rol])
+    const { data } = await supabase.from('profiles').select('*').order('created_at')
+    setUsuarios(data || [])
+  }
+
+  useEffect(() => { loadUsuarios() }, [rol])
+
+  async function handleCambiarPlan(planKey) {
+    const { error } = await updatePlan(planKey)
+    if (error) toast.error(error.message)
+    else toast.success(`Plan cambiado a ${getPlan(planKey).label}`)
+  }
+
+  function abrirInvitar() {
+    if (enLimite) {
+      toast.error(`Alcanzaste el límite de ${maxUsuarios} usuarios del plan ${planActual.label}. Sube de plan para agregar más.`)
+      return
+    }
+    setSheetOpen(true)
+  }
 
   async function handleInvite(e) {
     e.preventDefault()
+    if (enLimite) {
+      toast.error('Límite de usuarios del plan alcanzado')
+      return
+    }
     setInviting(true)
     const { error } = await supabase.auth.admin?.inviteUserByEmail
       ? await supabase.auth.admin.inviteUserByEmail(email, { data: { nombre, rol: nuevoRol } })
@@ -72,6 +96,8 @@ export default function Ajustes() {
       toast.success('Invitación enviada')
       setSheetOpen(false)
       setEmail(''); setNombre('')
+      loadUsuarios()
+      refreshUsuarios()
     }
   }
 
@@ -93,6 +119,35 @@ export default function Ajustes() {
     <>
       <Header title="⚙️ Ajustes" />
       <div className="px-4 py-4 space-y-5">
+        {rol === 'admin' && (
+          <div>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <p className="text-xs text-white/40">Plan de suscripción</p>
+              <span className={`text-[11px] font-medium ${enLimite ? 'text-amber-300' : 'text-white/50'}`}>
+                {totalUsuarios} / {maxUsuarios} usuarios
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {PLANES_LIST.map((p) => {
+                const activo = plan === p.key
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => handleCambiarPlan(p.key)}
+                    className={`rounded-xl px-2 py-3 text-center border ${activo ? 'bg-accent/15 border-accent' : 'bg-surface border-white/5'}`}
+                  >
+                    <p className={`text-sm font-bold ${activo ? 'text-accent' : 'text-white/80'}`}>{p.label}</p>
+                    <p className="text-[10px] text-white/40 mt-0.5">{p.descripcion}</p>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[11px] text-white/30 mt-2 px-1">
+              1 usuario siempre debe quedar como admin; el resto pueden ser vendedores o de solo lectura.
+            </p>
+          </div>
+        )}
+
         {rol === 'admin' && (
           <div>
             <label className="block mb-3">
@@ -159,9 +214,14 @@ export default function Ajustes() {
         {rol === 'admin' && (
           <div>
             <div className="flex items-center justify-between mb-2 px-1">
-              <p className="text-xs text-white/40">Usuarios</p>
-              <button onClick={() => setSheetOpen(true)} className="text-[11px] text-accent">+ Invitar</button>
+              <p className="text-xs text-white/40">Usuarios ({totalUsuarios}/{maxUsuarios})</p>
+              <button onClick={abrirInvitar} className={`text-[11px] ${enLimite ? 'text-white/30' : 'text-accent'}`}>+ Invitar</button>
             </div>
+            {enLimite && (
+              <p className="text-[11px] text-amber-300 mb-2 px-1">
+                ⚠️ Límite del plan {planActual.label} alcanzado. Sube de plan para invitar más usuarios.
+              </p>
+            )}
             <div className="rounded-2xl bg-surface border border-white/5 divide-y divide-white/5">
               {usuarios.map((u) => (
                 <div key={u.id} className="flex items-center justify-between px-3.5 py-3">
