@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #07101F;
+  --color-surface: #0D1A2D;
+  --color-accent: #2563EB;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: #05090f;
+  color: #E5E9F0;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+.app-shell {
+  background: var(--color-bg);
+  min-height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 0 40px rgba(0,0,0,0.5);
+}
+
+::-webkit-scrollbar { width: 0px; height: 0px; }
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-sheet-up { animation: sheet-up 0.25s ease-out; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.animate-toast-in { animation: toast-in 0.2s ease-out; }
