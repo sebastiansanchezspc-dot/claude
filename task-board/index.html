@@ -158,6 +158,17 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   .node{transition:transform .15s ease}
   .node:not(.ghost):hover{transform:translate(-50%,-50%) scale(1.05);z-index:5}
 }
+.boardbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.boardbar .tip{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.zbtn{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:6px;padding:7px 12px;font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--core)}
+.zoombar{display:none}
+body.full{overflow:hidden}
+body.full .board-scroll{position:fixed;inset:0;z-index:40;border:none;border-radius:0;overflow:auto;-webkit-overflow-scrolling:touch;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body.full .zoombar{display:flex;position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:45;gap:6px}
+.zoombar button{width:48px;height:48px;border-radius:10px;border:1px solid var(--core-dim);background:rgba(6,10,19,.9);color:var(--core);font-family:var(--mono);font-size:22px;font-weight:700;display:grid;place-items:center;box-shadow:0 0 18px -6px var(--core)}
+.zoombar button.x{color:var(--ink);font-size:18px}
+@media (max-width:700px){ .boardbar .tip.wide{display:none} }
+@media (min-width:701px){ .boardbar .tip.phone{display:none} }
 .legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -256,6 +267,11 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   <div class="toolbar" id="toolbar" hidden></div>
 
   <section class="view" id="brainView">
+    <div class="boardbar">
+      <button type="button" class="zbtn" id="fullBtn"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Pantalla completa</button>
+      <span class="tip phone">Tip: gira el celular en horizontal para ver la red más grande</span>
+      <span class="tip wide">Clic en una categoría para enfocarla · clic en un nodo para editarlo</span>
+    </div>
     <div class="board-scroll" id="boardScroll">
       <div class="board-sizer" id="sizer">
         <div class="brain" id="brain"></div>
@@ -279,6 +295,12 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     </div>
     <div class="lanes" id="lanes"></div>
   </section>
+
+  <div class="zoombar" id="zoombar">
+    <button type="button" id="zOut" aria-label="Alejar">−</button>
+    <button type="button" id="zIn" aria-label="Acercar">+</button>
+    <button type="button" class="x" id="zClose" aria-label="Salir de pantalla completa">✕</button>
+  </div>
 
   <details class="done-wrap" id="doneWrap" hidden>
     <summary>Completadas <span id="doneCount"></span></summary>
@@ -349,7 +371,11 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   ];
 
   let db = null, tasks = [], filter = "todas", editing = null, view = "brain", mode = "todo";
-  try{ const v = localStorage.getItem("tp-view"); if(v==="list"||v==="brain") view = v; }catch(e){}
+  let savedView = null;
+  try{ savedView = localStorage.getItem("tp-view"); }catch(e){}
+  if(savedView==="list"||savedView==="brain") view = savedView;
+  else if(window.innerWidth < 700) view = "list"; // on a phone, start with the readable list
+  let full = false, zoom = null; // zoom: null = auto-fit
   try{ const m = localStorage.getItem("tp-mode"); if(m==="todo"||m==="trabajo"||m==="personal") mode = m; }catch(e){}
 
   function isoOffset(n){ const d = new Date(); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -483,11 +509,14 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 
   function renderBrain(pending, ranks, isExample){
     const scroll = $("boardScroll"), brain = $("brain"), sizer = $("sizer");
-    const avail = scroll.clientWidth || 1100;
+    const avail = full ? window.innerWidth : (scroll.clientWidth || 1100);
     const n = pending.length;
     const W = Math.max(1080, Math.min(1640, avail));
     const H = Math.round(Math.max(720, Math.min(1500, 580 + n*16)) * (W/1200) ** .35);
-    const scale = Math.max(.62, Math.min(1, avail / W));
+    // Normal: fit to width. Full screen: start filling the screen, then the +/- buttons take over.
+    const autoFull = Math.min(1.2, Math.max(avail / W, Math.min(1, (window.innerHeight - 20) / H)));
+    const scale = full ? (zoom ?? autoFull) : Math.min(1, avail / W);
+    if(full && zoom == null) zoom = scale;
     brain.style.width = W+"px"; brain.style.height = H+"px"; brain.style.transform = "scale("+scale+")";
     sizer.style.width = (W*scale)+"px"; sizer.style.height = (H*scale)+"px";
 
@@ -526,8 +555,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     });
     if(split){
       svg.append(sv("line",{x1:cx, y1:34, x2:cx, y2:H-34, class:"divider", stroke:"var(--core-dim)"}));
-      const hp = sv("text",{x:cx-24, y:58, "text-anchor":"end", class:"hemi", fill:"var(--ap)"}); hp.textContent = "◂ Personal"; svg.append(hp);
-      const ht = sv("text",{x:cx+24, y:58, class:"hemi", fill:"var(--at)"}); ht.textContent = "Trabajo ▸"; svg.append(ht);
+      const hp = sv("text",{x:44, y:62, class:"hemi", fill:"var(--ap)"}); hp.textContent = "◂ Personal"; svg.append(hp);
+      const ht = sv("text",{x:W-44, y:62, "text-anchor":"end", class:"hemi", fill:"var(--at)"}); ht.textContent = "Trabajo ▸"; svg.append(ht);
     }
     // neural core
     const g = sv("g", {});
@@ -692,6 +721,27 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   if(mode!=="todo") $("newArea").value = mode;
   $("vBrain").onclick = ()=>setView("brain");
   $("vList").onclick = ()=>setView("list");
+  function setFull(on){
+    full = on; zoom = null;
+    document.body.classList.toggle("full", on);
+    if(on){ view = "brain"; try{ const r = document.documentElement.requestFullscreen?.(); if(r && r.catch) r.catch(()=>{}); }catch(e){} }
+    else if(document.fullscreenElement){ try{ document.exitFullscreen().catch(()=>{}); }catch(e){} }
+    render();
+    if(on){ const sc = $("boardScroll"); sc.scrollLeft = (sc.scrollWidth - sc.clientWidth)/2; sc.scrollTop = (sc.scrollHeight - sc.clientHeight)/2; }
+  }
+  function setZoom(f){
+    const sc = $("boardScroll");
+    const cxr = (sc.scrollLeft + sc.clientWidth/2) / (sc.scrollWidth||1), cyr = (sc.scrollTop + sc.clientHeight/2) / (sc.scrollHeight||1);
+    zoom = Math.min(2, Math.max(.3, (zoom||1) * f));
+    render();
+    sc.scrollLeft = cxr*sc.scrollWidth - sc.clientWidth/2; sc.scrollTop = cyr*sc.scrollHeight - sc.clientHeight/2;
+  }
+  $("fullBtn").onclick = ()=>setFull(true);
+  $("zClose").onclick = ()=>setFull(false);
+  $("zIn").onclick = ()=>setZoom(1.25);
+  $("zOut").onclick = ()=>setZoom(1/1.25);
+  document.addEventListener("fullscreenchange", ()=>{ if(!document.fullscreenElement && full) setFull(false); });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape" && full && $("scrim").hidden) setFull(false); });
   let rT; window.addEventListener("resize", ()=>{ clearTimeout(rT); rT = setTimeout(()=>{ if(view==="brain") render(); }, 150); });
 
   async function markDone(t, isDone){
