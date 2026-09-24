@@ -11,6 +11,7 @@
   --core:#3FE0FF; --core-dim:rgba(63,224,255,.35); --core-glow:rgba(63,224,255,.22);
   --p1:#FF4D6D; --p2:#FFB547; --p3:#3DF5A6;
   --late:#FF3B55;
+  --at:#3FE0FF; --ap:#FF6FD8;
   --c0:#3FE0FF; --c1:#9B7BFF; --c2:#B6F24A; --c3:#FF6FD8; --c4:#FF9A3D; --c5:#38F2D0; --c6:#5B8CFF;
   --display:"Chakra Petch","Rajdhani",ui-sans-serif,system-ui,sans-serif;
   --body:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -42,7 +43,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 
 /* command bar */
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-.add{flex:1 1 640px;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto auto;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:7px}
+.add{flex:1 1 700px;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto auto auto;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:7px}
 .add .prompt{font-family:var(--mono);color:var(--core);padding-left:6px;font-weight:700}
 .add input,.add select,.field input,.field select,.field textarea{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
 .add input[type=text]:first-of-type{background:transparent;border-color:transparent;font-family:var(--mono);font-size:14px}
@@ -59,6 +60,16 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   .add input[type=text]:first-of-type{grid-column:2/-1}
   .add .btn{grid-column:1/-1}
 }
+.scope{display:flex;flex-wrap:wrap;gap:8px}
+.scope button{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:9px 16px;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.scope button i{width:10px;height:10px;border-radius:50%;background:var(--sc);box-shadow:0 0 10px var(--sc)}
+.scope button i.split{background:linear-gradient(90deg,var(--ap) 50%,var(--at) 50%);box-shadow:none}
+.scope button small{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--faint)}
+.scope button[aria-pressed="true"]{color:var(--ink);border-color:var(--sc);background:color-mix(in srgb,var(--sc) 12%,var(--panel));box-shadow:0 0 18px -6px var(--sc)}
+.scope button[aria-pressed="true"] small{color:var(--sc)}
+.hemi{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.24em;text-transform:uppercase}
+.divider{stroke-width:1;stroke-dasharray:4 8}
+.area-tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:1px 6px;border:1px solid currentColor;border-radius:3px}
 .status{font-family:var(--mono);font-size:12px;color:var(--muted);min-height:1em;margin-top:-8px}
 .status::before{content:"› ";color:var(--core)}
 .status:empty::before{content:""}
@@ -211,6 +222,12 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     <div class="stats" id="stats"></div>
   </header>
 
+  <div class="scope" role="group" aria-label="Área">
+    <button type="button" data-mode="todo" style="--sc:var(--core)"><i class="split"></i>Todo <small id="nTodo">0</small></button>
+    <button type="button" data-mode="trabajo" style="--sc:var(--at)"><i></i>Trabajo <small id="nTrabajo">0</small></button>
+    <button type="button" data-mode="personal" style="--sc:var(--ap)"><i></i>Personal <small id="nPersonal">0</small></button>
+  </div>
+
   <div class="bar">
     <form class="add" id="addForm" autocomplete="off">
       <span class="prompt" aria-hidden="true">&gt;_</span>
@@ -221,7 +238,11 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
         <option value="media" selected>P2 · Media</option>
         <option value="baja">P3 · Baja</option>
       </select>
-      <input type="text" id="newCat" list="catList" placeholder="Categoría" aria-label="Categoría" style="width:9em">
+      <select id="newArea" aria-label="Área">
+        <option value="trabajo">Trabajo</option>
+        <option value="personal">Personal</option>
+      </select>
+      <input type="text" id="newCat" list="catList" placeholder="Categoría (opcional)" aria-label="Categoría" style="width:10em">
       <button class="btn" type="submit">Cargar</button>
     </form>
     <div class="seg" role="group" aria-label="Vista">
@@ -245,6 +266,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
       <span><i style="background:var(--p2);box-shadow:0 0 8px var(--p2)"></i>P2 media</span>
       <span><i style="background:var(--p3);box-shadow:0 0 8px var(--p3)"></i>P3 baja</span>
       <span><i style="background:var(--late);box-shadow:0 0 8px var(--late)"></i>Atrasada</span>
+      <span><i style="background:var(--ap);box-shadow:0 0 8px var(--ap)"></i>Personal (izquierda)</span>
+      <span><i style="background:var(--at);box-shadow:0 0 8px var(--at)"></i>Trabajo (derecha)</span>
       <span>Más cerca del núcleo = más urgente · #1 #2 #3 = hazlo primero</span>
     </div>
   </section>
@@ -273,7 +296,10 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
       <div class="field"><label for="ePri">Prioridad</label>
         <select id="ePri"><option value="alta">P1 · Alta</option><option value="media">P2 · Media</option><option value="baja">P3 · Baja</option></select></div>
     </div>
-    <div class="field"><label for="eCat">Categoría</label><input id="eCat" type="text" list="catList"></div>
+    <div class="row" style="grid-template-columns:1fr 2fr">
+      <div class="field"><label for="eArea">Área</label><select id="eArea"><option value="trabajo">Trabajo</option><option value="personal">Personal</option></select></div>
+      <div class="field"><label for="eCat">Categoría</label><input id="eCat" type="text" list="catList"></div>
+    </div>
     <div class="field"><label for="eNotes">Notas</label><textarea id="eNotes" rows="3"></textarea></div>
     <div class="actions">
       <button class="btn danger" type="button" id="eDelete">Eliminar</button>
@@ -301,18 +327,30 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     {key:"despues", name:"Más adelante", ring:"MÁS ADELANTE", code:"T+30", r:.81},
     {key:"sinfecha", name:"Sin fecha", ring:"ALGÚN DÍA", code:"T+∞", r:.95},
   ];
-  const NO_CAT = "General";
+  const AREAS = {
+    trabajo:{label:"Trabajo", color:"var(--at)", cols:["var(--c0)","var(--c6)","var(--c5)","var(--c2)"]},
+    personal:{label:"Personal", color:"var(--ap)", cols:["var(--c3)","var(--c1)","var(--c4)","var(--p2)"]},
+  };
+  // Tasks written before areas existed: guess from the category name.
+  function areaOf(t){
+    if(t.area==="trabajo" || t.area==="personal") return t.area;
+    return /personal|casa|hogar|familia|salud|mam|pap|amig|gym|banco/i.test(t.category||"") ? "personal" : "trabajo";
+  }
+  const hubKey = t => areaOf(t)+"|"+(t.category||AREAS[areaOf(t)].label);
+  const hubName = k => k.split("|")[1];
+  const hubArea = k => k.split("|")[0];
   const EXAMPLES = [
-    {id:"x1",title:"Ejemplo: entregar propuesta al cliente",priority:"alta",category:"Trabajo",d:0},
-    {id:"x2",title:"Ejemplo: pagar tarjeta de crédito",priority:"alta",category:"Personal",d:-1},
-    {id:"x3",title:"Ejemplo: revisar inventario",priority:"media",category:"Trabajo",d:3},
-    {id:"x4",title:"Ejemplo: cita con el dentista",priority:"media",category:"Personal",d:1},
-    {id:"x5",title:"Ejemplo: organizar archivos",priority:"baja",category:"Trabajo",d:null},
-    {id:"x6",title:"Ejemplo: renovar licencia",priority:"baja",category:"Personal",d:20},
+    {id:"x1",title:"Ejemplo: entregar propuesta al cliente",priority:"alta",area:"trabajo",category:"Clientes",d:0},
+    {id:"x2",title:"Ejemplo: pagar tarjeta de crédito",priority:"alta",area:"personal",category:"Finanzas",d:-1},
+    {id:"x3",title:"Ejemplo: revisar inventario",priority:"media",area:"trabajo",category:"Operación",d:3},
+    {id:"x4",title:"Ejemplo: cita con el dentista",priority:"media",area:"personal",category:"Salud",d:1},
+    {id:"x5",title:"Ejemplo: organizar archivos",priority:"baja",area:"trabajo",category:"Operación",d:null},
+    {id:"x6",title:"Ejemplo: renovar licencia",priority:"baja",area:"personal",category:null,d:20},
   ];
 
-  let db = null, tasks = [], filter = "todas", editing = null, view = "brain";
+  let db = null, tasks = [], filter = "todas", editing = null, view = "brain", mode = "todo";
   try{ const v = localStorage.getItem("tp-view"); if(v==="list"||v==="brain") view = v; }catch(e){}
+  try{ const m = localStorage.getItem("tp-mode"); if(m==="todo"||m==="trabajo"||m==="personal") mode = m; }catch(e){}
 
   function isoOffset(n){ const d = new Date(); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
   const todayISO = () => isoOffset(0);
@@ -365,20 +403,32 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     const lines = Math.min(3, Math.max(1, Math.ceil((t.title||"").length / cpl)));
     return {w, h: 58 + lines*17};
   }
-  function layout(items, cats, W, H){
+  function layout(items, cats, W, H, split){
     const cx = W/2, cy = H/2, RX = W/2 - 90, RY = H/2 - 60;
-    const counts = cats.map(c => items.filter(t=>(t.category||NO_CAT)===c).length);
-    const weights = counts.map(n => Math.max(n, 1.6));
-    const total = weights.reduce((a,b)=>a+b,0) || 1;
-    let a0 = Math.PI - (weights[0]/total)*Math.PI; // first branch points left, where the board is widest
     const sectors = {};
-    cats.forEach((c,i)=>{ const span = weights[i]/total*Math.PI*2; sectors[c] = {start:a0, span, mid:a0+span/2, color:"var(--c"+(i%7)+")"}; a0 += span; });
+    // Spread a set of hub keys over [from, from+range], proportional to their size.
+    function assign(keys, from, range){
+      const weights = keys.map(k => Math.max(items.filter(t=>hubKey(t)===k).length, 1.6));
+      const total = weights.reduce((a,b)=>a+b,0) || 1;
+      let a0 = from;
+      keys.forEach((k,i)=>{ const span = weights[i]/total*range; const A = AREAS[hubArea(k)];
+        sectors[k] = {start:a0, span, mid:a0+span/2, color:A.cols[i%A.cols.length]}; a0 += span; });
+    }
+    if(split){
+      // Brain hemispheres: personal on the left, work on the right
+      assign(cats.filter(k=>hubArea(k)==="personal"), Math.PI/2 + .12, Math.PI - .24);
+      assign(cats.filter(k=>hubArea(k)==="trabajo"), -Math.PI/2 + .12, Math.PI - .24);
+    } else {
+      const w0 = Math.max(items.filter(t=>hubKey(t)===cats[0]).length, 1.6);
+      const tot = cats.reduce((a,k)=>a+Math.max(items.filter(t=>hubKey(t)===k).length,1.6),0) || 1;
+      assign(cats, Math.PI - (w0/tot)*Math.PI, Math.PI*2); // first branch points left, where the board is widest
+    }
     const laneIdx = t => LANES.findIndex(L=>L.key===laneOf(t));
     const nodes = [];
     cats.forEach(c=>{
       const S = sectors[c];
       // spread the whole branch across its sector; the ring (distance) still encodes the date
-      const group = items.filter(t=>(t.category||NO_CAT)===c).sort((a,b)=>laneIdx(a)-laneIdx(b) || byScore(a,b));
+      const group = items.filter(t=>hubKey(t)===c).sort((a,b)=>laneIdx(a)-laneIdx(b) || byScore(a,b));
       const zig = [];
       group.forEach((t,i)=>{ zig[i%2 ? group.length-1-Math.floor(i/2) : Math.floor(i/2)] = t; });
       zig.forEach((t,i)=>{
@@ -386,10 +436,10 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
         const ang = S.start + S.span*(i+.5)/zig.length;
         const sz = nodeSize(t);
         const tx = cx + Math.cos(ang)*RX*L.r, ty = cy + Math.sin(ang)*RY*L.r;
-        nodes.push({t, x:tx, y:ty, tx, ty, w:sz.w, h:sz.h, cat:c, color:S.color, lane:L.key});
+        nodes.push({t, x:tx, y:ty, tx, ty, w:sz.w, h:sz.h, cat:c, color:S.color, lane:L.key, side: split ? (hubArea(c)==="personal" ? -1 : 1) : 0});
       });
     });
-    const pad = 14, cR = {x:235, y:118}; // keep nodes clear of the core and the category hubs
+    const pad = 14, cR = {x:275, y:125}; // keep nodes clear of the core and the category hubs
     for(let it=0; it<150; it++){
       for(let i=0;i<nodes.length;i++){
         const a = nodes[i];
@@ -407,6 +457,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
         n.x += (n.tx-n.x)*.04; n.y += (n.ty-n.y)*.04;
         const dx = (n.x-cx)/(cR.x+n.w/2), dy = (n.y-cy)/(cR.y+n.h/2), d = Math.hypot(dx,dy);
         if(d < 1){ const k = 1/(d||.01); n.x = cx + (n.x-cx)*k; n.y = cy + (n.y-cy)*k; }
+        if(n.side < 0) n.x = Math.min(n.x, cx - n.w/2 - 10);
+        if(n.side > 0) n.x = Math.max(n.x, cx + n.w/2 + 10);
         n.x = Math.min(W-n.w/2-18, Math.max(n.w/2+18, n.x));
         n.y = Math.min(H-n.h/2-18, Math.max(n.h/2+22, n.y));
       }
@@ -415,7 +467,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   }
 
   // A small "brain" of neurons: two lobes of points joined to their nearest neighbours.
-  function neuralCore(g, cx, cy){
+  function neuralCore(g, cx, cy, leftCol, rightCol){
     const r = rng(7), pts = [];
     for(let i=0;i<46;i++){
       const lobe = i%2 ? 1 : -1;
@@ -426,7 +478,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
       pts.map((q,j)=>({j, d:Math.hypot(p.x-q.x,p.y-q.y)})).filter(o=>o.j>i).sort((a,b)=>a.d-b.d).slice(0,2)
         .forEach(o=>{ const q = pts[o.j]; g.append(sv("line",{x1:p.x,y1:p.y,x2:q.x,y2:q.y,class:"syn"})); });
     });
-    pts.forEach((p,i)=>g.append(sv("circle",{cx:p.x, cy:p.y, r: i%5===0 ? 2.6 : 1.6, class:"neuron"+(i%4===0?" blink":""), style:"animation-delay:"+(i*0.13).toFixed(2)+"s"})));
+    pts.forEach((p,i)=>g.append(sv("circle",{cx:p.x, cy:p.y, r: i%5===0 ? 2.6 : 1.6, class:"neuron"+(i%4===0?" blink":""), style:"fill:"+(p.x<cx?leftCol:rightCol)+";animation-delay:"+(i*0.13).toFixed(2)+"s"})));
   }
 
   function renderBrain(pending, ranks, isExample){
@@ -439,8 +491,9 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     brain.style.width = W+"px"; brain.style.height = H+"px"; brain.style.transform = "scale("+scale+")";
     sizer.style.width = (W*scale)+"px"; sizer.style.height = (H*scale)+"px";
 
-    const cats = [...new Set(pending.map(t=>t.category||NO_CAT))].sort((a,b)=>a.localeCompare(b,"es"));
-    const L = layout(pending, cats, W, H);
+    const split = mode==="todo";
+    const cats = [...new Set(pending.map(hubKey))].sort((a,b)=>a.localeCompare(b,"es"));
+    const L = layout(pending, cats, W, H, split);
     const {cx, cy, RX, RY} = L;
     const focusCat = filter==="todas" ? null : filter;
 
@@ -456,7 +509,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     });
     // category hubs
     const hubs = {};
-    cats.forEach(c=>{ const S = L.sectors[c]; hubs[c] = {x:cx+Math.cos(S.mid)*RX*.27, y:cy+Math.sin(S.mid)*RY*.33, color:S.color}; });
+    cats.forEach(c=>{ const S = L.sectors[c]; hubs[c] = {x:cx+Math.cos(S.mid)*RX*.34, y:cy+Math.sin(S.mid)*RY*.42, color:S.color}; });
     // core -> hub
     cats.forEach(c=>{
       const h = hubs[c], dim = focusCat && focusCat!==c;
@@ -471,13 +524,20 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
       if(!dim) svg.append(sv("path", {d, class:"flow"+(nd.lane==="hoy"?" fast":""), stroke:h.color, "stroke-width":2.4}));
       svg.append(sv("circle", {cx:nd.x, cy:nd.y, r:3, fill:h.color, opacity: dim ? .1 : 1}));
     });
+    if(split){
+      svg.append(sv("line",{x1:cx, y1:34, x2:cx, y2:H-34, class:"divider", stroke:"var(--core-dim)"}));
+      const hp = sv("text",{x:cx-24, y:58, "text-anchor":"end", class:"hemi", fill:"var(--ap)"}); hp.textContent = "◂ Personal"; svg.append(hp);
+      const ht = sv("text",{x:cx+24, y:58, class:"hemi", fill:"var(--at)"}); ht.textContent = "Trabajo ▸"; svg.append(ht);
+    }
     // neural core
     const g = sv("g", {});
     g.append(sv("ellipse",{cx, cy, rx:118, ry:88, class:"core-ring", "stroke-width":1, "stroke-dasharray":"1 5"}));
     g.append(sv("ellipse",{cx, cy, rx:100, ry:74, class:"core-ring core-pulse", "stroke-width":1.5}));
     g.append(sv("ellipse",{cx, cy, rx:96, ry:70, fill:"rgba(6,10,19,.75)"}));
-    neuralCore(g, cx, cy);
-    const t1 = sv("text",{x:cx, y:cy+50, class:"core-title"}); t1.textContent = "NÚCLEO"; g.append(t1);
+    const coreL = split ? "var(--ap)" : AREAS[mode] ? AREAS[mode].color : "var(--core)";
+    const coreR = split ? "var(--at)" : coreL;
+    neuralCore(g, cx, cy, coreL, coreR);
+    const t1 = sv("text",{x:cx, y:cy+50, class:"core-title"}); t1.textContent = split ? "NÚCLEO" : AREAS[mode].label.toUpperCase(); g.append(t1);
     svg.append(g);
 
     const frag = [svg];
@@ -494,8 +554,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
       const h = hubs[c];
       const b = el("button","hub"+(focusCat && focusCat!==c ? " dim":"")); b.type="button";
       b.style.left = h.x+"px"; b.style.top = h.y+"px"; b.style.color = h.color;
-      b.append(el("span",null,c), el("small",null,String(pending.filter(t=>(t.category||NO_CAT)===c).length)));
-      b.title = isExample ? "" : "Filtrar por "+c;
+      b.append(el("span",null,hubName(c)), el("small",null,String(pending.filter(t=>hubKey(t)===c).length)));
+      b.title = isExample ? "" : "Filtrar por "+hubName(c);
       b.onclick = ()=>{ if(isExample) return; filter = filter===c ? "todas" : c; render(); };
       frag.push(b);
     });
@@ -507,7 +567,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
       nEl.style.left = nd.x+"px"; nEl.style.top = nd.y+"px";
       nEl.style.setProperty("--w", nd.w+"px"); nEl.style.setProperty("--h", nd.h+"px");
       const head = el("div","head");
-      head.append(el("span","dot"), el("span","pcode",PRI_CODE[t.priority]||"P2"), el("span",null,(t.category||NO_CAT)));
+      head.append(el("span","dot"), el("span","pcode",PRI_CODE[t.priority]||"P2"), el("span",null,hubName(nd.cat)));
       nEl.append(head, el("div","t", t.title));
       const d = el("div","d"); d.append(el("span", cd.cls||null, cd.txt)); nEl.append(d);
       if(isExample){ nEl.append(el("span","ex","DEMO")); }
@@ -532,6 +592,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     const m = el("div","meta");
     m.append(el("span","pri "+(t.priority||"media"), PRI_CODE[t.priority]||"P2"));
     if(t.due) m.append(el("span", diffDays(t.due)<0 ? "late-t" : null, dueLabel(t)));
+    if(mode==="todo"){ const a = el("span","area-tag",AREAS[areaOf(t)].label); a.style.color = AREAS[areaOf(t)].color; m.append(a); }
     if(t.category) m.append(el("span",null,"· "+t.category));
     return m;
   }
@@ -569,10 +630,16 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   function render(){
     const now = new Date();
     $("today").textContent = DAYS[now.getDay()]+" "+now.getDate()+" "+MONTHS[now.getMonth()]+" "+now.getFullYear();
-    const pending = tasks.filter(t => t.status !== "done");
-    const done = tasks.filter(t => t.status === "done").sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+    const allPending = tasks.filter(t => t.status !== "done");
+    const inMode = t => mode==="todo" || areaOf(t)===mode;
+    const pending = allPending.filter(inMode);
+    const done = tasks.filter(t => t.status === "done" && inMode(t)).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+    $("nTodo").textContent = allPending.length;
+    $("nTrabajo").textContent = allPending.filter(t=>areaOf(t)==="trabajo").length;
+    $("nPersonal").textContent = allPending.filter(t=>areaOf(t)==="personal").length;
+    document.querySelectorAll(".scope button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mode===mode)));
 
-    const cats = [...new Set(pending.map(t=>t.category||NO_CAT))].sort((a,b)=>a.localeCompare(b,"es"));
+    const cats = [...new Set(pending.map(hubKey))].sort((a,b)=>a.localeCompare(b,"es"));
     const allCats = [...new Set(tasks.map(t=>t.category).filter(Boolean))];
     $("catList").replaceChildren(...allCats.map(c=>{const o=el("option");o.value=c;return o;}));
     if(filter!=="todas" && !cats.includes(filter)) filter="todas";
@@ -581,13 +648,13 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     tb.replaceChildren(el("span","lbl","Ramas"));
     ["todas",...cats].forEach(c=>{
       const b = el("button","chip"); b.type="button";
-      if(c!=="todas"){ const dot = el("i"); const col = "var(--c"+(cats.indexOf(c)%7)+")"; dot.style.background = col; dot.style.color = col; b.append(dot); }
-      b.append(document.createTextNode(c==="todas"?"Todas":c));
+      if(c!=="todas"){ const dot = el("i"); const col = AREAS[hubArea(c)].color; dot.style.background = col; dot.style.color = col; b.append(dot); }
+      b.append(document.createTextNode(c==="todas"?"Todas":hubName(c)));
       b.setAttribute("aria-pressed", String(filter===c));
       b.onclick = ()=>{ filter=c; render(); };
       tb.append(b);
     });
-    const visible = pending.filter(t => filter==="todas" || (t.category||NO_CAT)===filter);
+    const visible = pending.filter(t => filter==="todas" || hubKey(t)===filter);
 
     const overdue = pending.filter(t=>t.due && diffDays(t.due)<0).length;
     const todayN = pending.filter(t=>t.due && diffDays(t.due)===0).length;
@@ -603,7 +670,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     $("listView").hidden = view!=="list";
     if(view==="brain"){
       if(tasks.length===0){
-        const ex = EXAMPLES.map(e=>({id:e.id,title:e.title,priority:e.priority,category:e.category,due:e.d==null?null:isoOffset(e.d),status:"pending"}));
+        const ex = EXAMPLES.map(e=>({id:e.id,title:e.title,priority:e.priority,area:e.area,category:e.category,due:e.d==null?null:isoOffset(e.d),status:"pending"})).filter(inMode);
         renderBrain(ex, new Map(), true);
       } else renderBrain(pending, ranks, false);
     } else renderList(visible);
@@ -620,6 +687,9 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
   }
 
   function setView(v){ view = v; try{ localStorage.setItem("tp-view", v); }catch(e){} render(); }
+  function setMode(m){ mode = m; filter = "todas"; if(m!=="todo") $("newArea").value = m; try{ localStorage.setItem("tp-mode", m); }catch(e){} render(); }
+  document.querySelectorAll(".scope button").forEach(b=>b.onclick = ()=>setMode(b.dataset.mode));
+  if(mode!=="todo") $("newArea").value = mode;
   $("vBrain").onclick = ()=>setView("brain");
   $("vList").onclick = ()=>setView("list");
   let rT; window.addEventListener("resize", ()=>{ clearTimeout(rT); rT = setTimeout(()=>{ if(view==="brain") render(); }, 150); });
@@ -637,7 +707,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     const title = $("newTitle").value.trim();
     if(!title) return;
     if(!db) return setStatus("Sin conexión; no se guardó.", true);
-    const data = { title, due: $("newDue").value || null, time: null, priority: $("newPri").value,
+    const data = { title, due: $("newDue").value || null, time: null, priority: $("newPri").value, area: $("newArea").value,
       category: $("newCat").value.trim() || null, notes: "", status: "pending", createdAt: new Date().toISOString() };
     try{
       await db.collection("tasks").add(data);
@@ -651,7 +721,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     editing = t; delArmed = false;
     $("eDelete").classList.remove("armed"); $("eDelete").textContent="Eliminar";
     $("eTitle").value = t.title||""; $("eDue").value = t.due||""; $("eTime").value = t.time||"";
-    $("ePri").value = t.priority||"media"; $("eCat").value = t.category||""; $("eNotes").value = t.notes||"";
+    $("ePri").value = t.priority||"media"; $("eArea").value = areaOf(t); $("eCat").value = t.category||""; $("eNotes").value = t.notes||"";
     $("scrim").hidden = false; $("eTitle").focus();
   }
   function closeEditor(){ $("scrim").hidden = true; editing = null; }
@@ -664,7 +734,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
     const t = editing, title = $("eTitle").value.trim() || t.title;
     try{
       await db.collection("tasks").doc(t.id).update({ title, due: $("eDue").value || null, time: $("eTime").value || null,
-        priority: $("ePri").value, category: $("eCat").value.trim() || null, notes: $("eNotes").value.trim() });
+        priority: $("ePri").value, area: $("eArea").value, category: $("eCat").value.trim() || null, notes: $("eNotes").value.trim() });
       closeEditor(); setStatus("Guardado: "+title);
     }catch(e){ setStatus("No se pudo guardar ("+(e&&e.code||"error")+").", true); }
   });
