@@ -43,10 +43,20 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 
 /* command bar */
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-.add{flex:1 1 700px;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto auto auto;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:7px}
+.add{flex:1 1 700px;display:grid;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:8px}
+.add-main{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.add-fields,.add-extra{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.mini{display:grid;gap:3px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mini.grow{flex:1 1 320px}
+.mini textarea{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--body);font-size:13.5px;text-transform:none;letter-spacing:0;resize:vertical;min-height:40px;color:var(--ink)}
+.more{background:transparent;border:1px dashed var(--line-2);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:12px;color:var(--core)}
+.more[aria-expanded="true"]{border-style:solid;border-color:var(--core)}
+.tprog{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:2px}
+.tprog i{display:block;height:100%;background:var(--core)}
+.tprog.over i{background:var(--late)}
 .add .prompt{font-family:var(--mono);color:var(--core);padding-left:6px;font-weight:700}
 .add input,.add select,.field input,.field select,.field textarea{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
-.add input[type=text]:first-of-type{background:transparent;border-color:transparent;font-family:var(--mono);font-size:14px}
+.add-main input{background:transparent !important;border-color:transparent !important;font-family:var(--mono);font-size:15px}
 ::placeholder{color:var(--faint)}
 .btn{border:1px solid transparent;border-radius:6px;padding:8px 16px;font-family:var(--display);font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--core);color:#03141A;box-shadow:0 0 18px var(--core-glow)}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line-2);box-shadow:none}
@@ -56,9 +66,8 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-be
 .seg button{border:none;background:transparent;border-radius:5px;padding:6px 14px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--core) 18%,transparent);color:var(--core)}
 @media (max-width:760px){
-  .add{grid-template-columns:auto 1fr 1fr}
-  .add input[type=text]:first-of-type{grid-column:2/-1}
-  .add .btn{grid-column:1/-1}
+  .add-fields .mini{flex:1 1 40%}
+  .add-fields .mini input,.add-fields .mini select{width:100%}
 }
 .scope{display:flex;flex-wrap:wrap;gap:8px}
 .scope button{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:9px 16px;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -300,20 +309,31 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
 
   <div class="bar">
     <form class="add" id="addForm" autocomplete="off">
-      <span class="prompt" aria-hidden="true">&gt;_</span>
-      <input type="text" id="newTitle" placeholder="nueva actividad… ej. enviar reporte a finanzas" aria-label="Actividad" required>
-      <input type="date" id="newDue" aria-label="Fecha límite">
-      <select id="newPri" aria-label="Prioridad">
-        <option value="alta">P1 · Alta</option>
-        <option value="media" selected>P2 · Media</option>
-        <option value="baja">P3 · Baja</option>
-      </select>
-      <select id="newArea" aria-label="Área">
-        <option value="trabajo">Trabajo</option>
-        <option value="personal">Personal</option>
-      </select>
-      <input type="text" id="newCat" list="catList" placeholder="Categoría (opcional)" aria-label="Categoría" style="width:10em">
-      <button class="btn" type="submit">Cargar</button>
+      <div class="add-main">
+        <span class="prompt" aria-hidden="true">&gt;_</span>
+        <input type="text" id="newTitle" placeholder="¿Qué tienes que hacer? ej. App Power Apps de Cartera Vencida" aria-label="Actividad" required>
+        <button class="btn" type="submit">Cargar</button>
+      </div>
+      <div class="add-fields">
+        <label class="mini">Entrega<input type="date" id="newDue"></label>
+        <label class="mini">Prioridad
+          <select id="newPri">
+            <option value="alta">P1 · Alta</option>
+            <option value="media" selected>P2 · Media</option>
+            <option value="baja">P3 · Baja</option>
+          </select></label>
+        <label class="mini">Área
+          <select id="newArea">
+            <option value="trabajo">Trabajo</option>
+            <option value="personal">Personal</option>
+          </select></label>
+        <label class="mini">Categoría<input type="text" id="newCat" list="catList" placeholder="ej. Power Apps" style="width:11em"></label>
+        <button type="button" class="more" id="moreBtn" aria-expanded="false" aria-controls="addExtra">+ Detalles</button>
+      </div>
+      <div class="add-extra" id="addExtra" hidden>
+        <label class="mini grow">Descripción · qué es<textarea id="newNotes" rows="2" placeholder="ej. App para dar seguimiento a la cartera vencida; falta pantalla de reportes"></textarea></label>
+        <label class="mini">Empecé el<input type="date" id="newStart"></label>
+      </div>
     </form>
     <div class="seg" role="group" aria-label="Vista">
       <button type="button" id="vBrain" aria-pressed="true">Red</button>
@@ -403,11 +423,12 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
       <div class="field"><label for="ePri">Prioridad</label>
         <select id="ePri"><option value="alta">P1 · Alta</option><option value="media">P2 · Media</option><option value="baja">P3 · Baja</option></select></div>
     </div>
-    <div class="row" style="grid-template-columns:1fr 2fr">
+    <div class="row" style="grid-template-columns:1fr 1fr 2fr">
       <div class="field"><label for="eArea">Área</label><select id="eArea"><option value="trabajo">Trabajo</option><option value="personal">Personal</option></select></div>
+      <div class="field"><label for="eStart">Empecé el</label><input id="eStart" type="date"></div>
       <div class="field"><label for="eCat">Categoría</label><input id="eCat" type="text" list="catList"></div>
     </div>
-    <div class="field"><label for="eNotes">Notas</label><textarea id="eNotes" rows="3"></textarea></div>
+    <div class="field"><label for="eNotes">Descripción · qué es</label><textarea id="eNotes" rows="3"></textarea></div>
     <div class="actions">
       <button class="btn danger" type="button" id="eDelete">Eliminar</button>
       <div>
@@ -528,7 +549,7 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     const w = t.priority==="alta" ? 190 : t.priority==="baja" ? 164 : 176;
     const cpl = Math.floor((w-26)/7.4);
     const lines = Math.min(3, Math.max(1, Math.ceil((t.title||"").length / cpl)));
-    return {w, h: 58 + lines*17};
+    return {w, h: 58 + lines*17 + (t.start && t.due ? 8 : 0)};
   }
   function layout(items, cats, W, H, split){
     const cx = W/2, cy = H/2, RX = W/2 - 90, RY = H/2 - 60;
@@ -699,7 +720,12 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
       const head = el("div","head");
       head.append(el("span","dot"), el("span","pcode",PRI_CODE[t.priority]||"P2"), el("span",null,hubName(nd.cat)));
       nEl.append(head, el("div","t", t.title));
-      const d = el("div","d"); d.append(el("span", cd.cls||null, cd.txt)); nEl.append(d);
+      const d = el("div","d"); d.append(el("span", cd.cls||null, cd.txt));
+      if(t.start){ const n = diffDays(t.start); if(n <= 0) d.append(el("span",null,"DÍA "+(1-n))); }
+      nEl.append(d);
+      const pr = timeProgress(t);
+      if(pr != null){ const b = el("div","tprog"+(pr>1?" over":"")); const i = el("i"); i.style.width = Math.min(100, pr*100)+"%"; b.append(i); b.title = "Tiempo transcurrido desde que empezaste hasta la entrega"; nEl.append(b); }
+      if(t.notes) nEl.title = t.notes;
       if(isExample){ nEl.append(el("span","ex","DEMO")); }
       else{
         nEl.tabIndex = 0; nEl.setAttribute("role","button");
@@ -715,6 +741,16 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     if(isExample) frag.push(el("div","ghost-hint","Nodos de demostración. Dime en el chat lo que tienes pendiente y lo cargo a la red, o usa la barra de arriba."));
     brain.replaceChildren(...frag);
   }
+
+  // Share of the start→due window already used (null when either date is missing)
+  function timeProgress(t){
+    if(!t.start || !t.due) return null;
+    const span = dayNum(t.due) - dayNum(t.start);
+    if(span <= 0) return null;
+    return Math.max(0, (dayNum(todayISO()) - dayNum(t.start)) / span);
+  }
+  // When the work began: explicit start date, else when it was added
+  const beganAt = t => t.start ? Date.parse(t.start+"T09:00:00") : (t.createdAt ? Date.parse(t.createdAt) : null);
 
   // OK + timer buttons shared by nodes and cards
   function actions(t){
@@ -743,7 +779,10 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     const b = el("button","cbody"); b.type="button"; b.onclick = () => openEditor(t);
     const m = metaRow(t);
     if(t.startedAt) m.prepend(el("span","run","en curso "+fmtDur(measured(t))));
-    b.append(el("div","t", t.title), m);
+    if(t.start && diffDays(t.start) <= 0) m.append(el("span",null,"· desde "+fmtDate(t.start)+" (día "+(1-diffDays(t.start))+")"));
+    b.append(el("div","t", t.title));
+    if(t.notes){ const n = el("div",null,t.notes); n.style.cssText = "font-size:12.5px;color:var(--muted)"; b.append(n); }
+    b.append(m);
     c.append(b, actions(t));
     return c;
   }
@@ -832,14 +871,14 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     const totalMin = timed.reduce((a,t)=>a+t.spentMin,0);
     const withDue = rows.filter(t=>t.due);
     const onTime = withDue.filter(t=>dayNum(localISO(new Date(t.doneAt))) <= dayNum(t.due)).length;
-    const leads = rows.filter(t=>t.createdAt).map(t=>(Date.parse(t.doneAt)-Date.parse(t.createdAt))/86400000);
+    const leads = rows.filter(t=>beganAt(t)!=null).map(t=>Math.max(0,(Date.parse(t.doneAt)-beganAt(t))/86400000));
     const avgLead = leads.length ? leads.reduce((a,b)=>a+b,0)/leads.length : null;
     const kp = [
       [String(rows.length).padStart(2,"0"), "Completadas", histRange ? "últimos "+histRange+" días" : "desde el inicio"],
       [fmtDur(totalMin), "Tiempo invertido", timed.length ? timed.length+" con tiempo registrado" : "marca tiempos al dar OK"],
       [timed.length ? fmtDur(totalMin/timed.length) : "—", "Promedio por actividad", ""],
       [withDue.length ? Math.round(onTime/withDue.length*100)+"%" : "—", "A tiempo", withDue.length ? onTime+" de "+withDue.length+" con fecha" : "sin fechas límite"],
-      [avgLead==null ? "—" : avgLead < 1 ? Math.max(1,Math.round(avgLead*24))+" h" : (Math.round(avgLead*10)/10)+" d", "Tiempo en el tablero", "de que entra a que la cierras"],
+      [avgLead==null ? "—" : avgLead < 1 ? Math.max(1,Math.round(avgLead*24))+" h" : (Math.round(avgLead*10)/10)+" d", "Duración promedio", "de que empiezas a que la cierras"],
     ];
     $("kpis").replaceChildren(...kp.map(([v,l,sub])=>{ const k = el("div","kpi"); k.append(el("b",null,v), el("span",null,l)); if(sub) k.append(el("small",null,sub)); return k; }));
 
@@ -868,7 +907,7 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     // log table
     if(!rows.length){ $("logWrap").replaceChildren(el("div","hempty","Nada completado en este periodo.")); return; }
     const tbl = el("table","log");
-    const th = el("tr"); ["Fecha","Actividad","Área","P","Tiempo","En tablero","Entrega",""].forEach(h=>th.append(el("th",null,h)));
+    const th = el("tr"); ["Fecha","Actividad","Área","P","Tiempo","Duración","Entrega",""].forEach(h=>th.append(el("th",null,h)));
     const thead = el("thead"); thead.append(th); tbl.append(thead);
     const tb = el("tbody");
     rows.forEach(t=>{
@@ -884,7 +923,7 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
       opts.sort((a,b)=>(a??-1)-(b??-1)).forEach(v=>{ const o = el("option",null, v==null ? "—" : fmtDur(v)); o.value = v==null ? "" : String(v); if((t.spentMin>0 ? Math.round(t.spentMin) : null)===v) o.selected = true; sel.append(o); });
       sel.onchange = ()=>setSpent(t, sel.value ? Number(sel.value) : null);
       tt.append(sel); tr.append(tt);
-      const lead = t.createdAt ? (Date.parse(t.doneAt)-Date.parse(t.createdAt))/86400000 : null;
+      const lead = beganAt(t)!=null ? Math.max(0,(Date.parse(t.doneAt)-beganAt(t))/86400000) : null;
       tr.append(el("td","m", lead==null ? "—" : lead < 1 ? "< 1 d" : Math.round(lead)+" d"));
       let ent = "—", cls = null;
       if(t.due){ const late = dayNum(dLocal) - dayNum(t.due); if(late<=0){ ent = "A tiempo"; cls = "ontime"; } else { ent = "Tarde +"+late+" d"; cls = "tarde"; } }
@@ -962,6 +1001,7 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
   $("vBrain").onclick = ()=>setView("brain");
   $("vList").onclick = ()=>setView("list");
   $("vHist").onclick = ()=>setView("hist");
+  $("moreBtn").onclick = ()=>{ const x = $("addExtra"); x.hidden = !x.hidden; $("moreBtn").setAttribute("aria-expanded", String(!x.hidden)); $("moreBtn").textContent = x.hidden ? "+ Detalles" : "− Detalles"; if(!x.hidden) $("newNotes").focus(); };
   document.querySelectorAll("#histView [data-range]").forEach(b=>b.onclick = ()=>{ histRange = Number(b.dataset.range); try{ localStorage.setItem("tp-range", b.dataset.range); }catch(e){} render(); });
   function setFull(on){
     full = on; zoom = null;
@@ -1043,10 +1083,11 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     if(!title) return;
     if(!db) return setStatus("Sin conexión; no se guardó.", true);
     const data = { title, due: $("newDue").value || null, time: null, priority: $("newPri").value, area: $("newArea").value,
-      category: $("newCat").value.trim() || null, notes: "", status: "pending", createdAt: new Date().toISOString() };
+      category: $("newCat").value.trim() || null, notes: $("newNotes").value.trim(), start: $("newStart").value || null,
+      status: "pending", createdAt: new Date().toISOString() };
     try{
       await db.collection("tasks").add(data);
-      $("newTitle").value=""; $("newDue").value=""; $("newPri").value="media";
+      $("newTitle").value=""; $("newDue").value=""; $("newPri").value="media"; $("newNotes").value=""; $("newStart").value="";
       setStatus("Nodo cargado: "+title); $("newTitle").focus();
     }catch(e){ setStatus(e&&e.code==="quota_exceeded" ? "La red está llena. Borra algunas completadas." : "No se pudo agregar ("+(e&&e.code||"error")+").", true); }
   });
@@ -1056,7 +1097,7 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     editing = t; delArmed = false;
     $("eDelete").classList.remove("armed"); $("eDelete").textContent="Eliminar";
     $("eTitle").value = t.title||""; $("eDue").value = t.due||""; $("eTime").value = t.time||"";
-    $("ePri").value = t.priority||"media"; $("eArea").value = areaOf(t); $("eCat").value = t.category||""; $("eNotes").value = t.notes||"";
+    $("ePri").value = t.priority||"media"; $("eArea").value = areaOf(t); $("eCat").value = t.category||""; $("eNotes").value = t.notes||""; $("eStart").value = t.start||"";
     $("scrim").hidden = false; $("eTitle").focus();
   }
   function closeEditor(){ $("scrim").hidden = true; editing = null; }
@@ -1069,7 +1110,7 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
     const t = editing, title = $("eTitle").value.trim() || t.title;
     try{
       await db.collection("tasks").doc(t.id).update({ title, due: $("eDue").value || null, time: $("eTime").value || null,
-        priority: $("ePri").value, area: $("eArea").value, category: $("eCat").value.trim() || null, notes: $("eNotes").value.trim() });
+        priority: $("ePri").value, area: $("eArea").value, category: $("eCat").value.trim() || null, notes: $("eNotes").value.trim(), start: $("eStart").value || null });
       closeEditor(); setStatus("Guardado: "+title);
     }catch(e){ setStatus("No se pudo guardar ("+(e&&e.code||"error")+").", true); }
   });
