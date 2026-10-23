@@ -1,195 +1,141 @@
-# Renueva Automotriz 🚗
+# Renueva
 
-App de gestión de ventas multi-rubro: stock, ventas, comisiones, caja y gastos.
-Soporta 3 rubros activables independientemente: **Automotriz** 🚗, **Inmobiliaria** 🏠 y
-**Retail general** 🛍️. Cada rubro tiene sus propios campos (ej: patente en Automotriz,
-dirección en Inmobiliaria, SKU/talla en Retail) y Retail además maneja **stock por
-cantidad** (múltiples unidades por producto), mientras Automotriz e Inmobiliaria manejan
-**ítem único** (1 auto o 1 propiedad = 1 venta).
+Gestión de ventas para **automotoras**, **corredoras de propiedades** y **tiendas**, en tres "mundos" separados.
+Hecha para el celular (se instala como app en iPhone y Android) y funciona también en el computador.
 
-**Stack:** React + Vite + TailwindCSS · Supabase (PostgreSQL + Auth + RLS) · Deploy en Vercel.
+- **App:** Vite + JavaScript (sin framework), diseño propio.
+- **Datos y usuarios:** Supabase (Postgres con permisos por fila, inicio de sesión, archivos, tiempo real).
+- **Cobros:** Flow.cl (suscripción mensual o anual con cargo automático a tarjeta, en pesos chilenos).
+- **Hosting:** Vercel.
 
-Mobile-first (max 430px), dark mode, 10 temas de color intercambiables, tab bar inferior,
-sheets desde abajo para formularios, toasts arriba al centro.
+Sin variables de entorno la app abre en **modo demo** con datos de ejemplo. Agregando `?demo` a la URL también se ve la demo.
 
-## 1. Requisitos
+---
 
-- Node.js 18+
-- Una cuenta de [Supabase](https://supabase.com) (plan gratuito sirve)
-- Una cuenta de [Vercel](https://vercel.com) para el deploy
+## Quién maneja qué
 
-## 2. Setup del proyecto Supabase
+| Quién | Qué hace | Dónde |
+|---|---|---|
+| **Cliente (administrador de cada empresa)** | Crea su cuenta, prueba 14 días gratis, elige plan, paga con tarjeta en Flow, invita a vendedores y usuarios de solo lectura, elige mundos. | App → Ajustes → Plan / Usuarios |
+| **Vendedor** | Registra consultas, ventas, recordatorios en los mundos que le asignaron. No ve el plan ni edita catálogos ni comisiones. | App |
+| **Solo lectura** | Ve todo lo de sus mundos, no cambia nada. | App |
+| **Tú (dueño de Renueva)** | Ves todas las empresas, cuánto se cobra al mes, quién está en prueba o vencido. Activas planes pagados por transferencia, extiendes pruebas, suspendes cuentas. | App → Ajustes → **Panel de la plataforma** (solo aparece para ti) |
+| **Flow** | Guarda la tarjeta del cliente, cobra cada mes/año y avisa a Renueva cada pago. El dinero llega a tu cuenta bancaria registrada en Flow. | flow.cl |
 
-1. Crea un proyecto nuevo en https://app.supabase.com.
-2. Ve a **Project Settings → API** y copia:
-   - `Project URL` → será `VITE_SUPABASE_URL`
-   - `anon public key` → será `VITE_SUPABASE_ANON_KEY`
-3. Ve a **SQL Editor**, pega y ejecuta en orden:
-   1. [`supabase/migrations/001_schema.sql`](supabase/migrations/001_schema.sql) — crea las
-      6 tablas base (`profiles`, `vendedores`, `autos`, `ventas`, `gastos`, `temas`), activa
-      Row Level Security, define las políticas por rol y el trigger que crea un `profile`
-      automáticamente cuando alguien se registra en `auth.users` (rol por defecto `vendedor`).
-   2. [`supabase/migrations/002_multirubro.sql`](supabase/migrations/002_multirubro.sql) —
-      generaliza `autos` a una tabla `items` multi-rubro (con `rubro`, `atributos jsonb`,
-      `sku`, `stock_cantidad`) y crea `negocio_config` (qué rubros están activos).
-   3. [`supabase/migrations/003_planes.sql`](supabase/migrations/003_planes.sql) — agrega
-      planes de suscripción (`plan` + `max_usuarios` en `negocio_config`) y dos triggers de
-      seguridad: bloquea crear un usuario nuevo si ya se alcanzó el límite del plan, y evita
-      que el último admin se autodegrade sin dejar un reemplazo.
+Reglas que aplica la base de datos (no se pueden saltar desde el navegador):
 
-   Si es un proyecto nuevo, igual ejecuta los 3 en orden: 001, luego 002, luego 003.
-4. (Alternativa con CLI): si prefieres usar el CLI de Supabase:
+- Exactamente **un administrador** por empresa; los demás son vendedor o solo lectura.
+- Límite de usuarios y de mundos según el plan (Standard 1/1, Media 3/2, Premium 7/3).
+- Cuando termina la prueba sin pago (o el pago vence hace más de 5 días), la empresa queda en **solo lectura**: no se borra nada.
+- Cada persona solo ve los datos de su empresa y de los mundos que tiene asignados.
+
+---
+
+## Puesta en marcha (una sola vez)
+
+### 1. Supabase
+
+1. Crea un proyecto en <https://supabase.com> (región São Paulo es la más cercana a Chile).
+2. **SQL Editor** → pega todo el archivo `supabase/migrations/20261023000000_renueva.sql` → **Run**.
+   Se puede volver a correr sin problema. (Si antes corriste las migraciones de la versión anterior, esas tablas quedan sin uso; no molestan.)
+3. **Authentication → URL Configuration**
+   - *Site URL:* la URL de producción, por ejemplo `https://renueva.vercel.app` (o tu dominio).
+   - *Redirect URLs:* agrega la misma URL y `https://*-tu-usuario.vercel.app/**` para las vistas previas.
+4. **Authentication → Emails:** opcional pero recomendado, configura un SMTP propio (Resend, Brevo, etc.) para que los correos de confirmación no queden limitados ni lleguen a spam. Puedes traducir las plantillas al español.
+5. **Project Settings → API:** copia `Project URL` y la clave `anon public`.
+
+### 2. Vercel
+
+1. En el proyecto ya conectado a GitHub: **Settings → Environment Variables**
+   - `VITE_SUPABASE_URL` = Project URL
+   - `VITE_SUPABASE_ANON_KEY` = anon public key
+2. *Settings → Build:* Root Directory `renueva-automotriz`, Framework **Vite**, Build `npm run build`, Output `dist`.
+3. **Redeploy**. Al abrir la URL aparece el inicio de sesión. Si sale "Falta un paso", falta el SQL del punto 1.2.
+
+### 3. Hazte dueño de la plataforma
+
+Crea tu cuenta en la app (con tu correo) y luego en Supabase → SQL Editor:
+
+```sql
+insert into public.plataforma_admins (user_id)
+select id from auth.users where email = 'TU_CORREO@ejemplo.cl';
+```
+
+Recarga la app: en **Ajustes** aparece **Panel de la plataforma**.
+
+### 4. Cobros con Flow
+
+Mientras no configures Flow, la app funciona igual: cuando un cliente elige plan durante la prueba queda registrado, y tú activas el pago (por transferencia) desde el **Panel de la plataforma** → empresa → *Registrar pago y activar*.
+
+Para cobrar con tarjeta automáticamente:
+
+1. Crea tu cuenta de comercio en <https://www.flow.cl> y activa el producto **Suscripciones / Cargo automático**. Revisa comisiones vigentes en <https://web.flow.cl/es-cl/tarifas>.
+2. Prueba primero en sandbox: <https://sandbox.flow.cl> (Mis datos → *apiKey* y *secretKey*).
+3. Instala la CLI de Supabase y publica las funciones:
+
    ```bash
-   npm install -g supabase
-   supabase login
-   supabase link --project-ref TU_PROJECT_REF
-   supabase db push
+   npx supabase login
+   npx supabase link --project-ref TU_PROJECT_REF
+   npx supabase secrets set FLOW_API_KEY=xxxx FLOW_SECRET_KEY=yyyy APP_URL=https://tu-app.vercel.app FLOW_SANDBOX=1
+   npx supabase functions deploy billing
+   npx supabase functions deploy flow-webhook --no-verify-jwt
    ```
 
-### Crear el primer usuario admin
+4. Crea los 6 planes en Flow (Standard, Media y Premium × mensual/anual) con la URL de aviso correcta. Desde la app, entrando como dueño de la plataforma, abre la consola del navegador y ejecuta:
 
-1. En **Authentication → Users**, crea un usuario manualmente (email + password) o pide que
-   alguien se registre desde la app (no hay pantalla de registro pública: usa "Invite" desde
-   el dashboard de Supabase o el Auth API).
-2. Se creará automáticamente su fila en `profiles` con `rol = 'vendedor'`.
-3. En **Table Editor → profiles**, cambia manualmente su `rol` a `admin`.
-4. Desde ahí, ese admin puede cambiar el rol de otros usuarios desde **Ajustes → Usuarios**
-   dentro de la app.
+   ```js
+   await RV.billingSetup()
+   ```
 
-> **Nota sobre invitar usuarios:** invitar por email (`auth.admin.inviteUserByEmail`) requiere
-> el `service_role key`, que **nunca** debe exponerse en el frontend. La pantalla de Ajustes
-> deja el botón listo, pero para que funcione en producción crea una
-> [Edge Function de Supabase](https://supabase.com/docs/guides/functions) que reciba
-> `{ email, nombre, rol }`, use el `service_role key` como variable de entorno del lado del
-> servidor, llame a `supabase.auth.admin.inviteUserByEmail(...)` y actualice el `rol` en
-> `profiles`. Mientras tanto, el camino más simple es crear los usuarios manualmente desde el
-> dashboard de Supabase y ajustar su rol en `profiles`.
+   (o créalos a mano en Flow con los `planId` `renueva_standard_m`, `renueva_standard_a`, `renueva_media_m`, `renueva_media_a`, `renueva_premium_m`, `renueva_premium_a` y URL callback `https://TU_PROJECT_REF.supabase.co/functions/v1/flow-webhook`).
+5. Prueba el flujo completo con una tarjeta de prueba de Flow. Cuando funcione: cambia las claves por las de producción y `FLOW_SANDBOX=0`, y vuelve a crear los planes en la cuenta de producción.
 
-> **Nota sobre el vínculo vendedor ↔ usuario:** las políticas RLS de `ventas` para el rol
-> `vendedor` matchean por `nombre` entre `profiles` y `vendedores`. Para producción real se
-> recomienda agregar una columna `profile_id uuid` en `vendedores` y usarla en las políticas
-> en vez del nombre, para evitar colisiones si dos vendedores comparten nombre.
+**Cómo funciona el cobro:** el admin elige plan → la app pide a la función `billing` el enlace de Flow → el cliente registra su tarjeta en Flow → Flow vuelve a `flow-webhook`, que crea la suscripción y deja la empresa activa → cada mes Flow cobra y avisa a `flow-webhook`, que actualiza *pagado hasta* y el historial de pagos. Cambiar o cancelar el plan también pasa por `billing`.
 
-## 3. Correr el proyecto en local
+Precios: están en la tabla `planes` (SQL) y en `src/app/10-data.js` (`PLANES`). Si los cambias, cambia ambos y vuelve a crear los planes en Flow.
+
+---
+
+## Desarrollo local
 
 ```bash
 cd renueva-automotriz
 npm install
-cp .env.local.example .env.local
-# Edita .env.local y pega tu VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
-npm run dev
+cp .env.example .env.local   # pon tu URL y anon key (o déjalo vacío para la demo)
+npm run dev                   # http://localhost:5173
 ```
 
-Abre http://localhost:5173 — inicia sesión con el usuario que creaste en Supabase.
+Con Docker puedes levantar Supabase completo en tu computador: `npx supabase start` (usa `supabase/config.toml` y aplica la migración).
 
-Otros comandos:
-
-```bash
-npm run build     # build de producción a /dist
-npm run preview   # sirve el build localmente
-```
-
-## 4. Deploy en Vercel
-
-1. Sube este proyecto a un repositorio de GitHub/GitLab/Bitbucket.
-2. En [vercel.com](https://vercel.com), **Add New → Project** e importa el repo.
-3. Vercel detecta Vite automáticamente (`Framework Preset: Vite`). Si no, configura:
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-4. En **Environment Variables**, agrega:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-5. Deploy. El archivo [`vercel.json`](vercel.json) ya incluye el rewrite necesario para que
-   las rutas de React Router (`/stock`, `/ventas`, etc.) funcionen al recargar la página.
-6. En cada push a la rama principal, Vercel vuelve a desplegar automáticamente.
-
-## 5. Estructura del proyecto
+### Cómo está organizado
 
 ```
-src/
-  lib/            supabase.js, themes.js, format.js, rubros.js
-  hooks/          useAuth.jsx, useTheme.jsx, useNegocio.jsx
-  components/
-    ui/           Sheet, Toast, PBtn, FMoney, FSel, Pip, Empty, PagosBlock
-    TabBar.jsx, Header.jsx
-  pages/          Dashboard, Stock, Ventas, Caja, Equipo, Gastos, Ajustes, Login
-  App.jsx         Router + protección de rutas por rol
-supabase/
-  migrations/001_schema.sql       tablas base + RLS + triggers
-  migrations/002_multirubro.sql   autos -> items multi-rubro + negocio_config
+index.html              estructura de la pantalla
+src/styles.css          diseño (colores por mundo, tipografías, animaciones)
+src/cloud.js            Supabase: sesión, guardado automático, tiempo real, archivos, cobros
+src/app/10-data.js      reloj, mundos, catálogos, colecciones, planes, permisos
+src/app/12-demo.js      datos de ejemplo (demo y "empezar con ejemplos")
+src/app/20-core.js      iconos, alertas, navegación, permisos por acción, fotos
+src/app/30-screens.js   inicio, panel, stock, ventas, caja, equipo
+src/app/40-details.js   fichas y formularios (ítem, venta, vendedor, gastos)
+src/app/50-crm.js       consultas, contactos, recordatorios
+src/app/60-plan.js      ajustes, catálogos, plan, usuarios
+src/app/70-gate.js      inicio de sesión, crear empresa, panel de la plataforma
+src/app/90-main.js      arranque
+supabase/migrations/    base de datos, permisos y reglas de plan
+supabase/functions/     billing y flow-webhook (Flow)
 ```
 
-## 6. Rubros (verticales de negocio)
+Los archivos de `src/app` se unen en orden al compilar (ver `vite.config.js`).
 
-Los rubros activos se eligen en **Ajustes → Rubros activos** (solo admin) y se guardan en
-`negocio_config.rubros_activos`. Cuando hay más de un rubro activo, Stock muestra pestañas
-para filtrar y el formulario de ingreso pide primero elegir el rubro del ítem.
+**Cómo se guardan los datos:** cada registro (vehículo, venta, consulta, etc.) es un documento JSON en la tabla `docs`. La app guarda sola los cambios ~1 segundo después de cada acción y recibe en vivo los cambios de los demás usuarios. Fotos y comprobantes se achican en el celular y se suben al almacenamiento privado `archivos`.
 
-| Rubro | Ítem se llama | Código | Campos propios | Modo de stock |
-|---|---|---|---|---|
-| 🚗 Automotriz | Auto | Patente | Marca, modelo, año, km, color, tipo | Ítem único (1 auto = 1 venta) |
-| 🏠 Inmobiliaria | Propiedad | Rol de avalúo | Operación (venta/arriendo), tipo, dirección, comuna, m², dormitorios, baños | Ítem único |
-| 🛍️ Retail general | Producto | SKU | Marca, categoría, talla/variante | Por cantidad (stock se descuenta en cada venta) |
+---
 
-La definición de campos por rubro vive en [`src/lib/rubros.js`](src/lib/rubros.js) — para
-agregar un rubro nuevo (ej. Maquinaria, Náutica) solo hay que agregar una entrada ahí con su
-lista de `campos`, sin tocar el esquema de base de datos (los campos propios del rubro se
-guardan en la columna `atributos jsonb` de `items`).
+## Pendiente / próximos pasos
 
-**Cómo funciona el costo unitario:** al ingresar un ítem de Retail con cantidad > 1, el costo
-total ingresado se divide en `costo_unitario = costo / cantidad`. Cada venta descuenta la
-cantidad vendida del `stock_cantidad` y calcula su ganancia usando ese costo unitario. En
-Automotriz/Inmobiliaria la cantidad siempre es 1, así que `costo_unitario = costo`.
-
-## 7. Planes de suscripción
-
-El número de usuarios (admin + vendedores + solo lectura) está limitado por el plan activo,
-elegible en **Ajustes → Plan de suscripción** (solo admin):
-
-| Plan | Usuarios | Pensado para |
-|---|---|---|
-| Standard | 1 | Solo el admin, sin equipo |
-| Media | hasta 3 | Admin + 2 vendedores/readonly |
-| Premium | hasta 7 | Admin + hasta 6 vendedores/readonly |
-
-Siempre debe quedar **un usuario admin** (los demás son `vendedor` o `readonly`) y **al menos
-uno**. El límite se refuerza en dos niveles:
-
-- **UI:** el botón "+ Invitar" se deshabilita al llegar al máximo del plan.
-- **Base de datos:** un trigger (`trg_limite_usuarios` en `003_planes.sql`) bloquea la
-  creación de un nuevo `profile` si ya se alcanzó `max_usuarios`, y otro trigger
-  (`trg_ultimo_admin`) impide degradar al último admin sin dejar reemplazo. Así el límite se
-  cumple aunque la invitación se dispare fuera de la app (ej. directo desde el dashboard de
-  Supabase).
-
-Bajar de plan con más usuarios activos de los que el nuevo plan permite se bloquea desde la
-UI (`useNegocio.updatePlan`) pidiendo eliminar/desactivar usuarios primero. Este flujo no
-incluye cobro real (no hay integración de pagos); es un control de acceso interno. Para
-cobrar automáticamente habría que sumar Stripe (o similar) y sincronizar `negocio_config.plan`
-vía webhook.
-
-## 8. Roles
-
-| Rol       | Stock         | Ventas                  | Caja | Equipo | Gastos | Ajustes |
-|-----------|---------------|--------------------------|------|--------|--------|---------|
-| admin     | leer + editar | leer todas + editar      | ✅   | ✅     | ✅     | ✅      |
-| vendedor  | leer          | leer/crear/editar propias| ❌   | ❌     | ❌     | tema propio |
-| readonly  | solo leer     | solo leer                | ❌   | ❌     | ❌     | tema propio |
-
-El tab bar inferior solo muestra las secciones a las que el rol tiene acceso. `Gastos` es
-accesible desde el header de `Caja` (solo admin). `Ajustes` es accesible desde el ícono ⚙️
-del header, para todos los roles (con la gestión de usuarios visible solo para admin).
-
-## 9. Temas de color
-
-10 temas intercambiables, guardados por usuario en la tabla `temas` (con fallback a
-`localStorage` mientras carga la sesión): azul, grafito, dorado, esmeralda, volcán, lavanda,
-magenta, cobre, hielo, carbón. Se eligen desde **Ajustes** con preview visual real de cada
-paleta.
-
-## 10. Formato de dinero
-
-Todos los inputs de dinero (`FMoney`) muestran `$` + puntos de miles en tiempo real mientras
-se escribe (formato `es-CL`), por ejemplo al escribir `12000000` se ve `$12.000.000`. Los
-bloques de pagos múltiples (`PagosBlock`) validan que la suma de los pagos calce exacto con
-el monto objetivo (costo de compra o precio de venta) antes de permitir guardar.
+- Notificaciones push con la app cerrada (requiere claves VAPID y un envío programado en el servidor). Hoy los avisos llegan con la app abierta o en segundo plano reciente.
+- WhatsApp automático (API de WhatsApp Business, costo por mensaje). Hoy se abre el chat con el mensaje listo.
+- Boleta/factura electrónica del cobro de la suscripción (Flow puede emitirla si lo activas en tu cuenta; si no, emitir desde el SII).
+- Exportar a Excel.
+- Términos del servicio y política de privacidad (Ley 19.628) antes de abrir a clientes.
