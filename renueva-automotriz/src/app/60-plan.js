@@ -10,22 +10,29 @@ const nUsers = () => USUARIOS.filter(u => u.activo).length;
 const precioMes = p => planUI.ciclo === 'anual' ? Math.round(p.price * 10 / 12 / 10) * 10 : p.price;
 
 /* ---------------- ajustes ---------------- */
+// lo que ve un vendedor de sí mismo en Ajustes
+function vendAjustesHtml(w) {
+  const e = miEquipo(w.key);
+  return `<div class="card"><span class="kicker">Tu perfil de vendedor · ${w.name}</span>${e ? drow('Comisión base', e.comTipo === 'pct' ? e.comVal + '%' : fmt(e.comVal)) + drow('Ventas este mes', ventasOf(w.key, CUR).length) : '<p style="font-size:13px;color:var(--fg2);margin-top:10px">Tu administrador aún no te asigna comisión en este mundo.</p>'}
+    <p style="font-size:12px;color:var(--fg3);margin-top:10px">Ves tus ventas, tus clientes y el stock. Las cifras de la empresa las ve el administrador.</p></div>`;
+}
 function openAjustes() {
   const w = W(), p = planNow();
   pushScreen('Ajustes', `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px">
  <div style="display:flex;align-items:center;gap:16px"><span class="avatar xl">${initials(ME.nombre)}</span><div><h2 style="font:700 24px/1.05 var(--display);font-variation-settings:'wdth' 82">${ME.nombre}</h2><p style="font-size:13px;color:var(--fg3);margin-top:6px">${ROL_TXT[ME.rol]} · ${cloud() ? ORG.nombre : w.brand}</p>${ME.email ? `<p class="mono" style="font-size:11px;color:var(--fg3);margin-top:4px">${ME.email}</p>` : ''}</div></div>
     ${ME.plataforma ? `<button class="card pressable" data-act="plataforma" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%;border-color:var(--accent)"><span class="thumb" style="background:var(--accent);color:var(--accent-ink)">${icon('crown', 22)}</span><span class="grow"><b style="font:700 15px var(--body)">Panel de la plataforma</b><br><span style="font-size:12px;color:var(--fg3)">Empresas, planes, pruebas y pagos</span></span>${icon('chevR', 16)}</button>` : ''}
-    <button class="plan cur" data-act="plan" style="text-align:left;width:100%"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Tu plan</span>${planChip()}</div>
+    ${isVend() ? vendAjustesHtml(w) : ''}
+    ${isVend() ? '' : `<button class="plan cur" data-act="plan" style="text-align:left;width:100%"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Tu plan</span>${planChip()}</div>
       <div style="display:flex;align-items:baseline;gap:10px;margin-top:12px"><span class="pn">${p.n}</span><span style="font-size:13px;color:var(--fg3)">${p.users + SUB.extraUsers} usuarios · ${p.worlds + SUB.extraWorlds} mundos</span></div>
       <div class="grid2" style="margin-top:16px;gap:14px"><div class="meter"><div class="mh"><span>Usuarios</span><b>${nUsers()}/${limUsers()}</b></div><div class="pbar" style="--w:${nUsers() / limUsers() * 100}%"><i></i></div></div><div class="meter"><div class="mh"><span>Mundos</span><b>${nWorlds()}/${limWorlds()}</b></div><div class="pbar" style="--w:${nWorlds() / limWorlds() * 100}%"><i></i></div></div></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--accent);font:700 13px var(--body)">Ver planes y precios ${icon('arrowR', 16)}</div></button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--accent);font:700 13px var(--body)">Ver planes y precios ${icon('arrowR', 16)}</div></button>`}
     <div class="card tight">
       ${cloud() && isAdmin() ? `<button class="navrow" data-act="renombrarOrg"><span class="ni">${icon('building')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Empresa</b><br><span style="font-size:12px;color:var(--fg3)">${ORG.nombre}</span></span>${icon('chevR')}</button>` : ''}
-      <button class="navrow" data-act="usuarios"><span class="ni">${icon('people')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Usuarios y permisos</b><br><span style="font-size:12px;color:var(--fg3)">${nUsers()} de ${limUsers()} usuarios</span></span>${icon('chevR')}</button>
-      <button class="navrow" data-act="catalogos"><span class="ni">${icon('list')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Catálogos</b><br><span style="font-size:12px;color:var(--fg3)">Portales, financieras, orígenes y motivos</span></span>${icon('chevR')}</button>
+      ${isVend() ? '' : `<button class="navrow" data-act="usuarios"><span class="ni">${icon('people')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Usuarios y permisos</b><br><span style="font-size:12px;color:var(--fg3)">${nUsers()} de ${limUsers()} usuarios</span></span>${icon('chevR')}</button>
+      <button class="navrow" data-act="catalogos"><span class="ni">${icon('list')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Catálogos</b><br><span style="font-size:12px;color:var(--fg3)">Portales, financieras, orígenes y motivos</span></span>${icon('chevR')}</button>`}
       <button class="navrow" data-act="notifs"><span class="ni">${icon('bell')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Notificaciones</b><br><span style="font-size:12px;color:var(--fg3)">Recordatorios y avisos en tu celular</span></span>${icon('chevR')}</button>
     </div>
-    <div class="card"><span class="kicker">Color de tu mundo</span><div style="display:flex;gap:12px;margin-top:14px">${ACCENTS.map(c => `<button data-act="accent" data-c="${c}" aria-label="Color ${c}" style="width:40px;height:40px;border-radius:99px;background:${c};border:3px solid var(--s1);box-shadow:0 0 0 2px ${c}55;transition:transform .2s var(--spring)"></button>`).join('')}</div></div>
+    ${!isAdmin() ? '' : `<div class="card"><span class="kicker">Color de tu mundo</span><div style="display:flex;gap:12px;margin-top:14px">${ACCENTS.map(c => `<button data-act="accent" data-c="${c}" aria-label="Color ${c}" style="width:40px;height:40px;border-radius:99px;background:${c};border:3px solid var(--s1);box-shadow:0 0 0 2px ${c}55;transition:transform .2s var(--spring)"></button>`).join('')}</div></div>`}
     <button class="btn danger" data-act="logout">${icon('power')}Cerrar sesión</button></div>`);
 }
 function planChip() {
@@ -63,11 +70,15 @@ function catHtml() {
   if (w.key !== 'tienda') h += catSection('portales', 'Dónde publicas', 'Aparecen en la ficha de cada ' + w.itemOne.toLowerCase() + '. Toca uno para activarlo o apagarlo.');
   else h += catSection('portales', 'Canales de venta', 'Dónde ofreces tus productos.');
   if (w.key === 'auto') h += catSection('financieras', 'Financieras y bancos', 'Opciones al registrar un pago con crédito automotriz. Incluye las principales de Chile; agrega las tuyas.', `<select id="cat-t-fin" style="width:112px;min-height:44px;padding:0 28px 0 12px"><option>Financiera</option><option>Banco</option><option>Caja</option><option>Otra</option></select>`);
+  if (w.key === 'auto') h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="kicker">Comisión que te pagan</span><span class="mono" style="font-size:10.5px;color:var(--accent)">% del monto financiado</span></div>
+    <p style="font-size:12.5px;color:var(--fg3);margin-top:8px">Cuando registras un pago con crédito se calcula solo y queda en Caja → Comisiones de financieras hasta que confirmes que te pagaron.</p>
+    <div style="margin-top:10px">${finsOn().map(f => `<div class="pickrow" style="padding:10px 0"><span class="grow" style="font:600 14px var(--body)">${f.n}</span><input inputmode="decimal" value="${f.com || ''}" placeholder="0" data-change="catFinCom" data-k="${f.k}" style="width:78px;min-height:40px;text-align:right"><span style="color:var(--fg3);font-size:13px">%</span></div>`).join('') || '<p style="font-size:13px;color:var(--fg3)">Activa financieras arriba.</p>'}</div></div>`;
   if (w.key !== 'tienda') { h += catSection('origenes', 'Cómo llegan tus clientes', 'Origen que eliges al registrar una consulta.'); h += catSection('motivos', 'Motivos de pérdida', 'Para entender por qué no se concreta una venta.'); }
   return `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px"><div class="tip good" style="margin:0">${icon('lock')}<span>Solo los administradores pueden editar los catálogos. Los demás usuarios solo eligen de las opciones activas.</span></div>${h}</div>`;
 }
 function openCatalogos() { const el = pushScreen('Catálogos', catHtml()); el.dataset.cat = '1'; }
 function refreshCat() { const el = $$('.push').reverse().find(x => x.dataset.cat); if (!el) return; const pb = $('.pbody', el), sc = pb.scrollTop; pb.innerHTML = catHtml(); pb.scrollTop = sc; }
+ACT.catFinCom = (d, el) => { const f = CAT.financieras.find(x => x.k === d.k); if (!f) return; f.com = Math.min(100, Math.max(0, parseFloat(String(el.value).replace(',', '.')) || 0)); el.value = f.com || ''; toast(`${f.n}: ${f.com}% de comisión`, 'bank'); };
 ACT.catToggle = d => { const x = catList(d.kind, state.world).find(i => i.k === d.k); x.on = !x.on; refreshCat(); };
 ACT.catDel = d => { const l = catList(d.kind, state.world); l.splice(l.findIndex(i => i.k === d.k), 1); toast('Quitado de la lista', 'trash'); refreshCat(); };
 ACT.catAdd = d => {
@@ -179,13 +190,25 @@ ACT.userInviteSave = async (d, el) => {
   if (nUsers() >= limUsers()) { toast('Llegaste al límite de tu plan', 'lock'); return; }
   if (cloud()) {
     el.disabled = true;
-    try { const link = await RV.invite({ email: e, nombre: $('#ui-n').value.trim(), rol: ueState.rol, mundos: [...ueState.mundos] }); closeSheet(); refreshUsers(); setTimeout(() => shareInvite(e, link), 400); }
+    const nombre = $('#ui-n').value.trim();
+    try { const link = await RV.invite({ email: e, nombre, rol: ueState.rol, mundos: [...ueState.mundos] }); fichaVendedor(e, nombre, ueState.rol, ueState.mundos); closeSheet(); refreshUsers(); setTimeout(() => shareInvite(e, link), 400); }
     catch (x) { el.disabled = false; toast(x.message || 'No se pudo invitar', 'warn'); }
     return;
   }
+  fichaVendedor(e, $('#ui-n').value.trim(), ueState.rol, ueState.mundos);
   USUARIOS.push({ id: nuevoId('u'), nombre: $('#ui-n').value.trim() || e.split('@')[0], email: e, rol: ueState.rol, mundos: [...ueState.mundos], activo: true, invitado: true });
   closeSheet(); toast('Invitación enviada a ' + e, 'send'); refreshUsers();
 };
+// al invitar a un vendedor se crea (o enlaza por correo) su ficha en Equipo de cada mundo, para su comisión
+function fichaVendedor(email, nombre, rol, mundos) {
+  if (rol !== 'vendedor') return;
+  mundos.forEach(w => {
+    const e = EQUIPO.find(x => x.w === w && (lc(x.email) === lc(email) || (nombre && x.nombre.toLowerCase() === nombre.toLowerCase())));
+    if (e) { e.email = lc(email); e.activo = true; return; }
+    EQUIPO.push({ id: nuevoId('e'), w, nombre: nombre || email.split('@')[0], fono: '', email: lc(email), comTipo: 'pct', comVal: w === 'prop' ? 40 : w === 'tienda' ? 3 : 2, activo: true });
+  });
+  saved(); if (state.world) { renderEquipo(); }
+}
 function shareInvite(email, link) {
   const txt = `Te invito a usar Renueva con ${ORG.nombre}. Entra aquí y crea tu cuenta con este correo (${email}): ${link}`;
   openSheet('Invitación lista', `<div style="display:flex;flex-direction:column;gap:14px"><p style="font-size:13.5px;color:var(--fg2)">Envíale este enlace a <b style="color:var(--fg)">${email}</b>. Al crear su cuenta con ese correo entra directo a tu empresa.</p>

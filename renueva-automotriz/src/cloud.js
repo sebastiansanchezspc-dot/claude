@@ -89,14 +89,14 @@ async function context() { const { data, error } = await sb.rpc('mi_contexto'); 
 async function loadAll() {
   const rows = []; const page = 1000
   for (let from = 0; ; from += page) {
-    const { data, error } = await sb.from('docs').select('col,id,data').eq('org_id', orgId).range(from, from + page - 1)
+    const { data, error } = await sb.from('docs').select('col,id,data,dueno').eq('org_id', orgId).range(from, from + page - 1)
     if (error) fail(error)
     rows.push(...data); if (data.length < page) break
   }
   snapshot = new Map()
   const out = { items: [], ventas: [], gastos: [], equipo: [], leads: [], rems: [], contactos: [], cat: null, prefs: null }
   rows.forEach(r => {
-    snapshot.set(r.col + '/' + r.id, JSON.stringify(r.data))
+    snapshot.set(r.col + '/' + r.id, sig(r))
     if (r.col === 'config') out[r.id] = r.data; else if (out[r.col]) out[r.col].push(r.data)
   })
   await signPaths(collectPaths(out))
@@ -104,9 +104,11 @@ async function loadAll() {
 }
 
 // el estado actual de la app, como filas de la tabla docs
+// firma de una fila: datos + dueño (si cambia cualquiera de los dos, se vuelve a guardar)
+const sig = r => JSON.stringify(r.data) + '\u0001' + (r.dueno || '')
 function currentRows() {
   const m = new Map()
-  Object.entries(refs.COLS).forEach(([col, arr]) => arr.forEach(x => { if (x && x.id) m.set(col + '/' + x.id, { col, id: String(x.id), mundo: x.w || null, data: x }) }))
+  Object.entries(refs.COLS).forEach(([col, arr]) => arr.forEach(x => { if (x && x.id) m.set(col + '/' + x.id, { col, id: String(x.id), mundo: x.w || null, data: x, dueno: refs.duenoOf(col, x) }) }))
   if (refs.isAdmin()) {
     m.set('config/cat', { col: 'config', id: 'cat', mundo: null, data: refs.CAT })
     m.set('config/prefs', { col: 'config', id: 'prefs', mundo: null, data: refs.PREFS })
@@ -125,11 +127,11 @@ async function flush() {
   flushing = true; setStatus('guardando')
   try {
     const cur = currentRows(), up = [], del = []
-    cur.forEach((r, k) => { const j = JSON.stringify(r.data); if (snapshot.get(k) !== j) up.push({ ...r, j }) })
+    cur.forEach((r, k) => { const j = sig(r); if (snapshot.get(k) !== j) up.push({ ...r, j }) })
     snapshot.forEach((_, k) => { if (!cur.has(k) && !(k.startsWith('config/') && !refs.isAdmin())) del.push(k) })
     for (let i = 0; i < up.length; i += 200) {
       const chunk = up.slice(i, i + 200)
-      const { error } = await sb.from('docs').upsert(chunk.map(r => ({ org_id: orgId, col: r.col, id: r.id, mundo: r.mundo, data: r.data, updated_at: new Date().toISOString() })), { onConflict: 'org_id,col,id' })
+      const { error } = await sb.from('docs').upsert(chunk.map(r => ({ org_id: orgId, col: r.col, id: r.id, mundo: r.mundo, data: r.data, dueno: r.dueno || null, updated_at: new Date().toISOString() })), { onConflict: 'org_id,col,id' })
       if (error) throw error
       chunk.forEach(r => snapshot.set(r.col + '/' + r.id, r.j))
     }
@@ -163,7 +165,7 @@ async function reload() {
 function setStatus(s, msg) { RV.status = s; if (RV.onStatus) RV.onStatus(s, msg) }
 window.addEventListener('online', () => dirty())
 window.addEventListener('beforeunload', e => { if (mode === 'cloud' && (flushing || timer) && hasPending()) { e.preventDefault(); e.returnValue = '' } })
-function hasPending() { if (!refs || !orgId) return false; const cur = currentRows(); for (const [k, r] of cur) if (snapshot.get(k) !== JSON.stringify(r.data)) return true; return false }
+function hasPending() { if (!refs || !orgId) return false; const cur = currentRows(); for (const [k, r] of cur) if (snapshot.get(k) !== sig(r)) return true; return false }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush().catch(() => { }) })
 
 /* ---------------------------------------------------------------- tiempo real */
@@ -175,7 +177,7 @@ function subscribe() {
       const row = p.eventType === 'DELETE' ? p.old : p.new; if (!row || !row.col) return
       const k = row.col + '/' + row.id
       if (p.eventType === 'DELETE') { if (!snapshot.has(k)) return; snapshot.delete(k); refs.applyRemote(row.col, row.id, null); return }
-      const j = JSON.stringify(row.data); if (snapshot.get(k) === j) return
+      const j = sig(row); if (snapshot.get(k) === j) return
       snapshot.set(k, j)
       signPaths(collectPaths({ x: [row.data] })).finally(() => refs.applyRemote(row.col, row.id, row.data))
     })

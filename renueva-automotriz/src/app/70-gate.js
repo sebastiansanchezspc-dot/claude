@@ -132,14 +132,14 @@ function applyRemote(col, id, data) {
   if (!data) { if (i >= 0) arr.splice(i, 1); } else if (i >= 0) arr[i] = deepClean(data); else arr.push(deepClean(data));
   rerender();
 }
-RV.bind({ COLS, CAT, PREFS, USUARIOS, isAdmin, applyCtx, applyData, applyRemote, rerender });
+RV.bind({ COLS, CAT, PREFS, USUARIOS, isAdmin, duenoOf, applyCtx, applyData, applyRemote, rerender });
 
 async function startCloud(st) {
   applyCtx(st.ctx);
   if (gate.seed) {
     gate.seed = false; const d = demoData();
     const keep = k => ENABLED[k];
-    Object.keys(d).forEach(k => { d[k] = d[k].filter(x => keep(x.w)); });
+    Object.keys(d).forEach(k => { if (Array.isArray(d[k])) d[k] = d[k].filter(x => keep(x.w)); });
     loadData(d); RV.dirty(); toast('Cargamos datos de ejemplo para que explores', 'sparkle');
   } else loadData(deepClean(st.data));
   renderLobby(); $('#lobby').classList.remove('out'); $('#app').hidden = true;
