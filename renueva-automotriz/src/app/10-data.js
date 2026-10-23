@@ -88,6 +88,8 @@ const portalesOf = w => CAT.portales[w].filter(p => p.on);
 const portalName = (w, k) => (CAT.portales[w].find(p => p.k === k) || { n: k }).n;
 const finsOn = () => CAT.financieras.filter(f => f.on);
 const finName = k => (CAT.financieras.find(f => f.k === k) || { n: k }).n;
+// % de comisión que la financiera le paga a la automotora por cada crédito
+const finCom = k => +((CAT.financieras.find(f => f.k === k) || {}).com || 0);
 
 
 /* ---------------- colecciones ---------------- */
@@ -132,6 +134,20 @@ const isAdmin = () => ME.rol === 'admin';
 const canWrite = () => ME.rol !== 'lectura' && SUB.escribible;
 const puedeMundo = k => ENABLED[k] && (isAdmin() || ME.mundos.includes(k));
 const firstName = n => String(n || '').split(' ')[0];
+// vendedores: cada uno ve solo sus ventas, consultas y recordatorios (lo asegura la base de datos)
+const isVend = () => ME.rol === 'vendedor';
+const lc = s => String(s || '').trim().toLowerCase();
+const emailDe = (w, nombre) => { const e = EQUIPO.find(x => x.w === w && x.nombre === nombre); return e && e.email ? lc(e.email) : null; };
+const miEquipo = w => EQUIPO.find(e => e.w === w && ((e.email && ME.email && lc(e.email) === lc(ME.email)) || e.nombre === ME.nombre));
+const miNombre = w => (miEquipo(w) || {}).nombre || ME.nombre;
+// dueño de cada registro = correo del vendedor responsable (decide quién lo puede ver)
+function duenoOf(col, x) {
+  if (col === 'equipo') return x.email ? lc(x.email) : null;
+  if (!['ventas', 'leads', 'rems'].includes(col)) return null;
+  if (isVend()) return lc(ME.email) || null;
+  if (col === 'rems') { if (x.owner) return lc(x.owner); const l = x.ref && x.ref.t === 'lead' ? LEADS.find(y => y.id === x.ref.id) : null; return l ? emailDe(l.w, l.vend) : null; }
+  return emailDe(x.w, x.vend);
+}
 
 /* ---------------- cargar datos ---------------- */
 function loadData(data) {

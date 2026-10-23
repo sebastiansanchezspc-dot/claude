@@ -160,7 +160,10 @@ function demoData() {
   STOCK.filter(i => i.w === 'prop').forEach(i => { i.visBase = i.visitas - i.visitas14; i.vis = Array.from({ length: i.visitas14 }, (_, k) => addDaysFrom('2026-10-23', -1 - (k * 5) % 13)); delete i.visitas; delete i.visitas14; });
   STOCK.filter(i => i.w === 'tienda').forEach(i => delete i.ventas30);
   LEADS.forEach(l => { if (l.etapa === 'ganado' || l.etapa === 'perdido') l.ts = (l.log[l.log.length - 1] || {}).ts || l.ts; l.creado = (l.log[0] || {}).ts || l.ts; });
-  const data = { items: STOCK, ventas: VENTAS, gastos: GASTOS, equipo: EQUIPO, leads: LEADS, rems: REMS, contactos: CONTACTOS };
+  // comisiones de ejemplo que pagan las financieras (cada automotora pone las suyas en Catálogos)
+  const cat = { financieras: catDefaults().financieras.map(f => ({ ...f, com: { forum: 3, autofin: 2.5, sconsumer: 2, tanner: 2.5, amicar: 3, crediautos: 2, maf: 2 }[f.k] || 1.5 })) };
+  VENTAS.forEach(v => v.pagos.forEach(p => { if (!p.fin) return; const f = cat.financieras.find(x => x.k === p.fin); p.fcp = f ? f.com : 0; p.fcm = Math.round(p.a * p.fcp / 100); p.fcs = v.id === 'v5' ? 'pagada' : 'pendiente'; if (p.fcs === 'pagada') p.fcf = '2026-10-02'; }));
+  const data = { items: STOCK, ventas: VENTAS, gastos: GASTOS, equipo: EQUIPO, leads: LEADS, rems: REMS, contactos: CONTACTOS, cat };
   // correr todas las fechas para que "hoy" de la demo sea hoy
   const dMin = Math.round((Date.now() - new Date(D0 + ':00')) / 60000), dDays = Math.round((dateOf(TODAY) - dateOf('2026-10-23')) / MS);
   const shift = v => {

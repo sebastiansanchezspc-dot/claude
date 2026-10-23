@@ -79,7 +79,14 @@ const itemsOf = w => STOCK.filter(s => s.w === w);
 const getItem = id => STOCK.find(s => s.id === id);
 const ventasOf = (w, mk) => VENTAS.filter(v => v.w === w && (!mk || v.fecha.startsWith(mk)));
 const comision = v => v.comTipo === 'pct' ? Math.round(v.ingreso * v.comVal / 100) : v.comVal;
-const utilidad = v => v.ingreso - v.costo - comision(v);
+// comisión que paga la financiera por los créditos de esta venta (es ingreso de la automotora)
+const comFin = v => v.pagos.reduce((a, p) => a + (p.fin ? p.fcm || 0 : 0), 0);
+const utilidad = v => v.ingreso - v.costo - comision(v) + comFin(v);
+// comisiones de financieras pendientes de pago (de créditos ya cursados o en curso)
+function finComRows(w, filtro = 'pend') {
+  const out = []; ventasOf(w).forEach(v => v.pagos.forEach((p, i) => { if (p.fin && p.fcm > 0 && (filtro === 'todas' || (filtro === 'pend') === (p.fcs !== 'pagada'))) out.push({ v, p, i }); }));
+  return out.sort((a, b) => (b.v.fecha).localeCompare(a.v.fecha));
+}
 // un gasto fijo cuenta todos los meses desde que se registró
 const gastosMes = (w, mk = MK()) => GASTOS.filter(g => g.w === w && (g.fecha.startsWith(mk) || (g.fijo && g.fecha.slice(0, 7) < mk)));
 const sum = (a, f) => a.reduce((x, y) => x + f(y), 0);
@@ -136,10 +143,12 @@ function alertsFor(w) {
     it.filter(i => i.estado !== 'vendido').forEach(i => docIssues(i).forEach(d => A.push({ sev: d.est, icon: d.icon, title: `${shortName(i.nombre)} · ${d.label}`, sub: d.txt, act: 'item', id: i.id, tab: 'docs' })));
     it.filter(i => i.estado === 'disponible' && diasStock(i) >= 60).sort((a, b) => diasStock(b) - diasStock(a)).forEach(i => {
       const d = diasStock(i), p = ptm(i);
-      A.push({ sev: d >= 90 ? 'bad' : 'warn', icon: 'clock', title: `${shortName(i.nombre)} lleva ${d} días`, sub: p > 0.015 ? `Precio ${(p * 100).toFixed(1).replace('.', ',')}% sobre mercado · ${fmt(i.costo + i.recon)} inmovilizados` : `${fmt(i.costo + i.recon)} inmovilizados`, act: 'item', id: i.id });
+      A.push({ sev: d >= 90 ? 'bad' : 'warn', icon: 'clock', title: `${shortName(i.nombre)} lleva ${d} días`, sub: isVend() ? (p > 0.015 ? `Precio ${(p * 100).toFixed(1).replace('.', ',')}% sobre mercado` : 'Revisa precio, fotos y publicaciones') : p > 0.015 ? `Precio ${(p * 100).toFixed(1).replace('.', ',')}% sobre mercado · ${fmt(i.costo + i.recon)} inmovilizados` : `${fmt(i.costo + i.recon)} inmovilizados`, act: 'item', id: i.id });
     });
     it.filter(i => i.reservaVenc).forEach(i => A.push({ sev: 'warn', icon: 'key', title: `Reserva ${shortName(i.nombre)} vence en ${diffDays(i.reservaVenc)}d`, sub: 'Falta el curso del crédito automotriz.', act: 'item', id: i.id }));
     ventasOf(w).forEach(v => v.pagos.filter(p => p.s === 'pendiente').forEach(p => { const d = diffDays(p.v); if (d <= 7) A.push({ sev: 'warn', icon: p.fin ? 'bank' : 'receipt', title: `${p.m}${p.fin ? ' · ' + finName(p.fin) : ''} por cobrar · ${fmtM(p.a)}`, sub: `${v.cliente} · ${p.fin ? 'crédito ' + ({ evaluacion: 'en evaluación', aprobado: 'aprobado, falta cursar', cursado: 'cursado' }[p.cr]) + ' · ' : ''}${d < 0 ? 'vencido hace ' + -d + 'd' : 'vence en ' + d + 'd'}`, act: 'venta', id: v.id }); }));
+    const fpend = {}; if (!isVend()) finComRows('auto').filter(r => r.p.cr === 'cursado').forEach(r => { const o = fpend[r.p.fin] || (fpend[r.p.fin] = { m: 0, n: 0 }); o.m += r.p.fcm; o.n++; });
+    Object.entries(fpend).forEach(([k, o]) => A.push({ sev: 'info', icon: 'bank', title: `${finName(k)} te debe ${fmt(o.m)} en comisiones`, sub: `${o.n} crédito${o.n > 1 ? 's' : ''} cursado${o.n > 1 ? 's' : ''} · márcalas como pagadas cuando lleguen`, act: 'fincom' }));
     ventasOf(w).filter(v => v.tramite === 'pendiente').forEach(v => A.push({ sev: 'info', icon: 'doc', title: `Traspaso pendiente · ${shortName((getItem(v.itemId) || { nombre: v.cliente }).nombre)}`, sub: `Registro Civil · ${daysSince(v.fecha)} días desde la venta`, act: 'venta', id: v.id }));
   } else if (w === 'prop') {
     const sr = LEADS.filter(l => l.w === w && l.etapa === 'nuevo' && leadMin(l) > 10);
@@ -152,7 +161,7 @@ function alertsFor(w) {
     ventasOf(w).forEach(v => v.pagos.filter(p => p.s === 'pendiente').forEach(p => A.push({ sev: 'info', icon: 'receipt', title: `Honorario por cobrar · ${fmtM(p.a)}`, sub: `${v.cliente} · ${diffDays(p.v) < 0 ? 'vencido' : 'vence en ' + diffDays(p.v) + 'd'}`, act: 'venta', id: v.id })));
   } else {
     it.filter(i => i.stock < i.minimo).sort((a, b) => a.stock / a.minimo - b.stock / b.minimo).forEach(i => A.push({ sev: i.stock === 0 ? 'bad' : i.stock / i.minimo < 0.5 ? 'bad' : 'warn', icon: 'box', title: `${i.nombre}: ${i.stock === 0 ? 'agotado' : `quedan ${i.stock}`}`, sub: `Mínimo ${i.minimo} · vende ${ventas30(i)} al mes · reponer ${Math.max(i.minimo * 2 - i.stock, 0)} un.`, act: 'item', id: i.id }));
-    it.filter(i => i.stock > 0 && daysSince(i.ultimaVenta) >= 45).forEach(i => A.push({ sev: 'warn', icon: 'clock', title: `${i.nombre}: ${daysSince(i.ultimaVenta)} días sin venderse`, sub: `${fmt(i.costoU * i.stock)} detenidos en ${i.stock} unidades. Liquida con descuento.`, act: 'item', id: i.id }));
+    it.filter(i => i.stock > 0 && daysSince(i.ultimaVenta) >= 45).forEach(i => A.push({ sev: 'warn', icon: 'clock', title: `${i.nombre}: ${daysSince(i.ultimaVenta)} días sin venderse`, sub: isVend() ? `${i.stock} unidades sin movimiento` : `${fmt(i.costoU * i.stock)} detenidos en ${i.stock} unidades. Liquida con descuento.`, act: 'item', id: i.id }));
   }
   REMS.filter(r => r.w === w && !r.hecho && r.cuando.slice(0, 10) <= TODAY).forEach(r => { const late = r.cuando < nowISO(); A.push({ sev: late ? 'bad' : 'info', icon: 'bell', title: r.titulo, sub: late ? `Recordatorio vencido · era a las ${hhmm(r.cuando)}` : `Recordatorio · hoy ${hhmm(r.cuando)}`, act: 'reminder', id: r.id }); });
   const rank = { bad: 0, warn: 1, info: 2, ok: 3 };
@@ -234,8 +243,8 @@ const topPush = () => pushes[pushes.length - 1];
 /* ---------------- delegación de eventos ---------------- */
 const ACT = {};
 // acciones que cambian datos (solo lectura no puede) y las que son solo del administrador
-const WRITE_ACTS = new Set('saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
-const ADMIN_ACTS = new Set('catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
+const WRITE_ACTS = new Set('crFcp crFcs saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
+const ADMIN_ACTS = new Set('leadVend vDatos catFinCom catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
 function allowAct(name) {
   if (ADMIN_ACTS.has(name) && !isAdmin()) { toast('Solo el administrador puede cambiar esto', 'lock'); return false; }
   if ((WRITE_ACTS.has(name) || ADMIN_ACTS.has(name)) && !canWrite()) { toast(ME.rol === 'lectura' ? 'Tu usuario es de solo lectura' : 'Tu cuenta está en solo lectura: elige un plan para seguir', 'lock'); return false; }

@@ -137,10 +137,10 @@ ACT.saveConsulta = () => {
   const w = W(), nombre = $('#nq-n').value.trim(), fono = $('#nq-f').value.trim(); if (!nombre) { toast('Falta el nombre', 'warn'); return; }
   let c = ncState.contactoId ? CONTACTOS.find(x => x.id === ncState.contactoId) : CONTACTOS.find(x => x.w === w.key && fono && x.fono === fono);
   if (!c) { c = { id: nuevoId('c'), w: w.key, nombre, fono, email: '', nota: '' }; CONTACTOS.push(c); }
-  const vend = ME.rol === 'vendedor' ? ME.nombre : (EQUIPO.find(e => e.w === w.key && e.activo) || { nombre: ME.nombre }).nombre, origenN = (CAT.origenes[w.key].find(o => o.k === ncState.origen) || { n: 'Directo' }).n;
+  const vend = isVend() ? miNombre(w.key) : (EQUIPO.find(e => e.w === w.key && e.activo) || { nombre: ME.nombre }).nombre, origenN = (CAT.origenes[w.key].find(o => o.k === ncState.origen) || { n: 'Directo' }).n;
   const l = L(nuevoId('l'), w.key, c.nombre, c.fono, $('#nq-i').value || null, origenN, 'nuevo', nowISO(), vend, '', { temp: ncState.temp, nueva: true, log: [{ ts: tick(), tipo: 'entrada', txt: `Consulta registrada · ${origenN}` }] });
   LEADS.push(l);
-  if ($('#nq-rec').classList.contains('on')) { const d = new Date(nowISO() + ':00'); d.setHours(d.getHours() + 1); const p = n => String(n).padStart(2, '0'); REMS.push({ id: nuevoId('r'), w: w.key, titulo: `Llamar a ${c.nombre}`, cuando: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`, canal: 'push', tpl: 'llamar', ref: { t: 'lead', id: l.id }, hecho: false }); }
+  if ($('#nq-rec').classList.contains('on')) { const d = new Date(nowISO() + ':00'); d.setHours(d.getHours() + 1); const p = n => String(n).padStart(2, '0'); REMS.push({ id: nuevoId('r'), owner: isVend() ? lc(ME.email) : null, w: w.key, titulo: `Llamar a ${c.nombre}`, cuando: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`, canal: 'push', tpl: 'llamar', ref: { t: 'lead', id: l.id }, hecho: false }); }
   closeSheet(); toast('Consulta agregada', 'userplus'); refreshAll(); renderDock(); refreshHub();
   if (!$$('.push').some(x => x.dataset.hub)) setTimeout(() => openLead(l.id), 420);
 };
@@ -159,6 +159,7 @@ function leadHtml(l) {
     ${it ? `<button class="card pressable" data-act="item" data-id="${it.id}" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%"><span class="thumb">${icon(WORLDS[it.w].icon, 22)}</span><span class="grow"><p class="rt" style="white-space:normal">${it.nombre}</p><p class="rs" style="margin-top:7px">${idChip(it)}</p></span><span class="p num" style="font-size:16px">${fmtM(it.precio)}</span></button>` : ''}
     ${!cerr ? `<div class="card"><span class="kicker">Etapa</span><div style="margin-top:12px">${stages}</div></div>
     <div class="card"><span class="kicker">Nivel de interés</span><div class="optrow" style="margin-top:12px">${TEMPS.map(([k, t, ic, cl]) => `<button class="opt ${cl} ${l.temp === k ? 'on' : ''}" data-act="leadTemp" data-id="${l.id}" data-k="${k}">${icon(ic)}${t}</button>`).join('')}</div></div>` : ''}
+    ${!isVend() && EQUIPO.some(e => e.w === l.w && e.activo) ? `<label class="field"><span>Vendedor a cargo</span><select data-change="leadVend" data-id="${l.id}">${[...new Set([l.vend, ...EQUIPO.filter(e => e.w === l.w && e.activo).map(e => e.nombre)])].map(n => `<option ${n === l.vend ? 'selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Historial</span><button class="chip accent" data-act="recLead" data-id="${l.id}" style="border:0">${icon('bell', 12)}Recordatorio</button></div>
       <div style="display:flex;gap:8px;margin-top:14px"><input id="ln-t" placeholder="Agregar nota…" autocomplete="off"><button class="btn small primary" data-act="leadNote" data-id="${l.id}" style="min-width:56px;padding:0 14px">${icon('plus')}</button></div>
       <div class="tl" style="margin-top:18px">${[...l.log].reverse().map(e => `<div class="tl-i"><p class="a">${({ entrada: 'Consulta', llamada: 'Llamada', whatsapp: 'WhatsApp', nota: 'Nota', visita: 'Visita', etapa: 'Etapa', recordatorio: 'Recordatorio' })[e.tipo] || 'Nota'}</p><p class="b">${e.txt}</p><p class="c">${relTxt(e.ts)}</p></div>`).join('') || '<p style="font-size:13px;color:var(--fg3)">Sin movimientos</p>'}</div></div>
@@ -174,6 +175,7 @@ function refreshLead(id) { const top = topPush(), l = LEADS.find(x => x.id === i
 ACT.leadCall = d => { const l = LEADS.find(x => x.id === d.id); if (!canWrite()) return; touchLead(l); logLead(l, 'llamada', 'Llamada registrada'); toast('Llamando a ' + firstName(l.nombre), 'phone'); refreshLead(l.id); };
 ACT.leadWa = d => { const l = LEADS.find(x => x.id === d.id); if (!canWrite()) return; touchLead(l); logLead(l, 'whatsapp', 'Mensaje de WhatsApp enviado'); toast('Abriendo WhatsApp con el mensaje listo', 'whatsapp'); refreshLead(l.id); };
 ACT.leadStage = d => { const l = LEADS.find(x => x.id === d.id); if (l.etapa === d.k) return; l.etapa = d.k; l.ts = nowISO(); logLead(l, 'etapa', 'Pasó a ' + ETAPA_TXT[d.k]); toast('Etapa: ' + ETAPA_TXT[d.k]); refreshLead(l.id); };
+ACT.leadVend = (d, el) => { const l = LEADS.find(x => x.id === d.id); l.vend = el.value; logLead(l, 'nota', 'Asignada a ' + el.value); toast('Ahora la atiende ' + firstName(el.value), 'user2'); refreshLead(l.id); };
 ACT.leadTemp = d => { const l = LEADS.find(x => x.id === d.id); l.temp = d.k; toast(TEMPS.find(t => t[0] === d.k)[1]); refreshLead(l.id); };
 ACT.leadNote = d => { const l = LEADS.find(x => x.id === d.id), v = $('#ln-t').value.trim(); if (!v) return; logLead(l, 'nota', v); refreshLead(l.id); };
 ACT.recLead = d => { const l = LEADS.find(x => x.id === d.id); openNuevoRecordatorio({ contactoId: (contactoOf(l) || {}).id, leadId: l.id }); };
@@ -259,7 +261,7 @@ ACT.saveRecordatorio = () => {
   if (nrState.when === 'h1') t.setHours(t.getHours() + 1); else if (nrState.when === 'h18') t.setHours(18, 0); else if (nrState.when === 'm9') { t.setDate(t.getDate() + 1); t.setHours(9, 0); } else { t.setDate(t.getDate() + 3); t.setHours(9, 0); }
   const cuando = `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}T${p(t.getHours())}:${p(t.getMinutes())}`, push = $('#nr-push').classList.contains('on'), wa = $('#nr-wa').classList.contains('on'), cid = $('#nr-c').value;
   const lead = nrState.leadId ? { t: 'lead', id: nrState.leadId } : cid ? { t: 'contacto', id: cid } : null;
-  REMS.push({ id: nuevoId('r'), w: w.key, titulo, cuando, canal: push && wa ? 'ambos' : wa ? 'wa' : 'push', tpl: nrState.tpl, ref: lead, hecho: false });
+  REMS.push({ id: nuevoId('r'), owner: isVend() ? lc(ME.email) : null, w: w.key, titulo, cuando, canal: push && wa ? 'ambos' : wa ? 'wa' : 'push', tpl: nrState.tpl, ref: lead, hecho: false });
   if (nrState.leadId) { const l = LEADS.find(x => x.id === nrState.leadId); logLead(l, 'recordatorio', `${titulo} · ${cuandoTxt(cuando).toLowerCase()}`); refreshLead(l.id); }
   closeSheet(); toast('Te avisamos ' + cuandoTxt(cuando).toLowerCase(), 'bell'); refreshHub(); refreshAll();
 };

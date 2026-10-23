@@ -45,7 +45,7 @@ function enterWorld(key, x, y) {
   iris.style.setProperty('--ix', (x - r.left) + 'px'); iris.style.setProperty('--iy', (y - r.top) + 'px');
   iris.classList.remove('go'); void iris.offsetWidth; iris.classList.add('go');
   setTimeout(() => {
-    state.world = key; state.tab = 'panel'; state.fFilter = 'todos'; state.fSort = 'rec'; state.q = ''; state.fBucket = null;
+    state.world = key; state.tab = 'panel'; state.fFilter = 'todos'; state.fSort = 'rec'; state.q = ''; state.fBucket = null; state.fVend = null;
     shell.dataset.world = key; $('#app').hidden = false; renderAll();
     $('#lobby').classList.add('out'); go('panel', true);
     try { localStorage.setItem('renueva_world', key); } catch (e) { }
@@ -78,7 +78,8 @@ function hdr(title, kicker, extra = '') {
   </div></header><div class="hd-large px"><p class="kicker">${kicker}</p><h1>${title}</h1></div>`;
 }
 function sec(label, count = '', more = '') { return `<div class="sec"><span class="kicker">${label}</span>${count !== '' ? `<span class="count">${count}</span>` : ''}${more}</div>`; }
-const TABS = () => [{ k: 'panel', l: 'Panel', i: 'gauge' }, { k: 'stock', l: W().tabs.stock, i: W().icon }, { k: 'ventas', l: W().tabs.ventas, i: 'dollar' }, { k: 'caja', l: 'Caja', i: 'calc' }, { k: 'equipo', l: 'Equipo', i: 'people' }];
+const TABS_ALL = () => [{ k: 'panel', l: 'Panel', i: 'gauge' }, { k: 'stock', l: W().tabs.stock, i: W().icon }, { k: 'ventas', l: W().tabs.ventas, i: 'dollar' }, { k: 'caja', l: 'Caja', i: 'calc' }, { k: 'equipo', l: 'Equipo', i: 'people' }];
+const TABS = () => isVend() ? TABS_ALL().filter(t => ['panel', 'stock', 'ventas'].includes(t.k)) : TABS_ALL();
 function renderDock() {
   $('#dock').innerHTML = `<span class="pill" id="pill"></span>` + TABS().map(t => `<button data-act="tab" data-tab="${t.k}" class="${state.tab === t.k ? 'active' : ''}" aria-label="${t.l}">${icon(t.i, 22)}<span>${t.l}</span></button>`).join('');
   movePill(true);
@@ -245,13 +246,14 @@ function qaHtml(w) {
 }
 function renderPanel() {
   const w = W(), h = new Date().getHours(), saludo = `${h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'}, ${firstName(ME.nombre)}`;
-  const mods = w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
+  const mods = isVend() ? [heroVendHtml, qaHtml, atencionHtml, ...(w.key === 'tienda' ? [] : [funnelHtml]), cobrarHtml, accionHtml]
+    : w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
     : w.key === 'prop' ? [heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
       : [heroHtml, qaHtml, atencionHtml, pulsoHtml, saludHtml, accionHtml, equipoHtml];
   $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`) .replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => m(w)).join('')}</div>`;
 }
 ACT.alert = d => { const a = alertsFor(state.world)[+d.i]; if (a) runAlert(a); };
-function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
+function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'fincom') openFinCom(); else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
 ACT.agecell = d => { state.fBucket = +d.b; state.fFilter = 'todos'; renderStock(); go('stock'); };
 
 /* ---------------- STOCK ---------------- */
@@ -322,15 +324,36 @@ function ventaRow(v, k) {
   const nm = v.w === 'tienda' ? `${it.nombre} ×${v.q}` : it.nombre;
   return `<button class="row" data-act="venta" data-id="${v.id}" style="animation-delay:${Math.min(k, 8) * 0.045}s"><span class="thumb">${icon(w.icon, 22)}</span>
     <span class="rm"><p class="rt">${nm}</p><p class="rs">${v.w === 'tienda' ? `${v.vend.split(' ')[0]} · ${v.hora}:00` : v.cliente} · ${fechaCorta(v.fecha)}${pend ? `<span class="chip warn">Por cobrar</span>` : ''}${v.tramite === 'pendiente' ? `<span class="chip">Traspaso</span>` : ''}</p></span>
-    <span class="rr"><span class="p">${fmtM(v.ingreso)}</span><span class="chip good">+${fmtM(u)}</span></span></button>`;
+    <span class="rr"><span class="p">${fmtM(v.ingreso)}</span><span class="chip good">+${fmtM(isVend() ? comision(v) : u)}</span></span></button>`;
+}
+// el administrador puede ver las ventas de un vendedor en particular
+function vendFiltro(w) {
+  if (isVend()) return '';
+  const nombres = [...new Set(ventasOf(w.key, MK()).map(v => v.vend))]; if (nombres.length < 2) return '';
+  return `<div class="hscroll">${[['', 'Todos'], ...nombres.map(n => [n, n])].map(([k, t]) => `<button class="opt ${(state.fVend || '') === k ? 'on' : ''}" data-act="fVend" data-k="${k}">${k ? icon('user2') : ''}${t}${k ? ' · ' + ventasOf(w.key, MK()).filter(v => v.vend === k).length : ''}</button>`).join('')}</div>`;
+}
+ACT.fVend = d => { state.fVend = d.k || null; const sc = $('#scr-ventas').scrollTop; renderVentas(); $('#scr-ventas').scrollTop = sc; };
+// panel del vendedor: sus comisiones, sin costos ni gastos de la empresa
+function heroVendHtml(w) {
+  const vs = ventasOf(w.key, MK()), pv = ventasOf(w.key, MKP()), com = sum(vs, comision), dl = com - sum(pv, comision), e = miEquipo(w.key);
+  const mk = MK(), hasta = esMesActual() ? +TODAY.slice(8, 10) : diasMes(mk), serie = []; let acc = 0;
+  for (let d = 1; d <= hasta; d++) { acc += sum(vs.filter(v => v.fecha === `${mk}-${pad2(d)}`), comision); serie.push(acc); }
+  return `<div class="hero reveal">
+    <div class="hero-top"><div class="grow"><span class="kicker">Mis comisiones · ${mesDe(mk)}</span>
+      <span class="big">${odo(com)}</span>
+      <span class="delta ${dl < 0 ? 'neg' : ''}"><span class="l1">${icon(dl < 0 ? 'arrowDn' : 'arrowUp', 13, 2.4)}${fmtM(Math.abs(dl))}<span>vs ${mesDe(MKP()).toLowerCase()}</span></span></span></div></div>
+    ${spark(serie.length > 1 ? serie : [0, ...serie, 0].slice(0, 2))}
+    <div class="stat3">${[[w.key === 'tienda' ? 'Tickets' : 'Ventas', vs.length], ['Vendido', fmtM(sum(vs, v => w.key === 'prop' ? v.precio : v.ingreso))], ['Mi comisión base', e ? (e.comTipo === 'pct' ? e.comVal + '%' : fmt(e.comVal)) : '—']].map(([k, v]) => `<div><span class="kicker">${k}</span><span class="v">${v}</span></div>`).join('')}</div>
+  </div>`;
 }
 function renderVentas() {
-  const w = W(), vs = ventasOf(w.key, MK()).sort((a, b) => (b.fecha + pad2(b.hora || 0)).localeCompare(a.fecha + pad2(a.hora || 0))), st = monthStats(w.key, MK());
+  const w = W(), vs = ventasOf(w.key, MK()).filter(v => !state.fVend || v.vend === state.fVend).sort((a, b) => (b.fecha + pad2(b.hora || 0)).localeCompare(a.fecha + pad2(a.hora || 0))), st = monthStats(w.key, MK());
   $('#scr-ventas').innerHTML = hdr(w.tabs.ventas, `${mesDe(MK())} ${MK().slice(0, 4)} · ${vs.length} ${w.key === 'tienda' ? 'tickets' : 'cierres'}`, `<button class="ibtn solid" data-act="nuevaVenta" aria-label="Registrar">${icon('plus', 20, 2.2)}</button>`) + `
   <div class="body px">
     ${mesBar()}
     <div class="card reveal" style="background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--s1)),var(--s1) 70%)"><span class="kicker">${w.key === 'prop' ? 'Volumen de operaciones' : 'Vendido en ' + mesDe(MK()).toLowerCase()}</span><div class="num" style="font-size:34px;margin-top:10px;line-height:1">${fmt(st.volumen || st.ingreso)}</div></div>
-    <div class="grid2">${[['Utilidad', st.bruta, 'var(--good)'], ['Comisiones', st.com, '']].map(([k, v, c], i) => `<div class="card reveal" style="padding:14px 16px;animation-delay:${(i + 1) * .06}s"><span class="kicker" style="font-size:9.5px">${k}</span><div class="num" style="font-size:21px;margin-top:9px;white-space:nowrap;${c ? 'color:' + c : ''}">${fmt(v)}</div></div>`).join('')}</div>
+    <div class="grid2">${(isVend() ? [['Mi comisión', st.com, 'var(--good)'], [w.key === 'tienda' ? 'Tickets' : 'Ventas', st.n, '', 1]] : [['Utilidad', st.bruta, 'var(--good)'], ['Comisiones', st.com, '']]).map(([k, v, c, n], i) => `<div class="card reveal" style="padding:14px 16px;animation-delay:${(i + 1) * .06}s"><span class="kicker" style="font-size:9.5px">${k}</span><div class="num" style="font-size:21px;margin-top:9px;white-space:nowrap;${c ? 'color:' + c : ''}">${n ? v : fmt(v)}</div></div>`).join('')}</div>
+    ${vendFiltro(w)}
     ${sec(w.key === 'tienda' ? 'Tickets recientes' : w.tabs.ventas, vs.length)}
     <div class="card tight">${vs.slice(0, 18).map(ventaRow).join('') || `<div class="empty">${icon('dollar', 30)}<p>Aún no hay registros este mes</p></div>`}</div>
     ${vs.length > 18 ? `<p style="text-align:center;font-size:12px;color:var(--fg3)">Mostrando 18 de ${vs.length} · usa Caja para ver el detalle por método</p>` : ''}
@@ -350,6 +373,33 @@ function finCajaHtml(c) {
   const mx = Math.max(...rows.map(r => r[1].cob + r[1].pen));
   return sec('Con qué financiera vendes', rows.length) + `<div class="card tight">${rows.map(([k, o], i) => `<div class="row" style="flex-direction:column;align-items:stretch;gap:10px;cursor:default"><span style="display:flex;align-items:center;gap:12px"><span class="thumb" style="width:38px;height:38px;border-radius:11px">${icon('bank', 18)}</span><span class="rm"><p class="rt">${finName(k)}</p><p class="rs">${o.n} crédito${o.n > 1 ? 's' : ''}</p></span><span class="rr"><span class="p">${fmtM(o.cob + o.pen)}</span>${o.pen ? `<span class="chip warn">${fmtM(o.pen)} pend.</span>` : ''}</span></span><span class="pbar" style="--w:${(o.cob + o.pen) / mx * 100}%"><i></i></span></div>`).join('')}</div>`;
 }
+/* ---------------- comisiones que pagan las financieras ---------------- */
+function finComHtml() {
+  const pend = finComRows('auto', 'pend'), pag = finComRows('auto', 'pagada');
+  if (!pend.length && !pag.length) return '';
+  const tp = sum(pend, r => r.p.fcm), tc = sum(pag.filter(r => (r.p.fcf || '').startsWith(MK())), r => r.p.fcm);
+  const porFin = {}; pend.forEach(r => { const o = porFin[r.p.fin] || (porFin[r.p.fin] = { m: 0, n: 0 }); o.m += r.p.fcm; o.n++; });
+  return sec('Comisiones de financieras', '', `<button class="more" data-act="fincom">Ver detalle</button>`) + `<button class="card pressable reveal" data-act="fincom" style="text-align:left;width:100%">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px"><div><span class="kicker">Te deben las financieras</span><div class="num" style="font-size:30px;margin-top:9px;line-height:1;color:var(--warn)">${fmt(tp)}</div></div><div style="text-align:right"><span class="kicker" style="font-size:9px">Cobrado en ${mesDe(MK()).toLowerCase()}</span><div class="num" style="font-size:17px;margin-top:7px;color:var(--good)">${fmt(tc)}</div></div></div>
+    ${Object.keys(porFin).length ? `<div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px">${Object.entries(porFin).sort((a, b) => b[1].m - a[1].m).map(([k, o]) => `<span class="chip">${finName(k)} · ${fmt(o.m)}</span>`).join('')}</div>` : ''}</button>`;
+}
+const fcState = { f: 'pend' };
+function finComListHtml() {
+  const rows = finComRows('auto', fcState.f), tot = sum(rows, r => r.p.fcm);
+  const porFin = {}; rows.forEach(r => { const o = porFin[r.p.fin] || (porFin[r.p.fin] = { m: 0, n: 0 }); o.m += r.p.fcm; o.n++; });
+  return `<div class="px" style="padding-top:8px;display:flex;flex-direction:column;gap:14px">
+    ${seg('seg-fc', [['pend', 'Pendientes'], ['pagada', 'Pagadas'], ['todas', 'Todas']], fcState.f, 'fcF')}
+    <div class="card"><span class="kicker">${fcState.f === 'pend' ? 'Por cobrar' : fcState.f === 'pagada' ? 'Cobrado' : 'Total generado'}</span><span class="big" style="display:block;margin-top:10px;font-size:42px">${odo(tot)}</span><p style="font-size:12px;color:var(--fg3);margin-top:8px">${rows.length} crédito${rows.length === 1 ? '' : 's'}</p></div>
+    ${Object.keys(porFin).length ? sec('Por financiera', Object.keys(porFin).length) + `<div class="card tight">${Object.entries(porFin).sort((a, b) => b[1].m - a[1].m).map(([k, o]) => `<div class="row" style="cursor:default"><span class="thumb" style="width:38px;height:38px;border-radius:11px">${icon('bank', 18)}</span><span class="rm"><p class="rt">${finName(k)}</p><p class="rs">${o.n} crédito${o.n > 1 ? 's' : ''} · ${finCom(k)}% actual</p></span><span class="rr"><span class="p">${fmt(o.m)}</span></span></div>`).join('')}</div>` : ''}
+    ${sec('Detalle por auto', rows.length)}
+    <div class="card tight">${rows.map(({ v, p, i }) => { const it = getItem(v.itemId) || { nombre: 'Ítem eliminado' }; return `<div class="row"><button data-act="venta" data-id="${v.id}" style="all:unset;display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer"><span class="thumb">${icon('car', 20)}</span><span class="rm"><p class="rt">${it.nombre}</p><p class="rs">${finName(p.fin)} · ${p.fcp}% de ${fmt(p.a)} · ${fechaCorta(v.fecha)}${p.cr !== 'cursado' ? '<span class="chip">Crédito por cursar</span>' : ''}</p></span></button><span class="rr"><span class="p">${fmt(p.fcm)}</span>${p.fcs === 'pagada' ? `<span class="chip good">Pagada${p.fcf ? ' ' + fechaCorta(p.fcf) : ''}</span>` : `<button class="chip warn" style="border:0" data-act="crFcs" data-id="${v.id}" data-i="${i}" data-list="1">Me la pagaron</button>`}</span></div>`; }).join('') || `<div class="empty">${icon('bank', 30)}<p>${fcState.f === 'pend' ? 'No tienes comisiones pendientes' : 'Sin registros'}</p></div>`}</div>
+    <p style="font-size:12px;color:var(--fg3);text-align:center;padding:0 10px">El % de cada financiera se configura en Ajustes → Catálogos. Al registrar una venta con crédito se propone ese % y lo puedes cambiar.</p></div>`;
+}
+function openFinCom() { const el = pushScreen('Comisiones financieras', finComListHtml(), { onReady: () => moveSeg('seg-fc') }); el.dataset.fincom = '1'; }
+function refreshFinCom() { const el = $$('.push').reverse().find(x => x.dataset.fincom); if (!el) return; const pb = $('.pbody', el), sc = pb.scrollTop; pb.innerHTML = finComListHtml(); pb.scrollTop = sc; moveSeg('seg-fc'); animateIn(el); }
+ACT.fincom = () => openFinCom();
+ACT.fcF = d => { fcState.f = d.k; refreshFinCom(); };
+
 function renderCaja() {
   const w = W(), c = cajaData(w.key, state.cajaP), gs = sum(gastosMes(w.key), g => g.monto);
   const metodos = w.metodos.map(m => [m, c.ent[m] || 0]).sort((a, b) => b[1] - a[1]), mx = Math.max(1, ...metodos.map(m => m[1]));
@@ -364,7 +414,7 @@ function renderCaja() {
     <div class="card tight">${metodos.map(([m, v], i) => `<button class="row" data-act="metodo" data-m="${m}" style="animation-delay:${i * .05}s;flex-direction:column;align-items:stretch;gap:10px">
       <span style="display:flex;align-items:center;gap:12px"><span class="thumb" style="width:38px;height:38px;border-radius:11px">${icon(METODO_ICON[m] || 'dollar', 18)}</span><span class="rm"><p class="rt">${m}</p></span><span class="p num" style="font-size:16px">${fmtM(v)}</span>${c.pen[m] ? `<span class="chip warn" style="margin-left:6px">+${fmtM(c.pen[m])} pend.</span>` : ''}</span>
       <span class="pbar" style="--w:${Math.max(2, v / mx * 100)}%"><i></i></span></button>`).join('')}</div>
-    ${w.key === 'auto' ? finCajaHtml(c) : ''}
+    ${w.key === 'auto' ? finComHtml() + finCajaHtml(c) : ''}
     ${c.rows.length ? sec('Por cobrar', fmtM(c.pend)) + `<div class="card tight">${c.rows.map(({ v, p }, k) => `<button class="row" data-act="venta" data-id="${v.id}"><span class="thumb">${icon(METODO_ICON[p.m] || 'receipt', 20)}</span><span class="rm"><p class="rt">${p.m} · ${v.cliente}</p><p class="rs">Vence ${fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmtM(p.a)}</span></span></button>`).join('')}</div>` : ''}
     ${sec('Gastos', '')}
     <button class="card pressable" data-act="gastos" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%"><span class="thumb">${icon('receipt', 22)}</span><span class="grow"><p class="rt">Gastos de ${mesDe(MK()).toLowerCase()}</p><p class="rs">${gastosMes(w.key).length} registros · ${gastosMes(w.key).filter(g => g.fijo).length} fijos</p></span><span class="num" style="font-size:19px">${fmtM(gs)}</span>${icon('chevR', 16)}</button>
