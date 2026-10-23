@@ -17,6 +17,12 @@ const minsAgo = ts => ts ? Math.max(0, Math.round((Date.now() - new Date(ts + ':
 const hhmm = ts => ts.slice(11, 16);
 const monthKey = (iso, delta = 0) => { const d = dateOf(iso.slice(0, 7) + '-15'); d.setMonth(d.getMonth() + delta); return isoD(d).slice(0, 7); };
 let CUR = TODAY.slice(0, 7), PREV = monthKey(TODAY, -1);
+// mes que se está mirando (por defecto el actual); "ahora" (alertas, consultas) siempre es hoy
+let MES_SEL = null;
+const MK = () => MES_SEL || CUR;
+const MKP = () => monthKey(MK(), -1);
+const esMesActual = () => MK() === CUR;
+const diasMes = mk => new Date(+mk.slice(0, 4), +mk.slice(5, 7), 0).getDate();
 const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const mesDe = mk => MES[+mk.slice(5, 7) - 1];
 const fmt = n => (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n || 0)).toLocaleString('es-CL');

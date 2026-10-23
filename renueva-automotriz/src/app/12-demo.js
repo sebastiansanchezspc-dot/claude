@@ -101,12 +101,12 @@ function demoData() {
 
   /* ---------------- gastos / equipo / leads ---------------- */
   const GASTOS = [
-    G('g1','auto','Arriendo patio de ventas','Arriendo',900000,'2026-10-05',true,'Pago a cuenta del propietario.'), G('g2','auto','Sueldos administrativos','Sueldo',1100000,'2026-10-01',true),
-    G('g3','auto','Luz, agua e internet','Servicios',220000,'2026-10-08',true), G('g4','auto','Avisos Chileautos + Instagram Ads','Marketing',180000,'2026-10-12',false,'Promoción SUV.'), G('g5','auto','Lavado y pulido (proveedor)','Mantención',80000,'2026-10-15',false),
-    G('g6','prop','Arriendo oficina','Arriendo',700000,'2026-10-05',true), G('g7','prop','Sueldos administrativos','Sueldo',900000,'2026-10-01',true),
-    G('g8','prop','Portal Inmobiliario + Yapo','Marketing',320000,'2026-10-10',true), G('g9','prop','Fotografía profesional','Marketing',250000,'2026-10-14',false),
-    G('g10','tienda','Arriendo local','Arriendo',1200000,'2026-10-05',true), G('g11','tienda','Sueldos','Sueldo',1600000,'2026-10-01',true),
-    G('g12','tienda','Luz y agua','Servicios',180000,'2026-10-08',true), G('g13','tienda','Publicidad en redes','Marketing',150000,'2026-10-12',false), G('g14','tienda','Mantención vitrinas','Mantención',60000,'2026-10-15',false),
+    G('g1','auto','Arriendo patio de ventas','Arriendo',900000,'2026-08-05',true,'Pago a cuenta del propietario.'), G('g2','auto','Sueldos administrativos','Sueldo',1100000,'2026-08-01',true),
+    G('g3','auto','Luz, agua e internet','Servicios',220000,'2026-08-08',true), G('g4','auto','Avisos Chileautos + Instagram Ads','Marketing',180000,'2026-10-12',false,'Promoción SUV.'), G('g5','auto','Lavado y pulido (proveedor)','Mantención',80000,'2026-10-15',false),
+    G('g6','prop','Arriendo oficina','Arriendo',700000,'2026-08-05',true), G('g7','prop','Sueldos administrativos','Sueldo',900000,'2026-08-01',true),
+    G('g8','prop','Portal Inmobiliario + Yapo','Marketing',320000,'2026-08-10',true), G('g9','prop','Fotografía profesional','Marketing',250000,'2026-10-14',false),
+    G('g10','tienda','Arriendo local','Arriendo',1200000,'2026-08-05',true), G('g11','tienda','Sueldos','Sueldo',1600000,'2026-08-01',true),
+    G('g12','tienda','Luz y agua','Servicios',180000,'2026-08-08',true), G('g13','tienda','Publicidad en redes','Marketing',150000,'2026-10-12',false), G('g14','tienda','Mantención vitrinas','Mantención',60000,'2026-10-15',false),
   ];
   const EQUIPO = [
     { id: 'e1', w: 'auto', nombre: 'Marcela Fuentes', fono: '+56 9 8123 4455', email: 'marcela@renueva.cl', comTipo: 'pct', comVal: 2, activo: true, meses: [2, 4, 3, 5, 4, 5] },

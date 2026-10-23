@@ -101,9 +101,9 @@ window.addEventListener('resize', () => movePill(true));
 
 /* ---------------- PANEL ---------------- */
 function cumSeries(w) {
-  const vs = ventasOf(w, CUR), gs = gastosMes(w, CUR), out = []; let acc = 0;
-  const hasta = +TODAY.slice(8, 10);
-  for (let d = 1; d <= hasta; d++) { const ds = `${CUR}-${pad2(d)}`; acc += sum(vs.filter(v => v.fecha === ds), utilidad) - sum(gs.filter(g => g.fecha === ds), g => g.monto); out.push(acc); }
+  const mk = MK(), vs = ventasOf(w, mk), gs = gastosMes(w, mk), out = []; let acc = 0;
+  const hasta = esMesActual() ? +TODAY.slice(8, 10) : diasMes(mk);
+  for (let d = 1; d <= hasta; d++) { const ds = `${mk}-${pad2(d)}`; acc += sum(vs.filter(v => v.fecha === ds), utilidad) - sum(gs.filter(g => g.fecha === ds), g => g.monto); out.push(acc); }
   return out.length > 1 ? out : [0, ...out, ...(out.length ? [] : [0])];
 }
 // honorarios probables: cada propiedad activa vale según la mejor etapa de sus consultas
@@ -118,7 +118,7 @@ function forecastProps() {
   return { rows, total: sum(rows, r => r.pond) };
 }
 function heroHtml(w) {
-  const st = monthStats(w.key, CUR), pv = monthStats(w.key, PREV), series = cumSeries(w.key);
+  const st = monthStats(w.key, MK()), pv = monthStats(w.key, MKP()), series = cumSeries(w.key);
   const be = series.findIndex(v => v >= 0);
   const dl = st.neta - pv.neta;
   const p = Math.max(0, st.neta) / (PREFS.meta && PREFS.meta[w.key] || w.meta);
@@ -127,15 +127,15 @@ function heroHtml(w) {
     const per = st.n ? st.bruta / st.n : 0;
     s3 = [['Ventas', `${st.n} un.`], ['Margen/un.', fmtM(per)], ['Comisiones', fmtM(st.com)]];
   } else if (w.key === 'prop') {
-    s3 = [['Operaciones', `${st.n}`], ['Cerrado', fmtM(st.volumen)], ['Proyectado', fmtM(forecastProps().total)]];
+    s3 = [['Operaciones', `${st.n}`], ['Cerrado', fmtM(st.volumen)], esMesActual() ? ['Proyectado', fmtM(forecastProps().total)] : ['Honorarios', fmtM(st.ingreso)]];
   } else {
     const hoy = ventasOf('tienda').filter(v => v.fecha === TODAY);
-    s3 = [['Ventas hoy', fmtM(sum(hoy, v => v.ingreso))], ['Margen', `${st.ingreso ? Math.round(st.bruta / st.ingreso * 100) : 0}%`], ['Ticket prom.', fmtM(st.n ? st.ingreso / st.n : 0)]];
+    s3 = [esMesActual() ? ['Ventas hoy', fmtM(sum(hoy, v => v.ingreso))] : ['Vendido', fmtM(st.ingreso)], ['Margen', `${st.ingreso ? Math.round(st.bruta / st.ingreso * 100) : 0}%`], ['Ticket prom.', fmtM(st.n ? st.ingreso / st.n : 0)]];
   }
   return `<div class="hero reveal">
-    <div class="hero-top"><div class="grow"><span class="kicker">Utilidad neta · ${mesDe(CUR)}</span>
+    <div class="hero-top"><div class="grow"><span class="kicker">Utilidad neta · ${mesDe(MK())}</span>
       <span class="big">${odo(st.neta)}</span>
-      <span class="delta ${dl < 0 ? 'neg' : ''}"><span class="l1">${icon(dl < 0 ? 'arrowDn' : 'arrowUp', 13, 2.4)}${fmtM(Math.abs(dl))}<span>vs ${mesDe(PREV).toLowerCase()}</span></span>${be > 0 && be < series.length - 1 ? `<span class="l2">Equilibrio el ${be + 1} ${mesDe(CUR).slice(0, 3).toLowerCase()}</span>` : ''}</span></div>
+      <span class="delta ${dl < 0 ? 'neg' : ''}"><span class="l1">${icon(dl < 0 ? 'arrowDn' : 'arrowUp', 13, 2.4)}${fmtM(Math.abs(dl))}<span>vs ${mesDe(MKP()).toLowerCase()}</span></span>${be > 0 && be < series.length - 1 ? `<span class="l2">Equilibrio el ${be + 1} ${mesDe(MK()).slice(0, 3).toLowerCase()}</span>` : ''}</span></div>
       ${ring(p, 'META')}</div>
     ${spark(series)}
     <div class="stat3">${s3.map(([k, v]) => `<div><span class="kicker">${k}</span><span class="v">${v}</span></div>`).join('')}</div>
@@ -190,17 +190,17 @@ function accionHtml(w) {
 }
 // embudo del mes: consultas que entraron este mes y hasta dónde llegaron
 function funnelFor(w) {
-  const ls = LEADS.filter(l => l.w === w.key && (l.creado || l.ts || '').startsWith(CUR)), hit = (l, r) => RANK[l.etapa] >= r || (l.etapa === 'perdido' && (l.log || []).some(e => e.tipo === 'visita') && r <= 2);
-  const ventas = monthStats(w.key, CUR).n;
+  const mk = MK(), ls = LEADS.filter(l => l.w === w.key && (l.creado || l.ts || '').startsWith(mk)), hit = (l, r) => RANK[l.etapa] >= r || (l.etapa === 'perdido' && (l.log || []).some(e => e.tipo === 'visita') && r <= 2);
+  const ventas = monthStats(w.key, mk).n;
   if (w.key === 'auto') return [['Consultas', ls.length], ['Visitas', ls.filter(l => hit(l, 2)).length], ['Reservas', ls.filter(l => hit(l, 4)).length], ['Ventas', ventas]];
-  return [['Captaciones', itemsOf('prop').filter(i => (i.ingreso || '').startsWith(CUR)).length], ['Consultas', ls.length], ['Visitas', ls.filter(l => hit(l, 2)).length], ['Ofertas', ls.filter(l => hit(l, 3)).length], ['Cierres', ventas]];
+  return [['Captaciones', itemsOf('prop').filter(i => (i.ingreso || '').startsWith(mk)).length], ['Consultas', ls.length], ['Visitas', ls.filter(l => hit(l, 2)).length], ['Ofertas', ls.filter(l => hit(l, 3)).length], ['Cierres', ventas]];
 }
 function funnelHtml(w) {
   const f = funnelFor(w), max = Math.max(1, ...f.map(x => x[1])), ls = LEADS.filter(l => l.w === w.key), sr = ls.filter(l => l.etapa === 'nuevo' && leadMin(l) > 10).length;
   const base = w.key === 'prop' ? f[1][1] : f[0][1];
   const n = e => ls.filter(l => l.etapa === e).length;
   return sec(w.key === 'auto' ? 'Embudo de ventas' : 'Pipeline del mes', '', `<button class="more" data-act="leads">Ver clientes</button>`) + `<div class="card reveal" style="animation-delay:.22s">
-    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 13.5px var(--body)">${mesDe(CUR)}</span>${sr ? `<button class="chip bad" data-act="hubEtapa" data-e="nuevo" style="border:0">${icon('chat', 12)}${sr} sin responder</button>` : '<span class="chip good">Al día</span>'}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 13.5px var(--body)">${mesDe(MK())}</span>${sr ? `<button class="chip bad" data-act="hubEtapa" data-e="nuevo" style="border:0">${icon('chat', 12)}${sr} sin responder</button>` : '<span class="chip good">Al día</span>'}</div>
     <div class="funnel">${f.map(([l, v], i) => { const wv = Math.max(0.06, v / max); return `<div class="frow"><span class="fl">${l}</span><div class="fb"><div class="ff" style="--w:${wv.toFixed(3)};--i:${i}"></div><b class="fv ${wv > 0.22 ? 'in' : 'out'}" style="--w:${wv.toFixed(3)};--i:${i}">${v}</b></div></div>`; }).join('')}</div>
     <p style="font-size:12px;color:var(--fg3);margin-top:12px">Conversión consulta → ${f[f.length - 1][0].toLowerCase()}: <b style="color:var(--fg)">${base ? (f[f.length - 1][1] / base * 100).toFixed(1).replace('.', ',') : '0'}%</b></p>
     <div class="hscroll" style="margin-top:12px"><button class="opt warm" data-act="hubEtapa" data-e="trato">${icon('flame')}En trato · ${n('trato')}</button><button class="opt on" data-act="hubEtapa" data-e="ganado">${icon('trophy')}Ganadas · ${n('ganado')}</button><button class="opt" data-act="hubEtapa" data-e="perdido">${icon('close')}Perdidas · ${n('perdido')}</button></div></div>`;
@@ -231,12 +231,12 @@ function pulsoHtml() {
     <div style="display:flex;justify-content:space-between;margin-top:8px;font:500 9.5px var(--mono);color:var(--fg3)"><span>9h</span><span>12h</span><span>15h</span><span>18h</span></div></div>`;
 }
 function equipoHtml(w) {
-  const eq = EQUIPO.filter(e => e.w === w.key && e.activo), ut = e => sum(ventasOf(w.key, CUR).filter(v => v.vend === e.nombre), utilidad), mx = Math.max(1, ...eq.map(ut));
+  const eq = EQUIPO.filter(e => e.w === w.key && e.activo), ut = e => sum(ventasOf(w.key, MK()).filter(v => v.vend === e.nombre), utilidad), mx = Math.max(1, ...eq.map(ut));
   if (!eq.length) return '';
   return sec('Equipo del mes', '', `<button class="more" data-act="tab" data-tab="equipo">Ver equipo</button>`) + `<div class="card tight reveal" style="animation-delay:.3s">${eq.sort((a, b) => ut(b) - ut(a)).map((e, k) => `
     <button class="row" data-act="vendor" data-id="${e.id}" style="animation-delay:${.34 + k * .06}s"><span class="avatar" style="width:40px;height:40px;border-radius:13px;font-size:14px">${initials(e.nombre)}</span>
     <span class="rm"><p class="rt">${k === 0 ? icon('trophy', 14) + ' ' : ''}${e.nombre}</p><div class="pbar" style="margin-top:8px;--w:${Math.max(4, ut(e) / mx * 100)}%"><i></i></div></span>
-    <span class="rr"><span class="p">${fmtM(ut(e))}</span><span class="rs" style="margin:0">${(() => { const n = ventasOf(w.key, CUR).filter(v => v.vend === e.nombre).length; return n + ' ' + (w.key === 'tienda' ? (n === 1 ? 'ticket' : 'tickets') : (n === 1 ? 'cierre' : 'cierres')); })()}</span></span></button>`).join('')}</div>`;
+    <span class="rr"><span class="p">${fmtM(ut(e))}</span><span class="rs" style="margin:0">${(() => { const n = ventasOf(w.key, MK()).filter(v => v.vend === e.nombre).length; return n + ' ' + (w.key === 'tienda' ? (n === 1 ? 'ticket' : 'tickets') : (n === 1 ? 'cierre' : 'cierres')); })()}</span></span></button>`).join('')}</div>`;
 }
 function qaHtml(w) {
   const b = w.key === 'tienda' ? [['nuevaVenta', 'dollar', 'Venta', 1], ['nuevoItem', 'box', 'Producto'], ['nuevoRecordatorio', 'bell', 'Recordar'], ['leads', 'people', 'Contactos']]
@@ -248,7 +248,7 @@ function renderPanel() {
   const mods = w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
     : w.key === 'prop' ? [heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
       : [heroHtml, qaHtml, atencionHtml, pulsoHtml, saludHtml, accionHtml, equipoHtml];
-  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`) .replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mods.map(m => m(w)).join('')}</div>`;
+  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`) .replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => m(w)).join('')}</div>`;
 }
 ACT.alert = d => { const a = alertsFor(state.world)[+d.i]; if (a) runAlert(a); };
 function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
@@ -325,10 +325,11 @@ function ventaRow(v, k) {
     <span class="rr"><span class="p">${fmtM(v.ingreso)}</span><span class="chip good">+${fmtM(u)}</span></span></button>`;
 }
 function renderVentas() {
-  const w = W(), vs = ventasOf(w.key, CUR).sort((a, b) => (b.fecha + (b.hora || 0)).localeCompare(a.fecha + (a.hora || 0))), st = monthStats(w.key, CUR);
-  $('#scr-ventas').innerHTML = hdr(w.tabs.ventas, `${mesDe(CUR)} ${CUR.slice(0, 4)} · ${vs.length} ${w.key === 'tienda' ? 'tickets' : 'cierres'}`, `<button class="ibtn solid" data-act="nuevaVenta" aria-label="Registrar">${icon('plus', 20, 2.2)}</button>`) + `
+  const w = W(), vs = ventasOf(w.key, MK()).sort((a, b) => (b.fecha + pad2(b.hora || 0)).localeCompare(a.fecha + pad2(a.hora || 0))), st = monthStats(w.key, MK());
+  $('#scr-ventas').innerHTML = hdr(w.tabs.ventas, `${mesDe(MK())} ${MK().slice(0, 4)} · ${vs.length} ${w.key === 'tienda' ? 'tickets' : 'cierres'}`, `<button class="ibtn solid" data-act="nuevaVenta" aria-label="Registrar">${icon('plus', 20, 2.2)}</button>`) + `
   <div class="body px">
-    <div class="card reveal" style="background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--s1)),var(--s1) 70%)"><span class="kicker">${w.key === 'prop' ? 'Volumen de operaciones' : w.key === 'tienda' ? 'Vendido en el mes' : 'Vendido en el mes'}</span><div class="num" style="font-size:34px;margin-top:10px;line-height:1">${fmt(st.volumen || st.ingreso)}</div></div>
+    ${mesBar()}
+    <div class="card reveal" style="background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--s1)),var(--s1) 70%)"><span class="kicker">${w.key === 'prop' ? 'Volumen de operaciones' : 'Vendido en ' + mesDe(MK()).toLowerCase()}</span><div class="num" style="font-size:34px;margin-top:10px;line-height:1">${fmt(st.volumen || st.ingreso)}</div></div>
     <div class="grid2">${[['Utilidad', st.bruta, 'var(--good)'], ['Comisiones', st.com, '']].map(([k, v, c], i) => `<div class="card reveal" style="padding:14px 16px;animation-delay:${(i + 1) * .06}s"><span class="kicker" style="font-size:9.5px">${k}</span><div class="num" style="font-size:21px;margin-top:9px;white-space:nowrap;${c ? 'color:' + c : ''}">${fmt(v)}</div></div>`).join('')}</div>
     ${sec(w.key === 'tienda' ? 'Tickets recientes' : w.tabs.ventas, vs.length)}
     <div class="card tight">${vs.slice(0, 18).map(ventaRow).join('') || `<div class="empty">${icon('dollar', 30)}<p>Aún no hay registros este mes</p></div>`}</div>
@@ -338,7 +339,7 @@ function renderVentas() {
 
 /* ---------------- CAJA ---------------- */
 function cajaData(w, per) {
-  const vs = ventasOf(w).filter(v => per === 'sem' ? v.fecha >= addDays(TODAY, -6) : per === 'mes' ? v.fecha.startsWith(CUR) : true);
+  const vs = ventasOf(w).filter(v => per === 'sem' ? v.fecha >= addDays(TODAY, -6) : per === 'mes' ? v.fecha.startsWith(MK()) : true);
   const ent = {}, pen = {}; let rows = [];
   vs.forEach(v => v.pagos.forEach(p => { const t = p.s === 'cobrado' ? ent : pen; t[p.m] = (t[p.m] || 0) + p.a; if (p.s !== 'cobrado') rows.push({ v, p }); }));
   return { vs, ent, pen, total: sum(Object.values(ent), x => x), pend: sum(Object.values(pen), x => x), rows };
@@ -352,8 +353,9 @@ function finCajaHtml(c) {
 function renderCaja() {
   const w = W(), c = cajaData(w.key, state.cajaP), gs = sum(gastosMes(w.key), g => g.monto);
   const metodos = w.metodos.map(m => [m, c.ent[m] || 0]).sort((a, b) => b[1] - a[1]), mx = Math.max(1, ...metodos.map(m => m[1]));
-  $('#scr-caja').innerHTML = hdr('Caja', `${state.cajaP === 'sem' ? 'Últimos 7 días' : state.cajaP === 'mes' ? mesDe(CUR) : 'Histórico'} · ${w.name}`) + `
+  $('#scr-caja').innerHTML = hdr('Caja', `${state.cajaP === 'sem' ? 'Últimos 7 días' : state.cajaP === 'mes' ? mesDe(MK()) + ' ' + MK().slice(0, 4) : 'Histórico'} · ${w.name}`) + `
   <div class="body px">
+    ${state.cajaP === 'mes' ? mesBar() : ''}
     <div class="seg" id="seg-c">${[['sem', 'Semana'], ['mes', 'Mes'], ['todo', 'Todo']].map(([k, t]) => `<button data-act="cajaP" data-k="${k}" class="${state.cajaP === k ? 'active' : ''}">${t}</button>`).join('')}<span class="ind"></span></div>
     <div class="card reveal" style="background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 14%,var(--s1)),var(--s1) 65%)">
       <span class="kicker">Entró a caja</span><span class="big" style="display:block;margin-top:10px;font-size:46px">${odo(c.total)}</span>
@@ -365,7 +367,7 @@ function renderCaja() {
     ${w.key === 'auto' ? finCajaHtml(c) : ''}
     ${c.rows.length ? sec('Por cobrar', fmtM(c.pend)) + `<div class="card tight">${c.rows.map(({ v, p }, k) => `<button class="row" data-act="venta" data-id="${v.id}"><span class="thumb">${icon(METODO_ICON[p.m] || 'receipt', 20)}</span><span class="rm"><p class="rt">${p.m} · ${v.cliente}</p><p class="rs">Vence ${fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmtM(p.a)}</span></span></button>`).join('')}</div>` : ''}
     ${sec('Gastos', '')}
-    <button class="card pressable" data-act="gastos" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%"><span class="thumb">${icon('receipt', 22)}</span><span class="grow"><p class="rt">Gastos del mes</p><p class="rs">${gastosMes(w.key).length} registros · ${gastosMes(w.key).filter(g => g.fijo).length} fijos</p></span><span class="num" style="font-size:19px">${fmtM(gs)}</span>${icon('chevR', 16)}</button>
+    <button class="card pressable" data-act="gastos" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%"><span class="thumb">${icon('receipt', 22)}</span><span class="grow"><p class="rt">Gastos de ${mesDe(MK()).toLowerCase()}</p><p class="rs">${gastosMes(w.key).length} registros · ${gastosMes(w.key).filter(g => g.fijo).length} fijos</p></span><span class="num" style="font-size:19px">${fmtM(gs)}</span>${icon('chevR', 16)}</button>
   </div>`;
   moveSeg('seg-c');
 }
@@ -373,7 +375,7 @@ ACT.cajaP = d => { state.cajaP = d.k; const sc = $('#scr-caja').scrollTop; rende
 
 /* ---------------- EQUIPO ---------------- */
 function vendStats(e) {
-  const vs = ventasOf(e.w, CUR).filter(v => v.vend === e.nombre), all = ventasOf(e.w, CUR);
+  const vs = ventasOf(e.w, MK()).filter(v => v.vend === e.nombre), all = ventasOf(e.w, MK());
   const ing = sum(vs, v => v.ingreso), tot = sum(all, v => v.ingreso) || 1;
   return { n: vs.length, ut: sum(vs, utilidad), com: sum(vs, comision), part: Math.round(ing / tot * 100) };
 }
@@ -381,12 +383,51 @@ function renderEquipo() {
   const w = W(), eq = EQUIPO.filter(e => e.w === w.key), tot = sum(eq, e => vendStats(e).com);
   $('#scr-equipo').innerHTML = hdr('Equipo', `${eq.filter(e => e.activo).length} activos · ${w.name}`, `<button class="ibtn solid" data-act="nuevoVendedor" aria-label="Agregar vendedor">${icon('plus', 20, 2.2)}</button>`) + `
   <div class="body px">
-    <div class="card reveal"><span class="kicker">Comisiones por pagar · ${mesDe(CUR)}</span><div class="num" style="font-size:36px;margin-top:10px;line-height:1">${fmt(tot)}</div></div>
+    ${mesBar()}
+    <div class="card reveal"><span class="kicker">Comisiones${esMesActual() ? ' por pagar' : ''} · ${mesDe(MK())}</span><div class="num" style="font-size:36px;margin-top:10px;line-height:1">${fmt(tot)}</div></div>
     ${eq.length ? '' : `<div class="card"><div class="empty">${icon('people', 30)}<p>Agrega a tus vendedores para calcular sus comisiones en cada venta.</p></div><button class="btn primary" data-act="nuevoVendedor">${icon('userplus')}Agregar vendedor</button></div>`}
     ${eq.map((e, i) => { const s = vendStats(e); return `<button class="card pressable reveal" data-act="vendor" data-id="${e.id}" style="text-align:left;animation-delay:${i * .07 + .06}s;width:100%">
       <div style="display:flex;align-items:center;gap:13px"><span class="avatar">${initials(e.nombre)}</span><span class="grow"><p class="rt" style="font-size:15px">${e.nombre}</p><p class="rs">${e.comTipo === 'pct' ? e.comVal + '%' : fmt(e.comVal)} comisión base ${e.activo ? '' : '<span class="chip">Inactivo</span>'}</p></span>${icon('chevR', 16)}</div>
       <div style="display:grid;grid-template-columns:.7fr 1.6fr 1fr;gap:10px;margin-top:14px;text-align:left"><div><span class="kicker" style="font-size:9px">Cierres</span><b class="num" style="display:block;font-size:20px;margin-top:6px">${s.n}</b></div><div><span class="kicker" style="font-size:9px">Comisión</span><b class="num" style="display:block;font-size:19px;margin-top:6px;color:var(--good);white-space:nowrap">${fmtM(s.com)}</b></div><div><span class="kicker" style="font-size:9px">Participación</span><b class="num" style="display:block;font-size:20px;margin-top:6px">${s.part}%</b></div></div></button>`; }).join('')}
   </div>`;
 }
+
+/* ---------------- selector de mes ---------------- */
+// el primer mes con datos de este mundo (para no retroceder al vacío)
+function primerMes(w) {
+  const f = [...ventasOf(w).map(v => v.fecha), ...GASTOS.filter(g => g.w === w).map(g => g.fecha)].sort()[0];
+  return f ? f.slice(0, 7) : CUR;
+}
+function mesBar() {
+  const mk = MK(), first = primerMes(state.world), act = esMesActual();
+  return `<div class="mesbar reveal">
+    <button class="ibtn" data-act="mesMove" data-d="-1" ${mk <= first ? 'disabled' : ''} aria-label="Mes anterior">${icon('chevL', 18, 2.2)}</button>
+    <button class="mesl" data-act="mesAnio" aria-label="Elegir mes"><b>${mesDe(mk)} ${mk.slice(0, 4)}</b><small>${act ? 'Este mes' : 'Toca para ver el año'}</small></button>
+    ${act ? `<button class="ibtn" disabled aria-label="Mes siguiente">${icon('chevR', 18, 2.2)}</button>` : `<button class="chip accent" data-act="mesHoy" style="border:0;height:34px">Hoy</button><button class="ibtn" data-act="mesMove" data-d="1" aria-label="Mes siguiente">${icon('chevR', 18, 2.2)}</button>`}
+  </div>`;
+}
+function setMes(mk) {
+  MES_SEL = !mk || mk >= CUR ? null : mk;
+  renderPanel(); renderVentas(); renderCaja(); renderEquipo();
+  $$('.screen').forEach(s => s.scrollTop = 0); animateIn($('#scr-' + state.tab));
+  const g = $$('.push').reverse().find(x => x.dataset.gastos); if (g) { popScreen(); setTimeout(openGastos, 200); }
+}
+ACT.mesMove = d => setMes(monthKey(MK(), +d.d));
+ACT.mesHoy = () => setMes(null);
+ACT.mesAnio = () => openAnio(+MK().slice(0, 4));
+// el año completo: barras por mes, toca un mes para verlo
+function openAnio(y) {
+  const w = W(), meses = Array.from({ length: 12 }, (_, i) => `${y}-${pad2(i + 1)}`), first = primerMes(w.key);
+  const st = meses.map(mk => mk > CUR || mk < first ? null : monthStats(w.key, mk));
+  const vals = st.map(s => s ? s.neta : 0), mx = Math.max(1, ...vals.map(Math.abs));
+  const ok = st.filter(Boolean), tot = sum(ok, s => s.neta), nV = sum(ok, s => s.n), mejor = ok.length ? meses[vals.indexOf(Math.max(...st.map((s, i) => s ? s.neta : -Infinity)))] : null;
+  openSheet(`${y}`, `<div style="display:flex;flex-direction:column;gap:14px" id="anio">
+    <div style="display:flex;justify-content:space-between;align-items:center"><button class="ibtn" data-act="anioMove" data-y="${y - 1}" ${`${y - 1}-12` < first ? 'disabled' : ''} aria-label="Año anterior">${icon('chevL', 18, 2.2)}</button><span class="kicker">Utilidad neta por mes · ${w.name}</span><button class="ibtn" data-act="anioMove" data-y="${y + 1}" ${y + 1 > +CUR.slice(0, 4) ? 'disabled' : ''} aria-label="Año siguiente">${icon('chevR', 18, 2.2)}</button></div>
+    <div class="yearbars">${meses.map((mk, i) => { const s = st[i], v = vals[i]; return `<button class="yb ${mk === MK() ? 'on' : ''} ${v < 0 ? 'neg' : ''}" data-act="anioPick" data-mk="${mk}" ${s ? '' : 'disabled'} aria-label="${mesDe(mk)}"><span class="ybv">${s ? (Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1).replace('.', ',') + 'M' : Math.round(v / 1e3) + 'k') : ''}</span><i style="height:${s ? Math.max(4, Math.abs(v) / mx * 100) : 2}%"></i><span>${mesDe(mk).slice(0, 3)}</span></button>`; }).join('')}</div>
+    <div class="grid3" style="gap:10px">${[['Utilidad del año', fmt(tot)], [w.key === 'tienda' ? 'Tickets' : 'Cierres', nV], ['Mejor mes', mejor ? mesDe(mejor) : '—']].map(([k, v]) => `<div class="card" style="padding:12px"><span class="kicker" style="font-size:8.5px">${k}</span><div class="num" style="font-size:${String(v).length > 10 ? 14 : 18}px;margin-top:8px;white-space:nowrap">${v}</div></div>`).join('')}</div>
+    <p style="font-size:12px;color:var(--fg3);text-align:center">Toca un mes para ver su panel, ventas, caja y comisiones.</p></div>`);
+}
+ACT.anioMove = d => openAnio(+d.y);
+ACT.anioPick = d => { closeSheet(); setMes(d.mk); };
 
 function renderAll() { renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); renderDock(); animateIn($('#scr-panel')); }

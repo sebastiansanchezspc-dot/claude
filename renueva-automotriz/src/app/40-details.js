@@ -169,7 +169,7 @@ ACT.addBoleta = async (d, el) => {
 /* ---------------- vendedor ---------------- */
 function openVendor(id) {
   const e = EQUIPO.find(x => x.id === id), s = vendStats(e), meses = mesesVend(e), mx = Math.max(1, ...meses.map(m => m.n));
-  const cierres = ventasOf(e.w, CUR).filter(v => v.vend === e.nombre);
+  const cierres = ventasOf(e.w, MK()).filter(v => v.vend === e.nombre);
   pushScreen('Vendedor', `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:16px"><span class="avatar xl">${initials(e.nombre)}</span><div><h2 style="font:700 24px/1.05 var(--display);font-variation-settings:'wdth' 82;letter-spacing:-.02em">${e.nombre}</h2><div style="margin-top:9px"><span class="chip ${e.activo ? 'good' : ''}">${e.activo ? 'Activo' : 'Inactivo'}</span></div></div></div>
     <div style="display:grid;grid-template-columns:.7fr 1.7fr 1fr;gap:10px">${kpi('Cierres', s.n)}${kpi('Comisión', fmtM(s.com), '', 'var(--good)')}${kpi('Particip.', s.part + '%')}</div>
@@ -194,17 +194,18 @@ ACT.togVend = (d, el) => { const e = EQUIPO.find(x => x.id === d.id); e.activo =
 
 /* ---------------- método de pago / gastos ---------------- */
 function openMetodo(m) {
-  const w = W(); const rows = []; ventasOf(w.key).forEach(v => v.pagos.filter(p => p.m === m && p.s === 'cobrado' && (state.cajaP === 'todo' || (state.cajaP === 'mes' ? v.fecha.startsWith(CUR) : v.fecha >= addDays(TODAY, -6)))).forEach(p => rows.push({ v, p })));
+  const w = W(); const rows = []; ventasOf(w.key).forEach(v => v.pagos.filter(p => p.m === m && p.s === 'cobrado' && (state.cajaP === 'todo' || (state.cajaP === 'mes' ? v.fecha.startsWith(MK()) : v.fecha >= addDays(TODAY, -6)))).forEach(p => rows.push({ v, p })));
   pushScreen(m, `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px"><div class="card"><span class="kicker">Total ${m.toLowerCase()}</span><span class="big" style="display:block;margin-top:10px;font-size:44px">${odo(sum(rows, r => r.p.a))}</span></div>
   <div class="card tight">${rows.map(({ v, p }, k) => `<button class="row" data-act="venta" data-id="${v.id}"><span class="thumb">${icon(w.icon, 20)}</span><span class="rm"><p class="rt">${(getItem(v.itemId) || { nombre: 'Ítem eliminado' }).nombre}</p><p class="rs">${v.w === 'tienda' ? v.vend : v.cliente} · ${fechaCorta(v.fecha)}</p></span><span class="rr"><span class="p">${fmtM(p.a)}</span></span></button>`).join('') || `<div class="empty">${icon('dollar', 30)}<p>Sin movimientos en este período</p></div>`}</div></div>`);
 }
 function openGastos() {
   const w = W(), gs = gastosMes(w.key), tot = sum(gs, g => g.monto), cats = {}; gs.forEach(g => cats[g.cat] = (cats[g.cat] || 0) + g.monto);
-  pushScreen('Gastos', `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px">
-    <div class="card"><span class="kicker">Gastos de ${mesDe(CUR).toLowerCase()}</span><span class="big" style="display:block;margin-top:10px;font-size:44px">${odo(tot)}</span></div>
+  const el = pushScreen('Gastos', `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px">${mesBar()}
+    <div class="card"><span class="kicker">Gastos de ${mesDe(MK()).toLowerCase()} ${MK().slice(0, 4)}</span><span class="big" style="display:block;margin-top:10px;font-size:44px">${odo(tot)}</span></div>
     <div class="card" style="display:flex;flex-direction:column;gap:14px">${Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([c, m]) => `<div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="display:flex;align-items:center;gap:8px;color:var(--fg2)">${icon(CAT_ICON[c] || 'box', 15)}${c}</span><b class="num" style="font-size:15px">${fmtM(m)}</b></div><div class="pbar" style="--w:${m / tot * 100}%"><i></i></div></div>`).join('')}</div>
-    <div class="card tight">${gs.length ? '' : `<div class="empty">${icon('receipt', 30)}<p>Sin gastos este mes</p></div>`}${gs.map((g, k) => `<button class="row" data-act="gasto" data-id="${g.id}"><span class="thumb">${icon(CAT_ICON[g.cat] || 'box', 20)}</span><span class="rm"><p class="rt">${g.concepto}</p><p class="rs">${fechaCorta(g.fecha)}${g.fijo ? '<span class="chip">Fijo</span>' : ''}</p></span><span class="rr"><span class="p">${fmtM(g.monto)}</span></span></button>`).join('')}</div></div>`,
+    <div class="card tight">${gs.length ? '' : `<div class="empty">${icon('receipt', 30)}<p>Sin gastos en ${mesDe(MK()).toLowerCase()}</p></div>`}${gs.map((g, k) => `<button class="row" data-act="gasto" data-id="${g.id}"><span class="thumb">${icon(CAT_ICON[g.cat] || 'box', 20)}</span><span class="rm"><p class="rt">${g.concepto}</p><p class="rs">${fechaCorta(g.fecha)}${g.fijo ? '<span class="chip">Fijo</span>' : ''}</p></span><span class="rr"><span class="p">${fmtM(g.monto)}</span></span></button>`).join('')}</div></div>`,
     { cta: `<button class="btn primary" data-act="nuevoGasto">${icon('plus')}Registrar gasto</button>` });
+  el.dataset.gastos = '1';
 }
 ACT.gasto = d => openGasto(d.id);
 function openGasto(id) {

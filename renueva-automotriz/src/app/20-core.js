@@ -81,7 +81,7 @@ const ventasOf = (w, mk) => VENTAS.filter(v => v.w === w && (!mk || v.fecha.star
 const comision = v => v.comTipo === 'pct' ? Math.round(v.ingreso * v.comVal / 100) : v.comVal;
 const utilidad = v => v.ingreso - v.costo - comision(v);
 // un gasto fijo cuenta todos los meses desde que se registró
-const gastosMes = (w, mk = CUR) => GASTOS.filter(g => g.w === w && (g.fecha.startsWith(mk) || (g.fijo && g.fecha.slice(0, 7) < mk)));
+const gastosMes = (w, mk = MK()) => GASTOS.filter(g => g.w === w && (g.fecha.startsWith(mk) || (g.fijo && g.fecha.slice(0, 7) < mk)));
 const sum = (a, f) => a.reduce((x, y) => x + f(y), 0);
 function monthStats(w, mk) {
   const vs = ventasOf(w, mk), gs = gastosMes(w, mk);
