@@ -406,6 +406,19 @@ grant execute on function public.mi_contexto(), public.crear_organizacion(text, 
   public.quitar_miembro(uuid), public.cancelar_invitacion(uuid), public.set_mundos(text[]), public.renombrar_org(text),
   public.elegir_plan_prueba(text, text, text[]), public.plataforma_orgs(), public.plataforma_set_org(uuid, jsonb) to authenticated;
 
+-- nadie sin sesión llama funciones de Renueva; los disparadores no se llaman por API
+do $$
+declare f record;
+begin
+  for f in select p.oid::regprocedure as sig, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname in ('aceptar_invitacion','actualizar_miembro','cancelar_invitacion','crear_organizacion','elegir_plan_prueba','es_plataforma','invitar','limite_usuarios','listar_miembros','mi_contexto','mi_org','mi_rol','org_escribible','puede_escribir','puede_ver','quitar_miembro','renombrar_org','set_mundos','trg_miembros_limite','trg_orgs_mundos','usados_usuarios','plataforma_orgs','plataforma_set_org')
+  loop
+    execute format('revoke execute on function %s from public, anon', f.sig);
+    if f.proname like 'trg_%' then execute format('revoke execute on function %s from authenticated', f.sig);
+    else execute format('grant execute on function %s to authenticated', f.sig); end if;
+  end loop;
+end $$;
+
 -- ---------------------------------------------------------------- tiempo real (cambios de otros usuarios en vivo)
 do $$ begin
   alter publication supabase_realtime add table public.docs;
