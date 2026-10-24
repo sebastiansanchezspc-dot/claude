@@ -25,9 +25,9 @@ const fail = e => { throw new Error(errMsg(e)) }
 const isMissingFn = e => e && (e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || ''))
 
 // invitación que viene en el enlace (?inv=token): se recuerda hasta que la persona entre
-if (params.get('inv')) { try { sessionStorage.setItem('renueva_inv', params.get('inv')) } catch (e) { } }
-const pendingInvite = () => { try { return sessionStorage.getItem('renueva_inv') } catch (e) { return null } }
-const clearInvite = () => { try { sessionStorage.removeItem('renueva_inv') } catch (e) { } }
+if (params.get('inv')) { try { localStorage.setItem('renueva_inv', params.get('inv')) } catch (e) { } }
+const pendingInvite = () => { try { return localStorage.getItem('renueva_inv') } catch (e) { return null } }
+const clearInvite = () => { try { localStorage.removeItem('renueva_inv') } catch (e) { } }
 
 function cleanUrl() {
   const keep = new URLSearchParams(location.search); ['inv', 'billing', 'msg', 'registro', 'code'].forEach(k => keep.delete(k))
@@ -48,6 +48,7 @@ async function init() {
 }
 
 // con sesión: aceptar invitación pendiente, leer el contexto y cargar los datos
+let autoAceptada = false
 async function enter() {
   const s = await session(); if (!s) return { mode, gate: 'login' }
   const inv = pendingInvite()
@@ -64,6 +65,13 @@ async function enter() {
   }
   if (params.get('billing') === 'ok' && ctx && ctx.org) { params.delete('billing'); await billing('sync').catch(() => { }); cleanUrl(); return enter() }
   cleanUrl()
+  // con una sola invitación esperando, entra directo a esa empresa
+  if (ctx && !ctx.org && !ctx.inactivo && ctx.invitaciones && ctx.invitaciones.length === 1 && !autoAceptada) {
+    autoAceptada = true
+    const { error: e2 } = await sb.rpc('aceptar_invitacion', { p_token: ctx.invitaciones[0].token, p_nombre: s.user.user_metadata?.nombre || '' })
+    if (!e2) return enter()
+    RV.lastError = e2.message
+  }
   if (!ctx || !ctx.org) return { mode, gate: 'onboarding', ctx, user: s.user }
   orgId = ctx.org.id
   const data = await loadAll()
