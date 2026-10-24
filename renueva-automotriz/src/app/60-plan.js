@@ -25,7 +25,7 @@ function openAjustes() {
     ${isVend() ? '' : `<button class="plan cur" data-act="plan" style="text-align:left;width:100%"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Tu plan</span>${planChip()}</div>
       <div style="display:flex;align-items:baseline;gap:10px;margin-top:12px"><span class="pn">${p.n}</span><span style="font-size:13px;color:var(--fg3)">${p.users + SUB.extraUsers} usuarios · ${p.worlds + SUB.extraWorlds} mundos</span></div>
       <div class="grid2" style="margin-top:16px;gap:14px"><div class="meter"><div class="mh"><span>Usuarios</span><b>${nUsers()}/${limUsers()}</b></div><div class="pbar" style="--w:${nUsers() / limUsers() * 100}%"><i></i></div></div><div class="meter"><div class="mh"><span>Mundos</span><b>${nWorlds()}/${limWorlds()}</b></div><div class="pbar" style="--w:${nWorlds() / limWorlds() * 100}%"><i></i></div></div></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--accent);font:700 13px var(--body)">Ver planes y precios ${icon('arrowR', 16)}</div></button>`}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--accent);font:700 13px var(--body)">${enIOS() ? 'Ver detalle del plan' : 'Ver planes y precios'} ${icon('arrowR', 16)}</div></button>`}
     <div class="card tight">
       ${cloud() && isAdmin() ? `<button class="navrow" data-act="renombrarOrg"><span class="ni">${icon('building')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Empresa</b><br><span style="font-size:12px;color:var(--fg3)">${ORG.nombre}</span></span>${icon('chevR')}</button>` : ''}
       ${isVend() ? '' : `<button class="navrow" data-act="usuarios"><span class="ni">${icon('people')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Usuarios y permisos</b><br><span style="font-size:12px;color:var(--fg3)">${nUsers()} de ${limUsers()} usuarios</span></span>${icon('chevR')}</button>
@@ -33,7 +33,13 @@ function openAjustes() {
       <button class="navrow" data-act="notifs"><span class="ni">${icon('bell')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Notificaciones</b><br><span style="font-size:12px;color:var(--fg3)">Recordatorios y avisos en tu celular</span></span>${icon('chevR')}</button>
     </div>
     ${!isAdmin() ? '' : `<div class="card"><span class="kicker">Color de tu mundo</span><div style="display:flex;gap:12px;margin-top:14px">${ACCENTS.map(c => `<button data-act="accent" data-c="${c}" aria-label="Color ${c}" style="width:40px;height:40px;border-radius:99px;background:${c};border:3px solid var(--s1);box-shadow:0 0 0 2px ${c}55;transition:transform .2s var(--spring)"></button>`).join('')}</div></div>`}
-    <button class="btn danger" data-act="logout">${icon('power')}Cerrar sesión</button></div>`);
+    <div class="card tight">
+      <button class="navrow" data-act="legal" data-p="privacidad"><span class="ni">${icon('shield')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Política de privacidad</b></span>${icon('chevR')}</button>
+      <button class="navrow" data-act="legal" data-p="terminos"><span class="ni">${icon('doc')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Términos del servicio</b></span>${icon('chevR')}</button>
+      <button class="navrow" data-act="legal" data-p="soporte"><span class="ni">${icon('chat')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Ayuda y soporte</b></span>${icon('chevR')}</button>
+    </div>
+    <button class="btn danger" data-act="logout">${icon('power')}Cerrar sesión</button>
+    <button class="btn ghost small" data-act="borrarCuenta" style="width:100%;color:var(--bad)">${icon('trash', 15)}Eliminar mi cuenta</button></div>`);
 }
 function planChip() {
   if (!SUB.escribible) return `<span class="chip bad">${icon('lock', 12)}${SUB.trial ? 'Prueba terminada' : 'Vencido'}</span>`;
@@ -102,7 +108,17 @@ ACT.catQuickSave = (d, el) => {
 };
 
 /* ---------------- plan y suscripción ---------------- */
+// versión para iPhone: solo el estado del plan, sin precios ni botones de compra
+function planHtmlIOS() {
+  const cur = planNow();
+  return `<div class="px" style="padding-top:8px;display:flex;flex-direction:column;gap:14px">
+    <div class="plan cur"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Plan de tu empresa</span>${planChip()}</div>
+      <div style="margin-top:12px"><span class="pn">${cur.n}</span></div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:16px"><div class="meter"><div class="mh"><span>Usuarios</span><b>${nUsers()}/${limUsers()}</b></div><div class="pbar" style="--w:${Math.min(100, nUsers() / limUsers() * 100)}%"><i></i></div></div><div class="meter"><div class="mh"><span>Mundos</span><b>${nWorlds()}/${limWorlds()}</b></div><div class="pbar" style="--w:${Math.min(100, nWorlds() / limWorlds() * 100)}%"><i></i></div></div></div></div>
+    <p style="font-size:12.5px;color:var(--fg3);text-align:center;padding:0 12px">El plan de la empresa lo administra su responsable.</p></div>`;
+}
 function planHtml() {
+  if (enIOS()) return planHtmlIOS();
   const cur = planNow(), tr = SUB.trial;
   const meter = (t, v, max, ex = '') => `<div class="meter"><div class="mh"><span>${t}</span><b>${v}${max != null ? '/' + max : ''}${ex}</b></div>${max != null ? `<div class="pbar" style="--w:${Math.min(100, v / max * 100)}%"><i></i></div>` : ''}</div>`;
   return `<div class="px" style="padding-top:8px;display:flex;flex-direction:column;gap:14px">
@@ -135,6 +151,7 @@ ACT.ciclo = d => { planUI.ciclo = d.k; refreshPlan(); };
 ACT.addon = d => { const key = d.k === 'users' ? 'extraUsers' : 'extraWorlds'; const nv = SUB[key] + +d.d; if (nv < 0 || nv > 10) return; if (nv < SUB[key]) { if (d.k === 'users' && nUsers() > planNow().users + nv) { toast('Desactiva usuarios antes de quitar el extra', 'warn'); return; } if (d.k === 'worlds' && nWorlds() > planNow().worlds + nv) { toast('Apaga un mundo antes de quitar el extra', 'warn'); return; } } SUB[key] = nv; refreshPlan(); };
 let pickSel = [];
 ACT.planPick = d => {
+  if (enIOS()) return;
   const p = planOf(d.k); if (!cloud() && d.k === SUB.plan && SUB.trial) { SUB.trial = false; toast(`Plan ${p.n} activado`, 'crown'); refreshPlan(); renderLobby(); return; }
   pickSel = Object.keys(ENABLED).filter(k => ENABLED[k]).slice(0, p.worlds + SUB.extraWorlds);
   openSheet(`Cambiar a ${p.n}`, planSheet(p));
@@ -167,7 +184,7 @@ function usuariosHtml() {
   const lim = limUsers(), full = nUsers() >= lim;
   return `<div class="px" style="padding-top:8px;display:flex;flex-direction:column;gap:14px">
     <div class="card"><div class="meter"><div class="mh"><span>Usuarios del plan ${planNow().n}</span><b>${nUsers()}/${lim}</b></div><div class="pbar" style="--w:${nUsers() / lim * 100}%"><i></i></div></div><p style="font-size:12px;color:var(--fg3);margin-top:12px">Siempre hay un administrador. El resto son vendedores (ven su mundo y sus ventas) o solo lectura.</p></div>
-    ${full ? `<div class="tip">${icon('lock')}<span>Llegaste al límite de tu plan. <button data-act="plan" style="background:none;border:0;color:inherit;font:700 12.5px var(--body);text-decoration:underline;padding:0">Sube de plan</button> para invitar a más personas.</span></div>` : ''}
+    ${full ? `<div class="tip">${icon('lock')}<span>Llegaste al límite de usuarios de tu plan.${enIOS() ? '' : ` <button data-act="plan" style="background:none;border:0;color:inherit;font:700 12.5px var(--body);text-decoration:underline;padding:0">Sube de plan</button> para invitar a más personas.`}</span></div>` : ''}
     <div class="card tight">${USUARIOS.map(u => `<button class="row" data-act="userEdit" data-id="${u.id}"><span class="avatar" style="width:44px;height:44px;border-radius:15px;font-size:15px;${u.activo ? '' : 'opacity:.4'}">${initials(u.nombre)}</span><span class="rm"><p class="rt">${u.nombre}${u.invitado ? ' <span class="chip warn" style="margin-left:6px">Invitación enviada</span>' : ''}</p><p class="rs" style="gap:6px">${u.mundos.map(m => `<span class="chip" style="padding:0 7px;height:22px">${icon(WORLDS[m].icon, 12)}${WORLDS[m].name}</span>`).join('')}</p></span><span class="rr"><span class="chip ${u.rol === 'admin' ? 'accent' : ''}">${({ admin: 'Admin', vendedor: 'Vendedor', lectura: 'Solo lectura' })[u.rol]}</span>${u.activo ? '' : '<span class="chip">Inactivo</span>'}</span></button>`).join('')}</div></div>`;
 }
 async function openUsuarios() {
@@ -233,3 +250,31 @@ ACT.userDel = async d => {
   const u = USUARIOS.find(x => x.id === d.id); if (!confirm(`¿Quitar a ${u.nombre} de la cuenta?`)) return;
   if (cloud()) { try { await RV.removeMember(u); closeSheet(); toast('Usuario quitado', 'trash'); refreshUsers(); } catch (e) { toast(e.message || 'No se pudo quitar', 'warn'); } return; }
   USUARIOS.splice(USUARIOS.findIndex(x => x.id === d.id), 1); closeSheet(); toast('Usuario quitado', 'trash'); refreshUsers(); };
+
+/* ---------------- privacidad, términos, soporte y eliminar cuenta ---------------- */
+// páginas públicas (también se enlazan en App Store Connect)
+const LEGAL_BASE = () => (window.RV && RV.appUrl) || location.origin;
+ACT.legal = d => { const u = `${LEGAL_BASE()}/${d.p}.html`; if (window.RV && RV.openExternal) RV.openExternal(u); else window.open(u, '_blank', 'noopener'); };
+ACT.borrarCuenta = () => {
+  if (!cloud()) { toast('En la demo no hay una cuenta que eliminar', 'warn'); return; }
+  const admin = isAdmin();
+  openSheet('Eliminar mi cuenta', `<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="tip" style="margin:0">${icon('warn')}<span>${admin
+      ? `Eres el administrador de <b>${ORG.nombre}</b>. Se eliminará la empresa completa: ${Object.values(WORLDS).filter(w => ENABLED[w.key]).map(w => w.name.toLowerCase()).join(', ')}, ventas, clientes, caja, fotos, comprobantes y el acceso de todos sus usuarios.${SUB.flow ? ' La suscripción se cancela de inmediato.' : ''}`
+      : 'Se eliminará tu usuario y no podrás volver a entrar. Las ventas y clientes que registraste quedan en la empresa, porque son registros de ella.'}</span></div>
+    <p style="font-size:13px;color:var(--fg2)">Esto no se puede deshacer. La eliminación es inmediata; las copias de seguridad del proveedor se borran solas en un máximo de 30 días.</p>
+    <label class="field"><span>Escribe ELIMINAR para confirmar</span><input id="del-c" autocomplete="off" autocapitalize="characters" data-live="delLive"></label>
+    <button class="btn danger" id="del-ok" data-act="borrarCuentaOk" disabled>${icon('trash')}Eliminar definitivamente</button>
+    <button class="btn ghost" data-act="closeSheet">Cancelar</button></div>`);
+};
+ACT.delLive = () => { const b = $('#del-ok'); if (b) b.disabled = $('#del-c').value.trim().toUpperCase() !== 'ELIMINAR'; };
+ACT.borrarCuentaOk = async (d, el) => {
+  if ($('#del-c').value.trim().toUpperCase() !== 'ELIMINAR') return;
+  el.disabled = true; el.textContent = 'Eliminando…';
+  try {
+    const r = await RV.deleteAccount();
+    closeSheet(); while (pushes.length) popScreen();
+    gate.info = r && r.empresa_eliminada ? 'Tu cuenta y tu empresa fueron eliminadas.' : 'Tu cuenta fue eliminada.';
+    state.world = null; renderGate('login');
+  } catch (e) { el.disabled = false; el.innerHTML = 'Reintentar'; toast(e.message || 'No se pudo eliminar la cuenta', 'warn'); }
+};

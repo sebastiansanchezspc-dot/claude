@@ -195,7 +195,7 @@ function animateIn(root = document) {
 /* ---------------- toasts / sheets / push ---------------- */
 function toast(msg, ic = 'check') {
   const el = document.createElement('div'); el.className = 'toast';
-  el.innerHTML = `<span class="ti">${icon(ic, 13)}</span><span>${msg}</span>`;
+  el.innerHTML = `<span class="ti">${icon(ic, 13)}</span><span>${clean(msg)}</span>`;
   $('#toast-wrap').appendChild(el); setTimeout(() => el.remove(), 2900);
 }
 function closeSheet() {
@@ -214,7 +214,7 @@ function openSheet(title, html, onReady) {
 }
 function notify(title, body) {
   const el = document.createElement('div'); el.className = 'notif'; el.setAttribute('role', 'status');
-  el.innerHTML = `<span class="nicon">${logo(22, 'var(--accent-ink)')}</span><span class="grow"><span class="top"><b>RENUEVA</b><i>ahora</i></span><p class="t">${title}</p><p class="b">${body}</p></span>`;
+  el.innerHTML = `<span class="nicon">${logo(22, 'var(--accent-ink)')}</span><span class="grow"><span class="top"><b>RENUEVA</b><i>ahora</i></span><p class="t">${clean(title)}</p><p class="b">${clean(body)}</p></span>`;
   $('#shell').appendChild(el); rAF2(() => el.classList.add('in')); setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 700); }, 5200);
   el.addEventListener('click', () => { el.classList.remove('in'); setTimeout(() => el.remove(), 600); });
 }
@@ -247,11 +247,15 @@ const WRITE_ACTS = new Set('crFcp crFcs saveItem saveVenta saveGasto delGasto to
 const ADMIN_ACTS = new Set('leadVend vDatos catFinCom catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
 function allowAct(name) {
   if (ADMIN_ACTS.has(name) && !isAdmin()) { toast('Solo el administrador puede cambiar esto', 'lock'); return false; }
-  if ((WRITE_ACTS.has(name) || ADMIN_ACTS.has(name)) && !canWrite()) { toast(ME.rol === 'lectura' ? 'Tu usuario es de solo lectura' : 'Tu cuenta está en solo lectura: elige un plan para seguir', 'lock'); return false; }
+  if ((WRITE_ACTS.has(name) || ADMIN_ACTS.has(name)) && !canWrite()) { toast(ME.rol === 'lectura' ? 'Tu usuario es de solo lectura' : enIOS() ? 'Tu cuenta está en solo lectura' : 'Tu cuenta está en solo lectura: elige un plan para seguir', 'lock'); return false; }
   return true;
 }
 // cada cambio se guarda solo (en la nube se sincroniza con un pequeño retraso)
-const saved = () => { if (window.RV && RV.dirty) RV.dirty(); };
+const saved = () => {
+  if (window.RV && RV.dirty) RV.dirty();
+  // en el iPhone los recordatorios se programan como avisos del sistema
+  if (window.RV && RV.syncReminders) { clearTimeout(saved._t); saved._t = setTimeout(() => RV.syncReminders(REMS.filter(r => puedeMundo(r.w))), 1500); }
+};
 function runAct(name, el, e) {
   const fn = ACT[name]; if (!fn || !allowAct(name)) { if (fn && el.tagName === 'A') e.preventDefault(); return; }
   try { const r = fn(el.dataset, el, e); if (r && r.then) r.then(saved, err => { console.error(err); saved(); }); } finally { saved(); }

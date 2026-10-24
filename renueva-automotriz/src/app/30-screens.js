@@ -26,6 +26,7 @@ function renderLobby() {
 
 function lobbyBanner() {
   if (window.RV && RV.mode === 'demo') return `<div class="tip good" style="margin-top:18px">${icon('sparkle')}<span>Estás viendo la demo con datos de ejemplo. Nada se guarda. <button data-act="crearCuenta" style="background:none;border:0;color:inherit;font:700 12.5px var(--body);text-decoration:underline;padding:0">Crear mi cuenta</button></span></div>`;
+  if (enIOS()) return !SUB.escribible ? `<div class="tip" style="margin-top:18px">${icon('lock')}<span>La cuenta de tu empresa está en solo lectura. Puedes ver toda tu información.</span></div>` : '';
   if (!SUB.escribible) return `<div class="tip" style="margin-top:18px">${icon('lock')}<span>${SUB.trial ? 'Tu prueba gratis terminó' : 'Tu plan está vencido'}. Puedes ver todo, pero para seguir registrando ${isAdmin() ? '<button data-act="planLobby" style="background:none;border:0;color:inherit;font:700 12.5px var(--body);text-decoration:underline;padding:0">elige un plan</button>' : 'pide al administrador que elija un plan'}.</span></div>`;
   if (SUB.trial && SUB.trialLeft <= 5 && isAdmin()) return `<div class="tip" style="margin-top:18px">${icon('clock')}<span>Quedan ${SUB.trialLeft} días de prueba. <button data-act="planLobby" style="background:none;border:0;color:inherit;font:700 12.5px var(--body);text-decoration:underline;padding:0">Elegir plan</button></span></div>`;
   return '';

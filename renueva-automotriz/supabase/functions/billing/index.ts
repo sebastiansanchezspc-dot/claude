@@ -43,7 +43,8 @@ Deno.serve(async req => {
 
     if (action === 'cancel') {
       if (!org.flow_subscription_id) return json({ error: 'No hay una suscripción activa' }, 400)
-      await flow('POST', '/subscription/cancel', { subscriptionId: org.flow_subscription_id, at_period_end: 1 })
+      // al eliminar la cuenta se cancela de inmediato; si no, al final del período pagado
+      await flow('POST', '/subscription/cancel', { subscriptionId: org.flow_subscription_id, at_period_end: body.now ? 0 : 1 })
       await db.from('orgs').update({ flow_cancelada: true }).eq('id', org.id)
       return json({ ok: true })
     }

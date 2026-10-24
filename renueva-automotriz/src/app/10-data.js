@@ -136,6 +136,8 @@ const puedeMundo = k => ENABLED[k] && (isAdmin() || ME.mundos.includes(k));
 const firstName = n => String(n || '').split(' ')[0];
 // vendedores: cada uno ve solo sus ventas, consultas y recordatorios (lo asegura la base de datos)
 const isVend = () => ME.rol === 'vendedor';
+// dentro de la app de iPhone no se vende nada (regla 3.1 de Apple): los planes se gestionan fuera de la app
+const enIOS = () => !!(window.RV && RV.native);
 const lc = s => String(s || '').trim().toLowerCase();
 const emailDe = (w, nombre) => { const e = EQUIPO.find(x => x.w === w && x.nombre === nombre); return e && e.email ? lc(e.email) : null; };
 const miEquipo = w => EQUIPO.find(e => e.w === w && ((e.email && ME.email && lc(e.email) === lc(ME.email)) || e.nombre === ME.nombre));

@@ -1,6 +1,7 @@
 // Conexión con Supabase: sesión, empresa, guardado automático, tiempo real, archivos y cobros.
 // Sin variables de entorno (o con ?demo en la URL) la app corre en modo demo, sin guardar nada.
 import { createClient } from '@supabase/supabase-js'
+import { setupNative, APP_URL, NATIVE } from './native.js'
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -17,6 +18,8 @@ let timer = null, flushing = false, again = false, failures = 0
 const signed = new Map() // ruta -> url firmada
 const signing = new Set()
 
+// en el iPhone la app corre desde el teléfono: los enlaces que se comparten apuntan a la versión web
+const webUrl = () => NATIVE ? APP_URL + '/' : location.origin + location.pathname
 const errMsg = e => (e && (e.message || e.error_description || e.msg)) || 'Error de conexión'
 const fail = e => { throw new Error(errMsg(e)) }
 const isMissingFn = e => e && (e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || ''))
@@ -71,11 +74,11 @@ async function enter() {
 
 const signIn = async (email, password) => { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) fail(error) }
 const signUp = async (email, password, nombre) => {
-  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre }, emailRedirectTo: location.origin + location.pathname } })
+  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre }, emailRedirectTo: webUrl() } })
   if (error) fail(error)
   return { needsConfirm: !data.session }
 }
-const resetPassword = async email => { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) fail(error) }
+const resetPassword = async email => { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: webUrl() }); if (error) fail(error) }
 const updatePassword = async password => { const { error } = await sb.auth.updateUser({ password }); if (error) fail(error); history.replaceState(null, '', location.pathname) }
 async function logout() { try { await flush() } catch (e) { } await sb.auth.signOut(); location.href = location.pathname }
 
@@ -204,7 +207,10 @@ function fileUrl(path) {
 }
 async function upload(dataUrl) {
   if (mode !== 'cloud') return dataUrl
-  const blob = await (await fetch(dataUrl)).blob()
+  // la foto viene como data: URL; se convierte a archivo sin fetch (la política de seguridad no permite fetch a data:)
+  const [head, b64] = dataUrl.split(','), bin = atob(b64), bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  const blob = new Blob([bytes], { type: (head.match(/data:([^;]+)/) || [])[1] || 'image/jpeg' })
   const path = `${orgId}/${crypto.randomUUID()}.jpg`
   const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false })
   if (error) fail(error)
@@ -214,7 +220,8 @@ async function upload(dataUrl) {
 
 /* ---------------------------------------------------------------- usuarios */
 async function loadMembers() {
-  const { data, error } = await sb.rpc('listar_miembros'); if (error) fail(error)
+  const { data: raw, error } = await sb.rpc('listar_miembros'); if (error) fail(error)
+  const data = refs.deepClean(raw) // nombres y correos vienen de otras personas: se limpian antes de mostrarlos
   const list = [
     ...data.miembros.map(m => ({ ...m, invitado: false })),
     ...data.invitaciones.map(i => ({ id: 'inv:' + i.id, nombre: i.nombre || i.email.split('@')[0], email: i.email, rol: i.rol, mundos: i.mundos, activo: true, invitado: true, token: i.token })),
@@ -222,7 +229,7 @@ async function loadMembers() {
   refs.USUARIOS.length = 0; list.forEach(u => refs.USUARIOS.push(u))
   return list
 }
-const inviteLink = token => `${location.origin}${location.pathname}?inv=${token}`
+const inviteLink = token => `${webUrl()}?inv=${token}`
 async function invite({ email, nombre, rol, mundos }) {
   const { data, error } = await sb.rpc('invitar', { p_email: email, p_nombre: nombre, p_rol: rol, p_mundos: mundos }); if (error) fail(error)
   await loadMembers(); return inviteLink(data)
@@ -279,12 +286,36 @@ async function dailySync(ctx) {
   try { if (localStorage.getItem(k) === today) return; localStorage.setItem(k, today) } catch (e) { }
   await billing('sync').then(refreshContext).catch(() => { })
 }
+/* ---------------------------------------------------------------- eliminar cuenta */
+// Admin: cancela la suscripción, borra las fotos de la empresa y luego la empresa completa.
+// Vendedor / solo lectura: borra solo su usuario. Al final se cierra la sesión.
+async function deleteAccount() {
+  await flush().catch(() => { })
+  const ctx = await context().catch(() => null)
+  if (ctx && ctx.org && ctx.miembro.rol === 'admin') {
+    if (ctx.org.flow) await billing('cancel', { now: true }).catch(() => { })
+    await removeOrgFiles(ctx.org.id)
+  }
+  const { data, error } = await sb.rpc('eliminar_mi_cuenta'); if (error) fail(error)
+  if (channel) sb.removeChannel(channel)
+  orgId = null; snapshot = new Map(); clearTimeout(timer)
+  await sb.auth.signOut({ scope: 'local' }).catch(() => { })
+  return data
+}
+async function removeOrgFiles(org) {
+  for (let i = 0; i < 200; i++) {
+    const { data, error } = await sb.storage.from(BUCKET).list(org, { limit: 100 })
+    if (error || !data || !data.length) return
+    const { error: e2 } = await sb.storage.from(BUCKET).remove(data.map(f => `${org}/${f.name}`))
+    if (e2 || data.length < 100) return
+  }
+}
 async function cancelPlan() { await billing('cancel'); await refreshContext() }
 async function refreshContext() { const ctx = await context(); if (refs && refs.applyCtx) refs.applyCtx(ctx) }
 async function renameOrg(nombre) { const { error } = await sb.rpc('renombrar_org', { p_nombre: nombre }); if (error) fail(error); await refreshContext() }
 
 /* ---------------------------------------------------------------- plataforma */
-async function platformOrgs() { const { data, error } = await sb.rpc('plataforma_orgs'); if (error) fail(error); return data }
+async function platformOrgs() { const { data, error } = await sb.rpc('plataforma_orgs'); if (error) fail(error); return refs.deepClean(data) }
 async function platformSet(org, cambios) { const { error } = await sb.rpc('plataforma_set_org', { p_org: org, p_cambios: cambios }); if (error) fail(error) }
 
 /* ---------------------------------------------------------------- avisos del celular */
@@ -302,8 +333,9 @@ export const RV = {
   init, enter, signIn, signUp, resetPassword, updatePassword, logout, createOrg, acceptInvite, context, pendingInvite,
   dirty, flush, reload, upload, fileUrl,
   loadMembers, invite, updateMember, removeMember,
-  choosePlan, cancelPlan, refreshContext, renameOrg, dailySync,
+  choosePlan, cancelPlan, refreshContext, renameOrg, dailySync, deleteAccount,
   platformOrgs, platformSet, billingSetup: () => billing('setup-plans'),
   askNotif, systemNotify,
 }
+setupNative(RV)
 window.RV = RV

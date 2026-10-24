@@ -6,7 +6,7 @@ const gate = { view: 'login', busy: false, err: '', info: '', ctx: null, user: n
 
 function gateShell(inner) {
   return `<div class="brandbar">${logo(34, 'var(--fg)')}<span class="wordmark">renueva</span></div>${inner}
-    <div class="lobby-foot" style="margin-top:auto;padding-top:26px"><span>Hecho en Chile · Auto · Propiedades · Tienda</span><a href="?demo" style="color:var(--accent);font-weight:700;text-decoration:none">Ver demo</a></div>`;
+    <div class="lobby-foot" style="margin-top:auto;padding-top:26px"><span><button type="button" data-act="legal" data-p="privacidad" style="all:unset;cursor:pointer">Privacidad</button> · <button type="button" data-act="legal" data-p="terminos" style="all:unset;cursor:pointer">Términos</button> · <button type="button" data-act="legal" data-p="soporte" style="all:unset;cursor:pointer">Soporte</button></span><a href="?demo" style="color:var(--accent);font-weight:700;text-decoration:none">Ver demo</a></div>`;
 }
 const gErr = () => gate.err ? `<div class="tip" style="margin:0">${icon('warn')}<span>${clean(gate.err)}</span></div>` : '';
 const gInfo = () => gate.info ? `<div class="tip good" style="margin:0">${icon('check')}<span>${clean(gate.info)}</span></div>` : '';
@@ -19,25 +19,26 @@ function renderGate(view) {
   const v = gate.view, L = $('#lobby'); let h = '';
   if (v === 'cargando') h = `<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--fg3)"><div class="spin"></div></div>`;
   else if (v === 'login') h = `<h1>Hola de nuevo</h1><p class="sub">Entra para ver tu stock, tus ventas y tu caja.</p>
-    <form class="gform" data-act="noop" onsubmit="return false">${gErr()}${gInfo()}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gField('g-p', 'Contraseña', 'password', '••••••••', 'autocomplete="current-password"')}
+    <form class="gform">${gErr()}${gInfo()}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gField('g-p', 'Contraseña', 'password', '••••••••', 'autocomplete="current-password"')}
     ${gBtn('gLogin', 'Entrar')}<div style="display:flex;justify-content:space-between">${gLink('gToRegistro', 'Crear cuenta')}${gLink('gToRecuperar', 'Olvidé mi contraseña')}</div></form>`;
-  else if (v === 'registro') h = `<h1>${pendingInv() ? 'Únete a tu equipo' : 'Prueba Renueva 14 días'}</h1><p class="sub">${pendingInv() ? 'Crea tu cuenta con el mismo correo al que te llegó la invitación.' : 'Sin tarjeta. Todos los mundos y hasta 7 usuarios durante la prueba.'}</p>
-    <form class="gform" onsubmit="return false">${gErr()}${gField('g-n', 'Tu nombre', 'text', 'Nombre y apellido', 'autocomplete="name"')}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gField('g-p', 'Contraseña', 'password', 'Mínimo 8 caracteres', 'autocomplete="new-password"')}
+  else if (v === 'registro') h = `<h1>${pendingInv() || enIOS() ? 'Únete a tu equipo' : 'Prueba Renueva 14 días'}</h1><p class="sub">${pendingInv() || enIOS() ? 'Crea tu cuenta con el mismo correo al que te llegó la invitación de tu empresa.' : 'Sin tarjeta. Todos los mundos y hasta 7 usuarios durante la prueba.'}</p>
+    <form class="gform">${gErr()}${gField('g-n', 'Tu nombre', 'text', 'Nombre y apellido', 'autocomplete="name"')}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gField('g-p', 'Contraseña', 'password', 'Mínimo 8 caracteres', 'autocomplete="new-password"')}
     ${gBtn('gRegistro', 'Crear cuenta')}<div>${gLink('gToLogin', 'Ya tengo cuenta')}</div>
-    <p style="font-size:11.5px;color:var(--fg3)">Al crear tu cuenta aceptas los términos del servicio y el tratamiento de tus datos para operar la plataforma.</p></form>`;
+    <p style="font-size:11.5px;color:var(--fg3)">Al crear tu cuenta aceptas los <button type="button" data-act="legal" data-p="terminos" style="all:unset;color:var(--accent);cursor:pointer">términos del servicio</button> y la <button type="button" data-act="legal" data-p="privacidad" style="all:unset;color:var(--accent);cursor:pointer">política de privacidad</button>.</p></form>`;
   else if (v === 'verifica') h = `<h1>Revisa tu correo</h1><p class="sub">Te enviamos un enlace para confirmar tu cuenta. Ábrelo desde este mismo dispositivo y vuelves aquí.</p>
     <div class="gform">${gInfo()}${gLink('gToLogin', 'Ya confirmé, entrar')}</div>`;
   else if (v === 'recuperar') h = `<h1>Recupera tu acceso</h1><p class="sub">Te enviamos un enlace para crear una contraseña nueva.</p>
-    <form class="gform" onsubmit="return false">${gErr()}${gInfo()}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gBtn('gRecuperar', 'Enviar enlace', 'send')}<div>${gLink('gToLogin', 'Volver')}</div></form>`;
+    <form class="gform">${gErr()}${gInfo()}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gBtn('gRecuperar', 'Enviar enlace', 'send')}<div>${gLink('gToLogin', 'Volver')}</div></form>`;
   else if (v === 'nueva-clave') h = `<h1>Nueva contraseña</h1><p class="sub">Elige una contraseña nueva para tu cuenta.</p>
-    <form class="gform" onsubmit="return false">${gErr()}${gField('g-p', 'Contraseña nueva', 'password', 'Mínimo 8 caracteres', 'autocomplete="new-password"')}${gBtn('gNuevaClave', 'Guardar y entrar', 'check')}</form>`;
+    <form class="gform">${gErr()}${gField('g-p', 'Contraseña nueva', 'password', 'Mínimo 8 caracteres', 'autocomplete="new-password"')}${gBtn('gNuevaClave', 'Guardar y entrar', 'check')}</form>`;
   else if (v === 'onboarding') {
     const invs = (gate.ctx && gate.ctx.invitaciones) || [], nombre = (gate.user && gate.user.user_metadata && gate.user.user_metadata.nombre) || '';
-    h = `<h1>${invs.length ? 'Te están esperando' : 'Crea tu empresa'}</h1><p class="sub">${invs.length ? 'Tienes una invitación pendiente.' : 'Elige con qué mundos partes. Puedes cambiarlo después.'}</p>
+    h = `<h1>${invs.length ? 'Te están esperando' : enIOS() ? 'Casi listo' : 'Crea tu empresa'}</h1><p class="sub">${invs.length ? 'Tienes una invitación pendiente.' : enIOS() ? 'Para entrar necesitas una invitación de tu empresa.' : 'Elige con qué mundos partes. Puedes cambiarlo después.'}</p>
     <div class="gform">${gErr()}
       ${gate.ctx && gate.ctx.inactivo ? `<div class="tip" style="margin:0">${icon('lock')}<span>Tu usuario fue desactivado por el administrador de tu empresa. Pídele que te vuelva a activar.</span></div>` : ''}
       ${invs.map(i => `<button class="card pressable" data-act="gAceptar" data-t="${clean(i.token)}" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%;border-color:var(--accent)"><span class="thumb" style="background:var(--accent);color:var(--accent-ink)">${icon('people', 22)}</span><span class="grow"><b style="font:700 15px var(--body)">${clean(i.org)}</b><br><span style="font-size:12px;color:var(--fg3)">Te invitaron como ${ROL_TXT[i.rol] || i.rol}</span></span>${icon('arrowR', 16)}</button>`).join('')}
-      ${gate.ctx && gate.ctx.inactivo ? '' : `${invs.length ? '<p class="kicker" style="margin-top:8px">O crea tu propia empresa</p>' : ''}
+      ${!invs.length && enIOS() && !(gate.ctx && gate.ctx.inactivo) ? `<div class="card" style="font-size:13.5px;color:var(--fg2);line-height:1.5">Tu correo todavía no tiene una invitación. Pide al administrador de tu empresa que te invite desde <b style="color:var(--fg)">Ajustes → Usuarios y permisos</b>, usando este mismo correo.</div><button type="button" class="btn ghost" data-act="gReload">${icon('history')}Ya me invitaron, revisar</button>` : ''}
+      ${gate.ctx && gate.ctx.inactivo || enIOS() ? '' : `${invs.length ? '<p class="kicker" style="margin-top:8px">O crea tu propia empresa</p>' : ''}
       ${gField('g-o', 'Nombre de tu empresa', 'text', 'Ej: Automotora Los Andes')}
       <label class="field"><span>Tu nombre</span><input id="g-n" value="${clean(nombre)}" placeholder="Nombre y apellido"></label>
       <div><p class="kicker" style="margin-bottom:10px">¿En qué trabajas?</p><div class="optrow" id="g-m">${Object.values(WORLDS).map(w => `<button class="opt ${gate.mundos.includes(w.key) ? 'on' : ''}" data-act="gMundo" data-w="${w.key}">${icon(w.icon)}${w.name}</button>`).join('')}</div></div>
@@ -47,8 +48,8 @@ function renderGate(view) {
   }
   else if (v === 'setup') h = `<h1>Falta un paso</h1><p class="sub">La app ya está conectada a Supabase, pero la base de datos aún no tiene las tablas de Renueva.</p>
     <div class="gform"><div class="card" style="font-size:13px;color:var(--fg2);line-height:1.5">En Supabase abre <b style="color:var(--fg)">SQL Editor</b>, pega el contenido del archivo <span class="mono" style="font-size:11.5px">supabase/migrations/20261023000000_renueva.sql</span> y presiona <b style="color:var(--fg)">Run</b>. Luego recarga esta página.</div>
-    <button class="btn primary" onclick="location.reload()">${icon('history')}Ya lo hice, recargar</button><div>${gLink('gSalir', 'Cerrar sesión')}</div></div>`;
-  else if (v === 'error') h = `<h1>No pudimos conectar</h1><p class="sub">${clean(gate.err || 'Revisa tu conexión a internet.')}</p><div class="gform"><button class="btn primary" onclick="location.reload()">${icon('history')}Reintentar</button><div>${gLink('gSalir', 'Cerrar sesión')}</div></div>`;
+    <button type="button" class="btn primary" data-act="gReload">${icon('history')}Ya lo hice, recargar</button><div>${gLink('gSalir', 'Cerrar sesión')}</div></div>`;
+  else if (v === 'error') h = `<h1>No pudimos conectar</h1><p class="sub">${clean(gate.err || 'Revisa tu conexión a internet.')}</p><div class="gform"><button type="button" class="btn primary" data-act="gReload">${icon('history')}Reintentar</button><div>${gLink('gSalir', 'Cerrar sesión')}</div></div>`;
   L.innerHTML = gateShell(h); L.classList.remove('out'); $('#app').hidden = true;
   const f = $('input', L); if (f && !('ontouchstart' in window)) f.focus();
 }
@@ -90,6 +91,9 @@ ACT.gCrearOrg = () => gRun(async v => {
 });
 ACT.gAceptar = d => gRun(async () => { await RV.acceptInvite(d.t); await afterAuth(); });
 ACT.gSalir = () => RV.logout();
+ACT.gReload = () => location.reload();
+// los formularios de entrada nunca se envían solos (todo pasa por los botones)
+document.addEventListener('submit', e => e.preventDefault());
 RV.onRecovery = () => renderGate('nueva-clave');
 
 async function afterAuth() {
@@ -100,6 +104,7 @@ async function afterAuth() {
 
 /* ---------------------------------------------------------------- aplicar contexto y datos */
 function applyCtx(ctx) {
+  ctx = deepClean(ctx);
   const o = ctx.org, m = ctx.miembro;
   Object.assign(ORG, { id: o.id, nombre: o.nombre });
   Object.assign(ME, { nombre: m.nombre || m.email, email: m.email, rol: m.rol, mundos: m.mundos, plataforma: !!ctx.plataforma });
@@ -132,7 +137,7 @@ function applyRemote(col, id, data) {
   if (!data) { if (i >= 0) arr.splice(i, 1); } else if (i >= 0) arr[i] = deepClean(data); else arr.push(deepClean(data));
   rerender();
 }
-RV.bind({ COLS, CAT, PREFS, USUARIOS, isAdmin, duenoOf, applyCtx, applyData, applyRemote, rerender });
+RV.bind({ COLS, CAT, PREFS, USUARIOS, isAdmin, duenoOf, deepClean, applyCtx, applyData, applyRemote, rerender });
 
 async function startCloud(st) {
   applyCtx(st.ctx);
@@ -149,6 +154,7 @@ async function startCloud(st) {
   if (RV.lastError) { const m = RV.lastError; RV.lastError = null; setTimeout(() => toast(m, 'warn'), 1200); }
   RV.dailySync(st.ctx);
   startReminders();
+  if (RV.syncReminders) RV.syncReminders(REMS.filter(r => puedeMundo(r.w)));
 }
 
 /* ---------------------------------------------------------------- estado de guardado */
