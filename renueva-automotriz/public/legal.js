@@ -1,9 +1,9 @@
 // Datos del responsable de Renueva, usados por las páginas de privacidad, términos y soporte.
 // Completar antes de publicar en la App Store (Apple rechaza textos de relleno).
 window.LEGAL = {
-  responsable: '',          // nombre de la persona o razón social
-  rut: '',                  // RUT del responsable
-  email: '',                // correo de contacto y soporte
+  responsable: 'Sebastian Alejandro Sanchez Urbina', // nombre de la persona o razón social
+  rut: '20.039.126-8',      // RUT del responsable
+  email: 'sebastian.sanchez.spc@gmail.com', // correo de contacto y soporte
   ciudad: 'Santiago, Chile',
   actualizado: '24 de octubre de 2026',
 }
