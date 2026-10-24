@@ -1,0 +1,21 @@
+{
+  "appId": "cl.renueva.app",
+  "appName": "Renueva",
+  "webDir": "dist",
+  "backgroundColor": "#0D0E10",
+  "ios": {
+    "contentInset": "never",
+    "scheme": "Renueva",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#0D0E10",
+      "showSpinner": false
+    },
+    "LocalNotifications": {
+      "iconColor": "#C8F03C"
+    }
+  }
+}
