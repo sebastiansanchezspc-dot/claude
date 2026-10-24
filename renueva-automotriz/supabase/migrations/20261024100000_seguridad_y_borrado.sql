@@ -72,3 +72,10 @@ end $$;
 revoke execute on function public.eliminar_mi_cuenta() from public, anon;
 grant execute on function public.eliminar_mi_cuenta() to authenticated;
 revoke execute on function public.trg_limpiar_nombres() from public, anon, authenticated;
+
+-- ---------------------------------------------------------------- search_path fijo (linter de Supabase)
+alter function public.mi_email() set search_path = public, auth;
+alter function public.vendedor_ve(text, text) set search_path = public, auth;
+alter function public.vendedor_escribe(text, text) set search_path = public, auth;
+alter function public.limpiar_texto(text, integer) set search_path = public;
+alter function public.trg_limpiar_nombres() set search_path = public;
