@@ -33,13 +33,12 @@ function renderGate(view) {
     <form class="gform">${gErr()}${gField('g-p', 'Contraseña nueva', 'password', 'Mínimo 8 caracteres', 'autocomplete="new-password"')}${gBtn('gNuevaClave', 'Guardar y entrar', 'check')}</form>`;
   else if (v === 'onboarding') {
     const invs = (gate.ctx && gate.ctx.invitaciones) || [], nombre = (gate.user && gate.user.user_metadata && gate.user.user_metadata.nombre) || '';
-    h = `<h1>${invs.length ? 'Te están esperando' : enIOS() ? 'Casi listo' : 'Crea tu empresa'}</h1><p class="sub">${invs.length ? 'Tienes una invitación pendiente.' : enIOS() ? 'Para entrar necesitas una invitación de tu empresa.' : 'Elige con qué mundos partes. Puedes cambiarlo después.'}</p>
+    h = `<h1>${invs.length ? 'Te están esperando' : enIOS() ? 'Casi listo' : 'Crea tu empresa'}</h1><p class="sub">${invs.length > 1 ? 'Te invitaron de más de una empresa. Elige a cuál quieres entrar: cada cuenta pertenece a una sola empresa.' : invs.length ? 'Tienes una invitación pendiente.' : enIOS() ? 'Para entrar necesitas una invitación de tu empresa.' : 'Elige con qué mundos partes. Puedes cambiarlo después.'}</p>
     <div class="gform">${gErr()}
       ${gate.ctx && gate.ctx.inactivo ? `<div class="tip" style="margin:0">${icon('lock')}<span>Tu usuario fue desactivado por el administrador de tu empresa. Pídele que te vuelva a activar.</span></div>` : ''}
       ${invs.map(i => `<button class="card pressable" data-act="gAceptar" data-t="${clean(i.token)}" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%;border-color:var(--accent)"><span class="thumb" style="background:var(--accent);color:var(--accent-ink)">${icon('people', 22)}</span><span class="grow"><b style="font:700 15px var(--body)">${clean(i.org)}</b><br><span style="font-size:12px;color:var(--fg3)">Te invitaron como ${ROL_TXT[i.rol] || i.rol}</span></span>${icon('arrowR', 16)}</button>`).join('')}
       ${!invs.length && enIOS() && !(gate.ctx && gate.ctx.inactivo) ? `<div class="card" style="font-size:13.5px;color:var(--fg2);line-height:1.5">Tu correo todavía no tiene una invitación. Pide al administrador de tu empresa que te invite desde <b style="color:var(--fg)">Ajustes → Usuarios y permisos</b>, usando este mismo correo.</div><button type="button" class="btn ghost" data-act="gReload">${icon('history')}Ya me invitaron, revisar</button>` : ''}
-      ${gate.ctx && gate.ctx.inactivo || enIOS() ? '' : `${invs.length ? '<p class="kicker" style="margin-top:8px">O crea tu propia empresa</p>' : ''}
-      ${gField('g-o', 'Nombre de tu empresa', 'text', 'Ej: Automotora Los Andes')}
+      ${gate.ctx && gate.ctx.inactivo || enIOS() || invs.length ? '' : `${gField('g-o', 'Nombre de tu empresa', 'text', 'Ej: Automotora Los Andes')}
       <label class="field"><span>Tu nombre</span><input id="g-n" value="${clean(nombre)}" placeholder="Nombre y apellido"></label>
       <div><p class="kicker" style="margin-bottom:10px">¿En qué trabajas?</p><div class="optrow" id="g-m">${Object.values(WORLDS).map(w => `<button class="opt ${gate.mundos.includes(w.key) ? 'on' : ''}" data-act="gMundo" data-w="${w.key}">${icon(w.icon)}${w.name}</button>`).join('')}</div></div>
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px"><span><b style="font:600 14px var(--body)">Partir con datos de ejemplo</b><br><span style="font-size:12px;color:var(--fg3)">Para conocer la app. Los borras cuando quieras.</span></span><button class="toggle ${gate.ejemplo ? 'on' : ''}" data-act="gEjemplo" aria-label="Datos de ejemplo"></button></div>
@@ -228,8 +227,17 @@ ACT.platOrg = d => {
 };
 async function platDo(cambios, msg) {
   const id = $('#plat-f').dataset.id;
-  try { await RV.platformSet(id, cambios); platList = await RV.platformOrgs(); closeSheet(); renderPlat(); toast(msg); } catch (e) { toast(e.message, 'warn'); }
+  try {
+    await RV.platformSet(id, cambios); platList = await RV.platformOrgs(); closeSheet(); renderPlat(); toast(msg);
+    if (id === ORG.id) await RV.refreshContext(); // si es tu propia empresa, la app se actualiza al tiro
+  } catch (e) { toast(e.message, 'warn'); }
 }
+// al volver a la app se relee el plan (pruebas extendidas, pagos registrados por transferencia)
+let ctxAt = Date.now();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !window.RV || RV.mode !== 'cloud' || !ORG.id || Date.now() - ctxAt < 60000) return;
+  ctxAt = Date.now(); RV.refreshContext().catch(() => { });
+});
 ACT.platSave = () => platDo({ plan: $('#pf-plan').value, ciclo: $('#pf-ciclo').value, extra_usuarios: Math.max(0, +$('#pf-eu').value || 0), extra_mundos: Math.max(0, +$('#pf-em').value || 0), notas: $('#pf-n').value }, 'Empresa actualizada');
 ACT.platPago = () => { const h = $('#pf-h').value; if (!h) return toast('Elige la fecha', 'warn'); platDo({ plan: $('#pf-plan').value, ciclo: $('#pf-ciclo').value, pagado_hasta: h + 'T23:59:59-03:00', pago_manual: money($('#pf-m').value) }, 'Pago registrado: cuenta activa'); };
 ACT.platTrial = () => { const o = platList.find(x => x.id === $('#plat-f').dataset.id), base = new Date(Math.max(Date.now(), new Date(o.trial_hasta))); base.setDate(base.getDate() + 7); platDo({ trial_hasta: base.toISOString() }, 'Prueba extendida 7 días'); };
