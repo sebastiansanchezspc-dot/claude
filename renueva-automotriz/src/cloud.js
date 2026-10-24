@@ -140,19 +140,33 @@ async function flush() {
     const cur = currentRows(), up = [], del = []
     cur.forEach((r, k) => { const j = sig(r); if (snapshot.get(k) !== j) up.push({ ...r, j }) })
     snapshot.forEach((_, k) => { if (!cur.has(k) && !(k.startsWith('config/') && !refs.isAdmin())) del.push(k) })
+    // una regla de la base de datos (P0001) rechaza solo ese registro: el resto se guarda igual
+    const rechazos = []
+    const subir = rows => sb.from('docs').upsert(rows.map(r => ({ org_id: orgId, col: r.col, id: r.id, mundo: r.mundo, data: r.data, dueno: r.dueno || null, updated_at: new Date().toISOString() })), { onConflict: 'org_id,col,id' }).then(x => x.error)
     for (let i = 0; i < up.length; i += 200) {
       const chunk = up.slice(i, i + 200)
-      const { error } = await sb.from('docs').upsert(chunk.map(r => ({ org_id: orgId, col: r.col, id: r.id, mundo: r.mundo, data: r.data, dueno: r.dueno || null, updated_at: new Date().toISOString() })), { onConflict: 'org_id,col,id' })
+      const error = await subir(chunk)
+      if (error && error.code === 'P0001') {
+        for (const r of chunk) { const e1 = await subir([r]); if (!e1) snapshot.set(r.col + '/' + r.id, r.j); else if (e1.code === 'P0001') rechazos.push(e1.message); else throw e1 }
+        continue
+      }
       if (error) throw error
       chunk.forEach(r => snapshot.set(r.col + '/' + r.id, r.j))
     }
     const byCol = {}; del.forEach(k => { const [c, ...id] = k.split('/'); (byCol[c] = byCol[c] || []).push(id.join('/')) })
+    const borrar = (c, ids) => sb.from('docs').delete().eq('org_id', orgId).eq('col', c).in('id', ids).then(x => x.error)
     for (const [c, ids] of Object.entries(byCol)) {
-      const { error } = await sb.from('docs').delete().eq('org_id', orgId).eq('col', c).in('id', ids)
+      const error = await borrar(c, ids)
+      if (error && error.code === 'P0001') {
+        for (const id of ids) { const e1 = await borrar(c, [id]); if (!e1) snapshot.delete(c + '/' + id); else if (e1.code === 'P0001') rechazos.push(e1.message); else throw e1 }
+        continue
+      }
       if (error) throw error
       ids.forEach(id => snapshot.delete(c + '/' + id))
     }
-    failures = 0; setStatus(up.length || del.length ? 'guardado' : 'ok')
+    failures = 0
+    if (rechazos.length) { setStatus('error', rechazos[0]); await reload(); return }
+    setStatus(up.length || del.length ? 'guardado' : 'ok')
   } catch (e) {
     failures++
     if (e && (e.code === '42501' || /row-level security/i.test(e.message || ''))) {

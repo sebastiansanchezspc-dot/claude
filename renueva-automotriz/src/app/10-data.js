@@ -110,9 +110,9 @@ const leadMin = l => minsAgo(l.ts); // minutos desde el último movimiento
 // datos derivados (se calculan, no se guardan)
 const visitasDe = it => (it.visBase || 0) + (it.vis || []).length;
 const visitas14 = it => (it.vis || []).filter(d => daysSince(d) <= 14).length;
-const ventas30 = it => VENTAS.filter(v => v.itemId === it.id && daysSince(v.fecha) <= 30).reduce((a, v) => a + (v.q || 1), 0);
+const ventas30 = it => VENTAS.filter(v => v.itemId === it.id && aprobada(v) && daysSince(v.fecha) <= 30).reduce((a, v) => a + (v.q || 1), 0);
 function mesesVend(e) {
-  return Array.from({ length: 6 }, (_, k) => { const mk = monthKey(TODAY, k - 5); return { mk, n: VENTAS.filter(v => v.w === e.w && v.vend === e.nombre && v.fecha.startsWith(mk)).length }; });
+  return Array.from({ length: 6 }, (_, k) => { const mk = monthKey(TODAY, k - 5); return { mk, n: VENTAS.filter(v => v.w === e.w && aprobada(v) && v.vend === e.nombre && v.fecha.startsWith(mk)).length }; });
 }
 
 /* ---------------- quién usa la app y su plan ---------------- */

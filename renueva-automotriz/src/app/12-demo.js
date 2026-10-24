@@ -76,6 +76,9 @@ function demoData() {
     V('o3','prop','p10','2026-10-20','Daniela Soto','+56 9 1100 9988','Diego Vera',2200000,55000000,0,'pct',40,[{m:'Vale vista',a:1100000,s:'cobrado'},{m:'Transferencia',a:1100000,s:'pendiente',v:'2026-10-30'}],{op:'Venta · escritura firmada'}),
     V('o4','prop','p9','2026-09-14','Pedro Alarcón','+56 9 0099 8877','Camila Rojas',3120000,78000000,0,'pct',40,[{m:'Transferencia',a:3120000,s:'cobrado'}],{op:'Venta · escritura firmada'}),
   ];
+  // una venta que envió una vendedora y espera aprobación
+  VENTAS.push(V('v6','auto','a5','2026-10-23','Tomás Herrera','+56 9 6123 4455','Marcela Fuentes',6700000,6700000,5550000,'pct',2,[{m:'Transferencia',a:6700000,s:'cobrado'}],{tramite:'pendiente',aprob:'pendiente',enviada:'2026-10-23T17:40',leadId:null}));
+  { const a5 = STOCK.find(i => i.id === 'a5'); if (a5) { a5.estado = 'reservado'; a5.pendVenta = 'v6'; } }
   // tickets de tienda (generados de forma determinista)
   (function genTickets() {
     let seed = 7; const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;

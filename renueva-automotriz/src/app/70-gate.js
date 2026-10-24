@@ -130,9 +130,16 @@ function rerender() {
     go(state.tab, true); if ($('#scr-' + state.tab)) $('#scr-' + state.tab).scrollTop = sc;
   }, 250);
 }
+// avisos del flujo de aprobación de ventas
+function avisoAprobacion(antes, v) {
+  if (isAdmin() && v.aprob === 'pendiente' && antes !== 'pendiente') notify('Venta por aprobar', `${v.vend} · ${v.cliente} · ${fmtM(v.ingreso)}`);
+  if (isVend() && antes === 'pendiente' && v.aprob === 'aprobada') notify('Venta aprobada', `${v.cliente} · tu comisión ${fmt(comision(v))}`);
+  if (isVend() && antes === 'pendiente' && v.aprob === 'rechazada') notify('Venta rechazada', v.motivo || 'Revisa con el administrador');
+}
 function applyRemote(col, id, data) {
   if (col === 'config') { if (data && id === 'cat') Object.keys(CAT).forEach(k => { if (data[k]) CAT[k] = deepClean(data[k]); }); if (data && id === 'prefs') PREFS.accent = data.accent || {}; rerender(); return; }
   const arr = COLS[col]; if (!arr) return; const i = arr.findIndex(x => String(x.id) === String(id));
+  if (col === 'ventas' && data) avisoAprobacion(i >= 0 ? arr[i].aprob : null, deepClean(data));
   if (!data) { if (i >= 0) arr.splice(i, 1); } else if (i >= 0) arr[i] = deepClean(data); else arr.push(deepClean(data));
   rerender();
 }

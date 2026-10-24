@@ -254,7 +254,7 @@ function renderPanel() {
   $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`) .replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => m(w)).join('')}</div>`;
 }
 ACT.alert = d => { const a = alertsFor(state.world)[+d.i]; if (a) runAlert(a); };
-function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'fincom') openFinCom(); else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
+function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'fincom') openFinCom(); else if (a.act === 'ventas') { while (pushes.length) popScreen(); go('ventas'); } else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
 ACT.agecell = d => { state.fBucket = +d.b; state.fFilter = 'todos'; renderStock(); go('stock'); };
 
 /* ---------------- STOCK ---------------- */
@@ -324,8 +324,8 @@ function ventaRow(v, k) {
   const it = getItem(v.itemId) || { nombre: 'Ítem eliminado' }, w = WORLDS[v.w], u = utilidad(v), pend = v.pagos.some(p => p.s === 'pendiente');
   const nm = v.w === 'tienda' ? `${it.nombre} ×${v.q}` : it.nombre;
   return `<button class="row" data-act="venta" data-id="${v.id}" style="animation-delay:${Math.min(k, 8) * 0.045}s"><span class="thumb">${icon(w.icon, 22)}</span>
-    <span class="rm"><p class="rt">${nm}</p><p class="rs">${v.w === 'tienda' ? `${v.vend.split(' ')[0]} · ${v.hora}:00` : v.cliente} · ${fechaCorta(v.fecha)}${pend ? `<span class="chip warn">Por cobrar</span>` : ''}${v.tramite === 'pendiente' ? `<span class="chip">Traspaso</span>` : ''}</p></span>
-    <span class="rr"><span class="p">${fmtM(v.ingreso)}</span><span class="chip good">+${fmtM(isVend() ? comision(v) : u)}</span></span></button>`;
+    <span class="rm"><p class="rt">${nm}</p><p class="rs">${v.w === 'tienda' ? `${v.vend.split(' ')[0]} · ${v.hora}:00` : v.cliente} · ${fechaCorta(v.fecha)}${pend ? `<span class="chip warn">Por cobrar</span>` : ''}${v.tramite === 'pendiente' && aprobada(v) ? `<span class="chip">Traspaso</span>` : ''}</p></span>
+    <span class="rr"><span class="p">${fmtM(v.ingreso)}</span>${v.aprob === 'pendiente' ? '<span class="chip warn">Por aprobar</span>' : v.aprob === 'rechazada' ? '<span class="chip bad">Rechazada</span>' : `<span class="chip good">+${fmtM(isVend() ? comision(v) : u)}</span>`}</span></button>`;
 }
 // el administrador puede ver las ventas de un vendedor en particular
 function vendFiltro(w) {
@@ -354,6 +354,7 @@ function renderVentas() {
     ${mesBar()}
     <div class="card reveal" style="background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--s1)),var(--s1) 70%)"><span class="kicker">${w.key === 'prop' ? 'Volumen de operaciones' : 'Vendido en ' + mesDe(MK()).toLowerCase()}</span><div class="num" style="font-size:34px;margin-top:10px;line-height:1">${fmt(st.volumen || st.ingreso)}</div></div>
     <div class="grid2">${(isVend() ? [['Mi comisión', st.com, 'var(--good)'], [w.key === 'tienda' ? 'Tickets' : 'Ventas', st.n, '', 1]] : [['Utilidad', st.bruta, 'var(--good)'], ['Comisiones', st.com, '']]).map(([k, v, c, n], i) => `<div class="card reveal" style="padding:14px 16px;animation-delay:${(i + 1) * .06}s"><span class="kicker" style="font-size:9.5px">${k}</span><div class="num" style="font-size:21px;margin-top:9px;white-space:nowrap;${c ? 'color:' + c : ''}">${n ? v : fmt(v)}</div></div>`).join('')}</div>
+    ${(() => { const pa = VENTAS.filter(v => v.w === w.key && (v.aprob === 'pendiente' || (v.aprob === 'rechazada' && isVend()))).sort((a, b) => b.fecha.localeCompare(a.fecha)); return pa.length ? sec(isAdmin() ? 'Por aprobar' : 'Enviadas al administrador', pa.length) + `<div class="card tight" style="border-color:var(--warn)">${pa.map(ventaRow).join('')}</div>` : ''; })()}
     ${vendFiltro(w)}
     ${sec(w.key === 'tienda' ? 'Tickets recientes' : w.tabs.ventas, vs.length)}
     <div class="card tight">${vs.slice(0, 18).map(ventaRow).join('') || `<div class="empty">${icon('dollar', 30)}<p>Aún no hay registros este mes</p></div>`}</div>

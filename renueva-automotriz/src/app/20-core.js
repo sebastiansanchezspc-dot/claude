@@ -77,7 +77,11 @@ const state = { world: null, tab: 'panel', fFilter: 'todos', fSort: 'rec', q: ''
 const W = () => WORLDS[state.world];
 const itemsOf = w => STOCK.filter(s => s.w === w);
 const getItem = id => STOCK.find(s => s.id === id);
-const ventasOf = (w, mk) => VENTAS.filter(v => v.w === w && (!mk || v.fecha.startsWith(mk)));
+// la venta que registra un vendedor (autos y propiedades) cuenta recién cuando el administrador la aprueba
+const aprobada = v => !v.aprob || v.aprob === 'aprobada';
+const conAprobacion = w => w !== 'tienda';
+const ventasOf = (w, mk) => VENTAS.filter(v => v.w === w && aprobada(v) && (!mk || v.fecha.startsWith(mk)));
+const porAprobar = w => VENTAS.filter(v => v.w === w && v.aprob === 'pendiente');
 const comision = v => v.comTipo === 'pct' ? Math.round(v.ingreso * v.comVal / 100) : v.comVal;
 // comisión que paga la financiera por los créditos de esta venta (es ingreso de la automotora)
 const comFin = v => v.pagos.reduce((a, p) => a + (p.fin ? p.fcm || 0 : 0), 0);
@@ -136,7 +140,12 @@ const ptm = it => it.mercado ? (it.precio / it.mercado - 1) : 0;
 /* ---------------- alertas (la cola de "qué requiere mi atención hoy") ---------------- */
 function alertsFor(w) {
   const A = [];
-  const it = itemsOf(w);
+  const it = itemsOf(w), pa = porAprobar(w);
+  if (pa.length && isAdmin()) A.push({ sev: 'warn', icon: 'check', title: `${pa.length} venta${pa.length > 1 ? 's' : ''} por aprobar`, sub: pa.slice(0, 3).map(v => `${firstName(v.vend)} · ${fmtM(v.ingreso)}`).join(' / '), act: pa.length === 1 ? 'venta' : 'ventas', id: pa[0].id });
+  if (isVend()) {
+    VENTAS.filter(v => v.w === w && v.aprob === 'rechazada').forEach(v => A.push({ sev: 'bad', icon: 'warn', title: `Venta rechazada · ${shortName((getItem(v.itemId) || { nombre: v.cliente }).nombre)}`, sub: v.motivo || 'Revisa con el administrador', act: 'venta', id: v.id }));
+    if (pa.length) A.push({ sev: 'info', icon: 'clock', title: `${pa.length} venta${pa.length > 1 ? 's' : ''} esperando aprobación`, sub: 'Tu comisión aparece cuando el administrador la apruebe.', act: pa.length === 1 ? 'venta' : 'ventas', id: pa[0].id });
+  }
   if (w === 'auto') {
     const sr = LEADS.filter(l => l.w === w && l.etapa === 'nuevo' && leadMin(l) > 10);
     if (sr.length) A.push({ sev: 'bad', icon: 'chat', title: `${sr.length} consulta${sr.length > 1 ? 's' : ''} sin responder`, sub: `La más antigua espera ${minTxt(Math.max(...sr.map(leadMin)))}. Responder en menos de 10 min sube el cierre.`, act: 'leads' });
@@ -243,8 +252,8 @@ const topPush = () => pushes[pushes.length - 1];
 /* ---------------- delegación de eventos ---------------- */
 const ACT = {};
 // acciones que cambian datos (solo lectura no puede) y las que son solo del administrador
-const WRITE_ACTS = new Set('crFcp crFcs saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
-const ADMIN_ACTS = new Set('leadVend vDatos catFinCom catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
+const WRITE_ACTS = new Set('ventaBorrar crFcp crFcs saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
+const ADMIN_ACTS = new Set('ventaAprobar ventaRechazar ventaRechazarOk vaCt leadVend vDatos catFinCom catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
 function allowAct(name) {
   if (ADMIN_ACTS.has(name) && !isAdmin()) { toast('Solo el administrador puede cambiar esto', 'lock'); return false; }
   if ((WRITE_ACTS.has(name) || ADMIN_ACTS.has(name)) && !canWrite()) { toast(ME.rol === 'lectura' ? 'Tu usuario es de solo lectura' : enIOS() ? 'Tu cuenta está en solo lectura' : 'Tu cuenta está en solo lectura: elige un plan para seguir', 'lock'); return false; }
