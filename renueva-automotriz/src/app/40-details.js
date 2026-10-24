@@ -147,11 +147,13 @@ function openVenta(id) {
       <p style="font-size:12px;color:var(--fg3);margin-top:8px">${v.op || (v.w === 'prop' ? '' : 'Total de la venta')}${v.w === 'prop' ? ` · monto de la operación ${fmt(v.precio)}` : ''}</p>
       <div class="tear" style="margin-top:20px"></div>
       <div style="padding:14px 0 6px">${isVend()
-        ? (ok ? drow('Tu comisión' + ` (${v.comTipo === 'pct' ? v.comVal + '%' : 'fija'})`, `<b style="color:var(--good);font:700 17px var(--display)">${fmt(c)}</b>`) : drow('Tu comisión', `<span style="color:var(--fg3)">${v.aprob === 'rechazada' ? '—' : 'Al aprobarse'}</span>`))
+        ? (ok ? drow('Tu comisión' + ` (${v.comTipo === 'pct' ? comTxt('pct', v.comVal) : 'fija'})`, `<b style="color:var(--good);font:700 17px var(--display)">${fmt(c)}</b>`) + (v.comBase && (v.comBase.t !== v.comTipo || v.comBase.v !== v.comVal) ? `<p style="font-size:12px;color:var(--fg3);margin:-2px 0 8px">Ajustada por la jefatura · tu base era ${comTxt(v.comBase.t, v.comBase.v)}</p>` : '')
+          : drow('Comisión base', v.aprob === 'rechazada' ? '—' : `<span>${v.comBase ? comTxt(v.comBase.t, v.comBase.v) : 'Por definir'}<br><span style="font-size:11px;color:var(--fg3)">por confirmar · la jefatura puede ajustarla</span></span>`))
         : !ok ? (v.costo ? drow('Costo', fmt(v.costo)) : '') + drow('Precio publicado', fmt(it.precio != null ? it.precio * (v.q || 1) : v.precio)) + (v.costo ? drow('Margen antes de comisión', fmt(v.ingreso - v.costo + comFin(v))) : '')
         : (v.costo ? drow('Costo', fmt(v.costo)) : '') + drow('Comisión ' + v.vend.split(' ')[0] + ` (${v.comTipo === 'pct' ? v.comVal + '%' : 'fija'})`, '−' + fmt(c)) + (comFin(v) ? drow('Comisión financiera', '+' + fmt(comFin(v))) : '') + drow('Utilidad', `<b style="color:var(--good);font:700 17px var(--display)">${fmt(u)}</b>`)}</div>
     </div>
     <div class="card">${v.w !== 'tienda' ? drow('Cliente', v.cliente) + drow('Contacto', v.fono) : ''}${drow('Vendedor', v.vend)}</div>
+    ${v.nota || v.notaJefe ? `<div class="card">${v.nota ? `<span class="kicker">Observación del vendedor</span><p style="font-size:14px;line-height:1.45;margin-top:8px;white-space:pre-wrap">${clean(v.nota)}</p>` : ''}${v.notaJefe ? `<span class="kicker" style="display:block;${v.nota ? 'margin-top:14px' : ''}">Nota de la jefatura</span><p style="font-size:14px;line-height:1.45;margin-top:8px;white-space:pre-wrap">${clean(v.notaJefe)}</p>` : ''}</div>` : ''}
     <div><div class="sec" style="margin:0 0 10px"><span class="kicker">Pagos</span></div><div class="card tight">${v.pagos.map((p, i) => `<div class="row" style="cursor:default"><span class="thumb" style="width:40px;height:40px">${icon(p.fin ? 'bank' : METODO_ICON[p.m] || 'dollar', 18)}</span><span class="rm"><p class="rt">${p.m}</p><p class="rs">${p.fin ? creditoTxt(p) : p.s === 'cobrado' ? 'Cobrado' : 'Vence ' + fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmt(p.a)}</span>${p.s === 'cobrado' ? '<span class="chip good">Cobrado</span>' : p.fin || ro || !ok ? '<span class="chip warn">Pendiente</span>' : `<button class="chip warn" style="border:0" data-act="cobrar" data-id="${v.id}" data-i="${i}">Marcar cobrado</button>`}</span></div>`).join('')}</div></div>
     ${v.pagos.map((p, i) => p.fin ? creditoCard(v, p, i, ro || !ok) : '').join('')}
     ${trasp}
@@ -161,13 +163,14 @@ function openVenta(id) {
 }
 // el administrador revisa la venta enviada por el vendedor y define su comisión
 function aprobarCard(v, it) {
-  const e = EQUIPO.find(x => x.w === v.w && x.nombre === v.vend), ct = e ? e.comTipo : v.comTipo, cv = e ? e.comVal : v.comVal;
+  const e = EQUIPO.find(x => x.w === v.w && x.nombre === v.vend), b = v.comBase || (e ? { t: e.comTipo, v: e.comVal } : { t: v.comTipo, v: v.comVal }), ct = b.t, cv = b.v;
   const pub = it.precio != null ? it.precio * (v.q || 1) : null, dif = pub ? v.precio - pub : 0;
   return `<div class="card" style="border-color:var(--warn)"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Por aprobar</span><span class="chip warn">${icon('clock', 12)}${firstName(v.vend)}</span></div>
     <p style="font-size:13px;color:var(--fg2);margin-top:12px;line-height:1.45">${clean(v.vend)} registró esta venta el ${fechaCL(v.fecha)}.${pub ? ` Precio publicado ${fmt(pub)}${dif ? `, vendido ${dif < 0 ? 'con descuento de' : 'sobre precio por'} <b style="color:${dif < 0 ? 'var(--warn)' : 'var(--good)'}">${fmt(Math.abs(dif))}</b>` : ', vendido a precio publicado'}.` : ''}</p>
     <div class="grid2" style="margin-top:14px"><label class="field"><span>Comisión</span><select id="va-ct" data-change="vaCt"><option value="pct" ${ct === 'pct' ? 'selected' : ''}>% porcentaje</option><option value="monto" ${ct === 'monto' ? 'selected' : ''}>$ Monto fijo</option></select></label>
     <label class="field"><span id="va-l">${ct === 'pct' ? 'Valor (%)' : 'Valor (CLP)'}</span><input id="va-cv" inputmode="${ct === 'pct' ? 'decimal' : 'numeric'}" ${ct === 'monto' ? 'data-money' : ''} value="${ct === 'pct' ? cv : fmt(cv)}"></label></div>
-    <p style="font-size:12px;color:var(--fg3);margin-top:8px">${e ? `Comisión base de ${firstName(e.nombre)}: ${e.comTipo === 'pct' ? e.comVal + '%' : fmt(e.comVal)}.` : ''} Revisa los pagos de abajo antes de aprobar.</p>
+    <p style="font-size:12px;color:var(--fg3);margin-top:8px">Comisión base de ${firstName(v.vend)}: ${comTxt(b.t, b.v)}. Puedes ajustarla. Revisa los pagos de abajo antes de aprobar.</p>
+    <label class="field" style="margin-top:12px"><span>Nota para ${firstName(v.vend)} (opcional)</span><textarea id="va-nota" maxlength="300" placeholder="Ej: comisión ajustada por el descuento"></textarea></label>
     <div class="grid2" style="margin-top:14px"><button class="btn ghost" data-act="ventaRechazar" data-id="${v.id}">${icon('close')}Rechazar</button><button class="btn primary" data-act="ventaAprobar" data-id="${v.id}">${icon('check')}Aprobar</button></div></div>`;
 }
 ACT.vaCt = (d, el) => { const i = $('#va-cv'), m = el.value === 'monto'; i.toggleAttribute('data-money', m); i.inputMode = m ? 'numeric' : 'decimal'; i.value = m ? '$0' : '0'; $('#va-l').textContent = m ? 'Valor (CLP)' : 'Valor (%)'; };
@@ -176,6 +179,7 @@ ACT.ventaAprobar = d => {
   const ct = $('#va-ct').value, raw = $('#va-cv').value;
   v.comTipo = ct; v.comVal = ct === 'pct' ? Math.min(100, Math.max(0, parseFloat(String(raw).replace(',', '.')) || 0)) : money(raw);
   v.aprob = 'aprobada'; v.aprobada = TODAY; v.aprobPor = ME.nombre;
+  const nj = ($('#va-nota').value || '').trim().replace(/[<>"'`]/g, '').slice(0, 300); if (nj) v.notaJefe = nj;
   const it = getItem(v.itemId); if (it && it.pendVenta === v.id) { delete it.pendVenta; it.estado = it.op === 'Arriendo' ? 'arrendado' : 'vendido'; }
   const l = v.leadId && LEADS.find(x => x.id === v.leadId); if (l && l.etapa !== 'ganado') { l.etapa = 'ganado'; l.ts = nowISO(); l.log.push({ ts: tick(), tipo: 'etapa', txt: 'Venta aprobada' }); }
   toast(`Venta aprobada · comisión ${fmt(comision(v))}`); popScreen(); setTimeout(() => openVenta(v.id), 120); renderAll();
@@ -316,10 +320,10 @@ function openNuevoItem(it) {
     <label class="field"><span>Nombre</span><input id="ni-n" placeholder="${w.nombrePh}" value="${e ? e.nombre : ''}"></label>
     <div class="grid2">${w.campos.map(([k, l, t]) => `<label class="field" style="${t === 'number' || w.campos.length < 4 ? '' : 'grid-column:span 2'}"><span>${l}</span>${k === 'operacion' ? `<select data-k="${k}" class="ni-f">${['Venta', 'Arriendo'].map(o => `<option ${specV(k) === o ? 'selected' : ''}>${o}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t}" class="ni-f" value="${specV(k)}">`}</label>`).join('')}</div>
     <label class="field"><span>${w.idLabel}</span><input id="ni-s" placeholder="${w.key === 'auto' ? 'BKTS·41' : w.key === 'prop' ? '004-112' : 'NK-AM-42'}" style="text-transform:uppercase" value="${e ? val(e.sku) : ''}"></label>
-    <div class="grid2"><label class="field"><span>${w.key === 'prop' ? 'Precio / arriendo' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.precio, 1) : ''}"></label>
+    <div class="grid2"><label class="field"><span>${w.key === 'prop' ? 'Precio / arriendo' : w.key === 'auto' ? 'Precio de venta estimado' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.precio, 1) : ''}"></label>
     ${w.key === 'prop' ? `<label class="field"><span>Mandato hasta</span><input id="ni-md" type="date" value="${e ? e.mandato : addDays(TODAY, 180)}"></label>` : isVend() ? '' : `<label class="field"><span>${w.key === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="ni-c" data-money inputmode="numeric" placeholder="$0" value="${e ? val(w.key === 'tienda' ? e.costoU : e.costo, 1) : ''}"></label>`}</div>
     ${w.key === 'auto' && !isVend() ? `<div class="grid2"><label class="field"><span>Reacondicionamiento</span><input id="ni-r" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.recon, 1) : ''}"></label><label class="field"><span>Precio de mercado</span><input id="ni-mk" data-money inputmode="numeric" placeholder="Opcional" value="${e && e.mercado ? fmt(e.mercado) : ''}"></label></div>
-    <p style="font-size:12px;color:var(--fg3);margin-top:-6px">El precio de mercado lo ingresas tú como referencia (por ejemplo, lo que piden por autos parecidos en Chileautos o Yapo). Con él la app te avisa si tu precio está alto.</p>` : ''}
+    <p style="font-size:12px;color:var(--fg3);margin-top:-6px"><b>Precio de venta estimado:</b> al que lo publicas; se propone solo al registrar la venta y el vendedor lo ve como referencia. <b>Precio de mercado:</b> lo escribes tú mirando autos parecidos en Chileautos o Yapo; la app no lo calcula, solo lo usa para avisarte si tu precio está alto.</p>` : ''}
     ${w.key === 'auto' ? `
 <div class="grid2"><label class="field"><span>Revisión técnica vence</span><input id="ni-rev" type="date" value="${e ? e.rev : ''}"></label><label class="field"><span>SOAP vence</span><input id="ni-soap" type="date" value="${e ? e.soap : proxMarzo()}"></label></div>
     <div class="grid2"><label class="field"><span>Permiso de circulación</span><select id="ni-pc">${[[0, 'Pendiente'], [1, '1ª cuota pagada'], [2, 'Al día (2 cuotas)']].map(([n, t]) => `<option value="${n}" ${e && e.permiso.pagadas === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label class="field"><span>Proveedor</span><input id="ni-pv" placeholder="Particular, automotora…" value="${e ? val(e.prov.n) : ''}"></label></div>` : ''}
@@ -380,6 +384,8 @@ ACT.saveVendedor = () => {
 };
 
 /* ---------------- formulario: nueva venta ---------------- */
+const comTxt = (t, v) => t === 'pct' ? String(v).replace('.', ',') + '%' : fmt(v);
+const comBaseDe = (w, nombre) => { const e = EQUIPO.find(x => x.w === w && x.nombre === nombre); return e ? { t: e.comTipo, v: e.comVal } : null; };
 let saleLead = null;
 function openNuevaVenta(preId, leadId) {
   saleLead = leadId || null; const lead = leadId ? LEADS.find(l => l.id === leadId) : null;
@@ -396,9 +402,10 @@ function openNuevaVenta(preId, leadId) {
     ${w.key === 'prop' ? `<label class="field"><span>Honorario total (%)</span><input id="vf-h" type="number" step="0.1" value="4"></label>` : ''}
     <div class="grid2" ${envia ? 'style="display:none"' : ''}><label class="field"><span>Comisión</span><select id="vf-ct" data-change="vfCt"><option value="pct">% porcentaje</option><option value="monto">$ Monto fijo</option></select></label><label class="field"><span id="vf-cl2">Valor (%)</span><input id="vf-cv" inputmode="decimal" value="0"></label></div><p id="vf-hint" style="font-size:12px;color:var(--fg3);margin-top:-6px;${envia ? 'display:none' : ''}"></p>
     <div><p class="kicker" style="margin-bottom:10px">Pagos del cliente</p><div id="vf-pays" style="display:flex;flex-direction:column;gap:8px"></div><button class="btn ghost small" data-act="addPay" style="margin-top:10px;width:100%">${icon('plus', 15)}Agregar forma de pago</button></div>
+    <label class="field"><span>Observación (opcional)</span><textarea id="vf-nota" maxlength="500" placeholder="Ej: el cliente deja el auto en parte de pago, entrega el lunes…"></textarea></label>
     <div class="card" id="vf-sum" style="padding:14px"></div>
     <div class="cuadra no" id="vf-ok"></div>
-    ${envia ? `<p style="font-size:12px;color:var(--fg3)">La ${lbl} queda pendiente hasta que el administrador la apruebe. Ahí verás tu comisión.</p>` : ''}
+    ${envia ? `<p style="font-size:12px;color:var(--fg3)">La ${lbl} queda pendiente hasta que el administrador la apruebe. Tu comisión base es una referencia: la jefatura puede ajustarla al aprobar.</p>` : ''}
     <button class="btn primary" id="vf-save" data-act="saveVenta" disabled>${icon(envia ? 'send' : 'check')}${envia ? 'Enviar para aprobación' : 'Registrar ' + lbl}</button></div>`, () => { addPay(); vfDefault(); if (isVend()) ['#vf-v', '#vf-ct', '#vf-cv'].forEach(q => { $(q).disabled = true; }); liveVenta(); });
 }
 function vfDefault() {
@@ -441,7 +448,7 @@ function liveVenta() {
     const pc = parseFloat(String(inp.value).replace(',', '.')) || 0, a = money($('.pa', r).value);
     $('.pfm', r).innerHTML = pc ? `Te paga <b style="color:var(--good)">${fmt(Math.round(a * pc / 100))}</b>` : 'Sin comisión';
   });
-  $('#vf-sum').innerHTML = isVend() ? `<div class="grid2" style="text-align:left"><div><span class="kicker" style="font-size:9px">Monto</span><b class="num" style="display:block;font-size:15px;margin-top:6px">${fmtM(c.ingreso)}</b></div><div><span class="kicker" style="font-size:9px">Tu comisión</span>${conAprobacion(W().key) ? '<b style="display:block;font:600 13px var(--body);margin-top:8px;color:var(--fg3)">Al aprobarse</b>' : `<b class="num" style="display:block;font-size:15px;margin-top:6px;color:var(--good)">${fmtM(c.com)}</b>`}</div></div>` : `<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;text-align:left"><div><span class="kicker" style="font-size:9px">Ingreso</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap">${fmtM(c.ingreso)}</b></div><div><span class="kicker" style="font-size:9px">Comisión</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap">${fmtM(c.com)}</b></div><div><span class="kicker" style="font-size:9px">Utilidad${c.fcm ? ' + financ.' : ''}</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap;color:${c.u >= 0 ? 'var(--good)' : 'var(--bad)'}">${fmtM(c.u)}</b></div></div>`;
+  $('#vf-sum').innerHTML = isVend() ? `<div class="grid2" style="text-align:left"><div><span class="kicker" style="font-size:9px">Monto</span><b class="num" style="display:block;font-size:15px;margin-top:6px">${fmtM(c.ingreso)}</b></div><div><span class="kicker" style="font-size:9px">Tu comisión</span>${conAprobacion(W().key) ? (b => `<b class="num" style="display:block;font-size:15px;margin-top:6px">${b ? 'Base ' + comTxt(b.t, b.v) : 'Por definir'}</b><span style="font-size:11px;color:var(--fg3)">La jefatura puede ajustarla</span>`)(comBaseDe(W().key, $('#vf-v').value)) : `<b class="num" style="display:block;font-size:15px;margin-top:6px;color:var(--good)">${fmtM(c.com)}</b>`}</div></div>` : `<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;text-align:left"><div><span class="kicker" style="font-size:9px">Ingreso</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap">${fmtM(c.ingreso)}</b></div><div><span class="kicker" style="font-size:9px">Comisión</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap">${fmtM(c.com)}</b></div><div><span class="kicker" style="font-size:9px">Utilidad${c.fcm ? ' + financ.' : ''}</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap;color:${c.u >= 0 ? 'var(--good)' : 'var(--bad)'}">${fmtM(c.u)}</b></div></div>`;
   const b = $('#vf-ok'); b.className = 'cuadra ' + (ok ? 'ok' : 'no'); b.innerHTML = `<span>Pagos: ${fmt(c.tot)}</span><span style="display:flex;align-items:center;gap:6px">${ok ? icon('check', 14, 2.4) + 'Cuadra' : falta > 0 ? 'Falta ' + fmt(falta) : 'Sobra ' + fmt(-falta)}</span>`;
   $('#vf-save').disabled = !ok;
 }
@@ -451,7 +458,9 @@ ACT.saveVenta = () => {
   const cliente = w.key === 'tienda' ? 'Cliente mostrador' : ($('#vf-cl').value.trim() || 'Cliente'), id = nuevoId('v');
   const extra = w.key === 'tienda' ? { q: c.q, hora: new Date().getHours() } : w.key === 'auto' ? { tramite: 'pendiente' } : { op: `${it.op} · ${it.op === 'Arriendo' ? 'contrato firmado' : 'promesa firmada'}` };
   const lead = saleLead ? LEADS.find(x => x.id === saleLead) : null;
+  const nota = ($('#vf-nota').value || '').trim().replace(/[<>"'`]/g, '').slice(0, 500); if (nota) extra.nota = nota;
   if (isVend() && conAprobacion(w.key)) {
+    extra.comBase = comBaseDe(w.key, $('#vf-v').value);
     VENTAS.push(V(id, w.key, it.id, TODAY, cliente, lead ? lead.fono : '', $('#vf-v').value, c.ingreso, c.precio, c.costo, c.ct, c.cv, c.pagos, { ...extra, aprob: 'pendiente', enviada: nowISO(), leadId: saleLead || null }));
     it.estado = 'reservado'; it.pendVenta = id; saleLead = null;
     closeSheet(); while (pushes.length) popScreen(); renderAll(); go('ventas'); toast(`Enviada al administrador · ${fmtM(c.ingreso)}`, 'send');
