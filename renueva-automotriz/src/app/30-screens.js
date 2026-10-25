@@ -56,18 +56,35 @@ function enterWorld(key, x, y) {
   }, 330);
   setTimeout(() => iris.classList.remove('go'), 900);
 }
-ACT.lockedWorld = () => toast('Este mundo no está en tu plan actual', 'lock');
+// mundo no activado: el administrador lo activa si su plan tiene cupo
+ACT.lockedWorld = d => {
+  const w = WORLDS[d.world]; if (!w) return;
+  if (!isAdmin()) { toast(ENABLED[d.world] ? 'Pídele al administrador que te dé acceso a ' + w.name : 'Este mundo no está activo en tu empresa', 'lock'); return; }
+  const cupo = nWorlds() < limWorlds();
+  openSheet(`${w.brand}`, `<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;gap:14px;align-items:center"><span class="thumb" style="width:52px;height:52px;background:${w.accent};color:${w.ink}">${icon(w.icon, 24, 2)}</span><p style="font-size:14px;color:var(--fg2);line-height:1.45">${w.desc}. Tiene su propio stock, ventas, caja y equipo, separados de los demás mundos.</p></div>
+    ${cupo ? `<p style="font-size:13px;color:var(--fg3)">Tu plan ${planNow().n} incluye ${limWorlds()} mundo${limWorlds() > 1 ? 's' : ''} y usas ${nWorlds()}.</p><button class="btn primary" data-act="activarMundo" data-world="${w.key}">${icon('check')}Activar ${w.name}</button>`
+      : `<p style="font-size:13px;color:var(--fg3)">Tu plan ${planNow().n} incluye ${limWorlds()} mundo${limWorlds() > 1 ? 's' : ''} y ya los usas.${enIOS() ? '' : ' Para sumar este, cambia de plan o desactiva otro mundo.'}</p>${enIOS() ? '' : `<button class="btn ghost" data-act="planLobby">${icon('crown')}Ver planes</button>`}`}</div>`);
+};
+ACT.activarMundo = async (d, el) => {
+  el.disabled = true; el.textContent = 'Activando…';
+  try {
+    if (window.RV && RV.mode === 'cloud') await RV.activarMundo(d.world); else ENABLED[d.world] = true;
+    closeSheet(); toast(WORLDS[d.world].name + ' activado'); renderLobby();
+    setTimeout(() => enterWorld(d.world, innerWidth / 2, innerHeight / 2), 350);
+  } catch (e) { toast(e.message, 'warn'); el.disabled = false; el.textContent = 'Activar ' + WORLDS[d.world].name; }
+};
 ACT.enter = (d, el, e) => enterWorld(d.world, e.clientX || 215, e.clientY || 400);
 ACT.worlds = () => openSheet('Cambiar de mundo', `
   <div class="stack" style="display:flex;flex-direction:column;gap:10px">${Object.values(WORLDS).map(w => `
-    <button class="card pressable" data-act="switchWorld" data-world="${w.key}" style="display:flex;align-items:center;gap:14px;text-align:left;border-color:${state.world === w.key ? w.accent : 'var(--line)'};--wc:${w.accent}">
+    <button class="card pressable" data-act="${puedeMundo(w.key) ? 'switchWorld' : 'lockedWorld'}" data-world="${w.key}" style="display:flex;align-items:center;gap:14px;text-align:left;border-color:${state.world === w.key ? w.accent : 'var(--line)'};--wc:${w.accent}">
       <span class="thumb" style="background:${w.accent};color:${w.ink}">${icon(w.icon, 22, 2)}</span>
       <span class="grow"><b style="font:700 16px var(--display);font-variation-settings:'wdth' 85">${w.brand}</b><br><span style="font-size:12.5px;color:var(--fg3)">${w.desc}</span></span>
-      ${state.world === w.key ? `<span class="chip accent">Aquí</span>` : icon('chevR', 16)}
+      ${state.world === w.key ? `<span class="chip accent">Aquí</span>` : puedeMundo(w.key) ? icon('chevR', 16) : `<span class="chip">${icon('lock', 12)}${isAdmin() ? 'Activar' : 'Sin acceso'}</span>`}
     </button>`).join('')}
   </div>
   <button class="btn ghost" data-act="toLobby">${icon('gauge')}Volver al inicio</button>`);
-ACT.switchWorld = (d, el, e) => { closeSheet(); if (d.world === state.world) return; while (pushes.length) popScreen(); enterWorld(d.world, e.clientX || 215, e.clientY || 700); };
+ACT.switchWorld = (d, el, e) => { if (!puedeMundo(d.world)) { ACT.lockedWorld(d); return; } closeSheet(); if (d.world === state.world) return; while (pushes.length) popScreen(); enterWorld(d.world, e.clientX || 215, e.clientY || 700); };
 ACT.toLobby = () => { closeSheet(); while (pushes.length) popScreen(); renderLobby(); $('#lobby').classList.remove('out'); setTimeout(() => { $('#app').hidden = true; }, 500); };
 
 /* ---------------- cabecera y dock ---------------- */
@@ -94,6 +111,7 @@ function movePill(instant) {
   else { p.style.height = ''; p.style.width = b.offsetWidth + 'px'; p.style.transform = `translateX(${b.offsetLeft - 5}px)`; }
   if (instant) { void p.offsetWidth; p.style.transition = ''; }
 }
+let animHasta = 0; // mientras corre la animación de una pestaña, los refrescos de datos esperan
 function go(tab, instant, animar) {
   state.tab = tab;
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + tab));
@@ -104,7 +122,7 @@ function go(tab, instant, animar) {
   if (!animar) { sinAnimar(s); return; }
   // al tocar la pestaña: todas las animaciones de entrada, una sola vez (y después no se toca nada)
   const els = $$('.reveal,.row,.alert,.qa button', s); els.forEach(e => { e.style.animation = 'none'; }); void s.offsetWidth; els.forEach(e => { e.style.animation = ''; });
-  reanimar(s);
+  reanimar(s); animHasta = Date.now() + 1800;
 }
 ACT.tab = d => go(d.tab, false, true);
 window.addEventListener('resize', () => movePill(true));
