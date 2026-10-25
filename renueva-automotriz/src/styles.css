@@ -48,7 +48,12 @@
   }
 
   /* en pantallas táctiles (iPhone) la textura de grano apaga los colores y suaviza los íconos finos */
-  @media (hover:none){ .shell::after{display:none;} }
+  @media (hover:none){
+    .shell::after{display:none;}
+    /* en el iPhone las pantallas entran solo con un fundido: el deslizamiento con rebote
+       dejaba el encabezado entre píxeles (borroso) hasta hacer scroll */
+    .screen,.screen.active{transform:none;}
+  }
 
   /* ---------- tipografía utilitaria ---------- */
   .mono{font-family:var(--mono);}
@@ -60,8 +65,8 @@
   .lobby{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;overflow-y:auto;
     padding:calc(22px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));
     background:radial-gradient(500px 320px at 50% -10%, rgba(255,255,255,.07), transparent 70%),var(--bg);
-    transition:opacity .45s var(--ease),transform .6s var(--spring);}
-  .lobby.out{opacity:0;transform:scale(1.04);pointer-events:none;}
+    transition:opacity .45s var(--ease),transform .6s var(--spring),visibility 0s;}
+  .lobby.out{opacity:0;transform:scale(1.04);pointer-events:none;visibility:hidden;transition:opacity .45s var(--ease),transform .6s var(--spring),visibility 0s .6s;}
   .brandbar{display:flex;align-items:center;gap:10px;}
   .wordmark{font:800 25px/1 var(--display);font-variation-settings:"wdth" 80,"opsz" 60;letter-spacing:-.02em;}
   .lobby h1{font:700 34px/1.02 var(--display);font-variation-settings:"wdth" 80,"opsz" 80;letter-spacing:-.025em;margin-top:30px;text-wrap:balance;}
