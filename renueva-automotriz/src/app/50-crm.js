@@ -218,6 +218,11 @@ function recRow(r) {
 }
 ACT.recDone = d => { const r = REMS.find(x => x.id === d.id); r.hecho = !r.hecho; if (r.hecho) toast('Recordatorio hecho'); refreshHub(); refreshAll(); };
 ACT.reminder = d => openReminder(d.id);
+function abrirRecordatorio(id) {
+  const r = REMS.find(x => x.id === id); if (!r) return; closeSheet();
+  if (state.world !== r.w) { enterWorld(r.w, innerWidth / 2, innerHeight / 2); setTimeout(() => openReminder(id), 900); }
+  else { while (pushes.length) popScreen(); setTimeout(() => openReminder(id), 120); }
+}
 function openReminder(id) {
   const r = REMS.find(x => x.id === id); if (!r) return; const ref = r.ref;
   const lead = ref && ref.t === 'lead' ? LEADS.find(l => l.id === ref.id) : null, canWa = lead && lead.fono;
@@ -225,12 +230,19 @@ function openReminder(id) {
     <div class="card" style="background:var(--s2)"><p style="font:700 16px/1.3 var(--body)">${r.titulo}</p><p class="rs" style="margin-top:10px"><span class="chip ${r.cuando < nowISO() && !r.hecho ? 'bad' : ''}">${icon('clock', 12)}${cuandoTxt(r.cuando)}</span><span class="chip">${r.canal === 'wa' ? 'WhatsApp' : r.canal === 'ambos' ? 'Celular + WhatsApp' : 'Notificación'}</span></p></div>
     ${canWa ? `<a class="btn wa" href="${waLink(lead.fono, waText(lead))}" target="_blank" rel="noopener" data-act="leadWa" data-id="${lead.id}">${icon('whatsapp')}Enviar WhatsApp ahora</a>` : ''}
     <div class="grid2"><button class="btn ghost" data-act="recSnooze" data-id="${r.id}" data-m="60">${icon('clock')}En 1 hora</button><button class="btn ghost" data-act="recSnooze" data-id="${r.id}" data-m="tomorrow">${icon('calendar')}Mañana 9:00</button></div>
+    <div class="grid2" style="align-items:end"><label class="field"><span>Otra hora</span><input id="rec-dt" type="datetime-local" value="${r.cuando > nowISO() ? r.cuando : enUnaHora()}"></label><button class="btn ghost" data-act="recSetTime" data-id="${r.id}">${icon('check')}Cambiar</button></div>
     <div class="grid2">${ref ? `<button class="btn ghost" data-act="recOpen" data-id="${r.id}">${icon('arrowR')}Abrir ficha</button>` : '<span></span>'}<button class="btn primary" data-act="recDone2" data-id="${r.id}">${icon('check')}Hecho</button></div>
     <button class="btn danger" data-act="recDel" data-id="${r.id}">${icon('trash')}Eliminar</button></div>`);
 }
 ACT.recOpen = d => { const r = REMS.find(x => x.id === d.id); closeSheet(); setTimeout(() => { if (r.ref.t === 'lead') openLead(r.ref.id); else if (r.ref.t === 'venta') openVenta(r.ref.id); else if (r.ref.t === 'item') openItem(r.ref.id); }, 350); };
 ACT.recDone2 = d => { const r = REMS.find(x => x.id === d.id); r.hecho = true; closeSheet(); toast('Recordatorio hecho'); refreshHub(); refreshAll(); };
 ACT.recDel = d => { REMS.splice(REMS.findIndex(x => x.id === d.id), 1); closeSheet(); toast('Recordatorio eliminado', 'trash'); refreshHub(); refreshAll(); };
+const enUnaHora = () => { const t = new Date(nowISO() + ':00'), p = n => String(n).padStart(2, '0'); t.setHours(t.getHours() + 1, 0); return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}T${p(t.getHours())}:00`; };
+ACT.recSetTime = d => {
+  const r = REMS.find(x => x.id === d.id), v = ($('#rec-dt').value || '').slice(0, 16); if (!r) return;
+  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(v)) { toast('Elige el día y la hora', 'warn'); return; }
+  r.cuando = v; r.hecho = false; closeSheet(); toast('Te avisamos ' + cuandoTxt(v).toLowerCase(), 'clock'); refreshHub(); refreshAll();
+};
 ACT.recSnooze = d => {
   const r = REMS.find(x => x.id === d.id), p = n => String(n).padStart(2, '0'); const t = new Date(nowISO() + ':00');
   if (d.m === 'tomorrow') { t.setDate(t.getDate() + 1); t.setHours(9, 0); } else t.setMinutes(t.getMinutes() + 60);
@@ -244,7 +256,8 @@ function openNuevoRecordatorio(opt = {}) {
     <div><p class="kicker" style="margin-bottom:10px">¿Qué quieres recordar?</p><div class="optrow">${tp.map(([k, ic, t], i) => `<button class="opt ${i === 0 ? 'on' : ''}" data-act="nrTpl" data-k="${k}">${icon(ic)}${t}</button>`).join('')}</div></div>
     <label class="field"><span>Para quién (opcional)</span><select id="nr-c" data-change="nrContacto"><option value="">Sin cliente</option>${CONTACTOS.filter(x => x.w === w.key).map(x => `<option value="${x.id}" ${c && x.id === c.id ? 'selected' : ''}>${x.nombre}</option>`).join('')}</select></label>
     <label class="field"><span>Título</span><input id="nr-t" value="${TPL_TXT[tp[0][0]]}${c ? c.nombre : ''}" autocomplete="off"></label>
-    <div><p class="kicker" style="margin-bottom:10px">¿Cuándo?</p><div class="hscroll">${[['h1', 'En 1 hora'], ['h18', 'Hoy 18:00'], ['m9', 'Mañana 9:00'], ['d3', 'En 3 días']].map(([k, t], i) => `<button class="opt ${i === 0 ? 'on' : ''}" data-act="nrWhen" data-k="${k}">${t}</button>`).join('')}</div></div>
+    <div><p class="kicker" style="margin-bottom:10px">¿Cuándo?</p><div class="hscroll">${[['h1', 'En 1 hora'], ['h18', 'Hoy 18:00'], ['m9', 'Mañana 9:00'], ['d3', 'En 3 días'], ['otra', 'Elegir día y hora']].map(([k, t], i) => `<button class="opt ${i === 0 ? 'on' : ''}" data-act="nrWhen" data-k="${k}">${k === 'otra' ? icon('calendar', 15) : ''}${t}</button>`).join('')}</div>
+      <label class="field" id="nr-dtw" style="display:none;margin-top:12px"><span>Día y hora</span><input id="nr-dt" type="datetime-local" value="${enUnaHora()}" min="${nowISO()}"></label></div>
     <div><p class="kicker" style="margin-bottom:10px">¿Cómo te avisamos?</p>
       <div class="card tight">
         <div class="pickrow" style="padding:14px 16px"><span class="ni thumb" style="width:38px;height:38px">${icon('bell', 18)}</span><span class="grow"><b style="font:600 14px var(--body)">Notificación en tu celular</b><br><span style="font-size:12px;color:var(--fg3)">Llega a la hora elegida</span></span><button class="toggle on" id="nr-push" data-act="togSimple" aria-label="Notificación"></button></div>
@@ -253,13 +266,14 @@ function openNuevoRecordatorio(opt = {}) {
     <button class="btn ghost small" data-act="probarNotif" style="width:100%">Ver cómo llegará la notificación</button></div>`);
 }
 ACT.nrTpl = (d, el) => { nrState.tpl = d.k; $$('[data-act="nrTpl"]').forEach(b => b.classList.toggle('on', b === el)); const c = CONTACTOS.find(x => x.id === $('#nr-c').value); $('#nr-t').value = (TPL_TXT[d.k] || '') + (c ? c.nombre : ''); };
-ACT.nrWhen = (d, el) => { nrState.when = d.k; $$('[data-act="nrWhen"]').forEach(b => b.classList.toggle('on', b === el)); };
+ACT.nrWhen = (d, el) => { nrState.when = d.k; $$('[data-act="nrWhen"]').forEach(b => b.classList.toggle('on', b === el)); $('#nr-dtw').style.display = d.k === 'otra' ? '' : 'none'; if (d.k === 'otra') $('#nr-dt').focus(); };
 ACT.nrContacto = (d, el) => { const c = CONTACTOS.find(x => x.id === el.value); const t = $('#nr-t'); t.value = (TPL_TXT[nrState.tpl] || '') + (c ? c.nombre : ''); $('#nr-wahint').textContent = c && c.fono ? 'Se abre con el mensaje listo, un toque' : 'Elige un cliente con teléfono'; };
 ACT.saveRecordatorio = () => {
   const w = W(), titulo = $('#nr-t').value.trim(); if (!titulo) { toast('Escribe un título', 'warn'); return; }
   const p = n => String(n).padStart(2, '0'), t = new Date(nowISO() + ':00');
   if (nrState.when === 'h1') t.setHours(t.getHours() + 1); else if (nrState.when === 'h18') t.setHours(18, 0); else if (nrState.when === 'm9') { t.setDate(t.getDate() + 1); t.setHours(9, 0); } else { t.setDate(t.getDate() + 3); t.setHours(9, 0); }
-  const cuando = `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}T${p(t.getHours())}:${p(t.getMinutes())}`, push = $('#nr-push').classList.contains('on'), wa = $('#nr-wa').classList.contains('on'), cid = $('#nr-c').value;
+  if (nrState.when === 'otra' && !($('#nr-dt').value || '').slice(0, 16).match(/^\d{4}-\d\d-\d\dT\d\d:\d\d$/)) { toast('Elige el día y la hora', 'warn'); return; }
+  const cuando = nrState.when === 'otra' ? $('#nr-dt').value.slice(0, 16) : `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}T${p(t.getHours())}:${p(t.getMinutes())}`, push = $('#nr-push').classList.contains('on'), wa = $('#nr-wa').classList.contains('on'), cid = $('#nr-c').value;
   const lead = nrState.leadId ? { t: 'lead', id: nrState.leadId } : cid ? { t: 'contacto', id: cid } : null;
   REMS.push({ id: nuevoId('r'), owner: isVend() ? lc(ME.email) : null, w: w.key, titulo, cuando, canal: push && wa ? 'ambos' : wa ? 'wa' : 'push', tpl: nrState.tpl, ref: lead, hecho: false });
   if (nrState.leadId) { const l = LEADS.find(x => x.id === nrState.leadId); logLead(l, 'recordatorio', `${titulo} · ${cuandoTxt(cuando).toLowerCase()}`); refreshLead(l.id); }

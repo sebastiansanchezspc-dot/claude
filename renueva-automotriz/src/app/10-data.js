@@ -42,7 +42,7 @@ const WORLDS = {
     desc: 'Stock, papeles y cierres de tu automotora', itemOne: 'Vehículo', itemMany: 'Vehículos',
     tabs: { stock: 'Stock', ventas: 'Ventas' }, idLabel: 'Patente', meta: 6000000, metodos: ['Efectivo', 'Transferencia', 'Crédito automotriz', 'Tarjeta de crédito', 'Cheque'],
     nombrePh: 'Ej: Toyota Corolla 2020', cierreLabel: 'Venta',
-    campos: [['marca', 'Marca', 'text'], ['modelo', 'Modelo', 'text'], ['anio', 'Año', 'number'], ['km', 'Kilometraje', 'number'], ['color', 'Color', 'text'], ['tipo', 'Tipo', 'text']],
+    campos: [['marca', 'Marca', 'text'], ['modelo', 'Modelo', 'text'], ['anio', 'Año', 'number'], ['km', 'Kilometraje', 'number'], ['color', 'Color', 'text'], ['tipo', 'Tipo', 'text'], ['transmision', 'Transmisión', 'text'], ['combustible', 'Combustible', 'text']],
   },
   prop: {
     key: 'prop', name: 'Propiedades', brand: 'Renueva Propiedades', icon: 'building', accent: '#B7A6FF', ink: '#150F33',

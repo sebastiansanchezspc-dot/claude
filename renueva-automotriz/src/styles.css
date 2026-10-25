@@ -102,10 +102,8 @@
   .screen::-webkit-scrollbar{display:none;}
   .screen.active{opacity:1;visibility:visible;transform:none;transition:opacity .28s var(--ease),transform .45s var(--spring);}
   .hd{position:sticky;top:0;z-index:20;padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:8px;}
-  .hd::before{content:"";position:absolute;inset:0 0 -10px;background:color-mix(in srgb,var(--bg) 80%,transparent);z-index:-1;mask-image:linear-gradient(180deg,#000 75%,transparent);-webkit-mask-image:linear-gradient(180deg,#000 75%,transparent);}
-  /* el desenfoque solo al hacer scroll: en iOS un desenfoque invisible dibuja borrosos los botones de encima */
-  /* el encabezado siempre tiene fondo: en iOS el texto sobre una capa fija y transparente se ve borroso */
-  .hd.compact::before{backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);}
+  .hd::before{content:"";position:absolute;inset:0 0 -10px;background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);z-index:-1;mask-image:linear-gradient(180deg,#000 75%,transparent);-webkit-mask-image:linear-gradient(180deg,#000 75%,transparent);}
+  /* el encabezado queda siempre como al hacer scroll (fondo + desenfoque): en iOS es el estado que se ve nítido */
   .hd-row{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;}
   .hd-title{font:700 15px/1 var(--display);font-variation-settings:"wdth" 88;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .35s var(--spring);position:absolute;left:50%;translate:-50% 0;pointer-events:none;white-space:nowrap;}
   .hd.compact .hd-title{opacity:1;transform:none;}
@@ -361,6 +359,7 @@
 
   /* ---------- CRM: etapas, opciones, notificación ---------- */
   .optrow{display:flex;flex-wrap:wrap;gap:8px;}
+  .qchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:8px;padding-bottom:2px;} .qchips::-webkit-scrollbar{display:none;} .qchips .opt{height:32px;padding:0 12px;font-size:12.5px;flex:none;}
   .opt{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:12px;background:var(--s2);border:1px solid var(--line);font:600 13px/1 var(--body);color:var(--fg2);transition:all .3s var(--spring);white-space:nowrap;}
   .opt svg{width:15px;height:15px;} .opt:active{transform:scale(.94);}
   .opt.on{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);}
@@ -386,7 +385,7 @@
   .qa button:active{transform:scale(.93);background:var(--s2);}
   .qa button span.ic{width:40px;height:40px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;} .qa button svg{width:19px;height:19px;}
   .qa button.main span.ic{background:var(--accent);color:var(--accent-ink);box-shadow:0 8px 20px -8px var(--accent-glow);}
-  .notif{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px;z-index:97;display:flex;gap:12px;padding:12px 14px;border-radius:24px;background:color-mix(in srgb,var(--s2) 86%,transparent);backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);border:1px solid var(--line2);box-shadow:0 24px 50px -10px rgba(0,0,0,.75);transform:translateY(-150%);transition:transform .7s var(--spring);cursor:pointer;}
+  .notif{touch-action:none;user-select:none;-webkit-user-select:none;position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px;z-index:97;display:flex;gap:12px;padding:12px 14px;border-radius:24px;background:color-mix(in srgb,var(--s2) 86%,transparent);backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);border:1px solid var(--line2);box-shadow:0 24px 50px -10px rgba(0,0,0,.75);transform:translateY(-150%);transition:transform .7s var(--spring);cursor:pointer;}
   .notif.in{transform:none;} .notif .nicon{width:38px;height:38px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none;}
   .notif .top{display:flex;justify-content:space-between;font:500 10px/1 var(--mono);letter-spacing:.1em;color:var(--fg3);} .notif .top b{font-weight:500;} .notif .top i{font-style:normal;}
   .notif .t{font:700 14px/1.2 var(--body);margin-top:5px;} .notif .b{font-size:13px;color:var(--fg2);margin-top:2px;line-height:1.3;}

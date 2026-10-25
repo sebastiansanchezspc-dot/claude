@@ -177,10 +177,10 @@ function startReminders() {
   const fired = new Set(); try { JSON.parse(localStorage.getItem('renueva_fired') || '[]').forEach(x => fired.add(x)); } catch (e) { }
   const check = () => {
     if (!NOTIF.recordatorios) return; const now = nowISO();
-    REMS.filter(r => !r.hecho && r.cuando <= now && minsAgo(r.cuando) < 120 && !fired.has(r.id) && puedeMundo(r.w)).forEach(r => {
-      fired.add(r.id); try { localStorage.setItem('renueva_fired', JSON.stringify([...fired].slice(-200))); } catch (e) { }
+    REMS.filter(r => !r.hecho && r.cuando <= now && minsAgo(r.cuando) < 120 && !fired.has(r.id + '@' + r.cuando) && puedeMundo(r.w)).forEach(r => {
+      fired.add(r.id + '@' + r.cuando); try { localStorage.setItem('renueva_fired', JSON.stringify([...fired].slice(-200))); } catch (e) { }
       if (document.visibilityState !== 'visible' && RV.systemNotify('Recordatorio · ' + WORLDS[r.w].name, r.titulo)) return;
-      notify('Recordatorio', r.titulo);
+      notify('Recordatorio', r.titulo, () => abrirRecordatorio(r.id));
     });
   };
   check(); setInterval(check, 30000);

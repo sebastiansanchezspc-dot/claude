@@ -312,13 +312,83 @@ ACT.logout = () => { if (window.RV && RV.logout) { RV.logout(); return; } toast(
 
 /* ---------------- formularios: ingresar / editar ítem ---------------- */
 let editingId = null;
+/* ---------------- opciones rápidas al ingresar al stock (siempre se puede escribir otra cosa) ---------------- */
+const MODELOS = {
+  Toyota: ['Yaris', 'Corolla', 'Corolla Cross', 'RAV4', 'Hilux', 'Rush', 'Fortuner', '4Runner'], Chevrolet: ['Sail', 'Onix', 'Spark', 'Tracker', 'Groove', 'Captiva', 'Colorado', 'Silverado'],
+  Hyundai: ['Accent', 'Grand i10', 'Creta', 'Tucson', 'Santa Fe', 'Elantra', 'Venue'], Kia: ['Morning', 'Rio', 'Soluto', 'Sonet', 'Seltos', 'Sportage', 'Sorento'],
+  Nissan: ['March', 'Versa', 'Sentra', 'Kicks', 'Qashqai', 'X-Trail', 'Navara'], Suzuki: ['Swift', 'Baleno', 'Dzire', 'Celerio', 'Vitara', 'S-Cross', 'Jimny'],
+  Mazda: ['Mazda 2', 'Mazda 3', 'CX-3', 'CX-30', 'CX-5', 'BT-50'], Peugeot: ['208', '2008', '308', '3008', '5008', 'Partner'], Ford: ['Ranger', 'Territory', 'EcoSport', 'Explorer', 'Maverick', 'F-150'],
+  Mitsubishi: ['L200', 'ASX', 'Outlander', 'Eclipse Cross', 'Montero Sport'], Volkswagen: ['Gol', 'Polo', 'Virtus', 'T-Cross', 'Tiguan', 'Amarok'], Subaru: ['Impreza', 'XV', 'Forester', 'Outback'],
+  MG: ['MG3', 'MG5', 'MG ZS', 'MG HS'], Chery: ['Tiggo 2', 'Tiggo 3', 'Tiggo 7', 'Tiggo 8'], Renault: ['Kwid', 'Logan', 'Duster', 'Oroch', 'Koleos'],
+};
+const anios = n => { const y = +TODAY.slice(0, 4) + 1; return Array.from({ length: n }, (_, i) => String(y - i)); };
+const QUICK = {
+  auto: {
+    marca: () => [...Object.keys(MODELOS), 'Citroën', 'Honda', 'Jeep', 'RAM', 'Changan', 'Great Wall', 'JAC', 'Haval', 'Fiat', 'BMW', 'Mercedes-Benz', 'Audi', 'Volvo'],
+    modelo: () => MODELOS[($('.ni-f[data-k=marca]') || {}).value] || [], anio: () => anios(26),
+    color: () => ['Blanco', 'Gris', 'Negro', 'Plata', 'Rojo', 'Azul', 'Café', 'Beige', 'Verde'], tipo: () => ['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Station wagon', 'Furgón', 'Coupé', 'Minivan'],
+    transmision: () => ['Manual', 'Automática'], combustible: () => ['Bencina', 'Diésel', 'Híbrido', 'Eléctrico'],
+  },
+  prop: {
+    tipo: () => ['Departamento', 'Casa', 'Oficina', 'Local comercial', 'Terreno', 'Parcela', 'Bodega', 'Estacionamiento'],
+    comuna: () => ['Providencia', 'Las Condes', 'Ñuñoa', 'Santiago', 'Vitacura', 'Lo Barnechea', 'La Reina', 'Macul', 'Peñalolén', 'La Florida', 'Maipú', 'Puente Alto', 'San Miguel', 'Estación Central', 'Independencia', 'Recoleta', 'Huechuraba', 'Quilicura', 'Colina', 'Chicureo', 'San Bernardo', 'Viña del Mar', 'Valparaíso', 'Concepción', 'La Serena', 'Antofagasta', 'Temuco', 'Rancagua', 'Puerto Montt'],
+    dorm: () => ['1', '2', '3', '4', '5'], banos: () => ['1', '2', '3', '4'],
+  },
+  tienda: {
+    categoria: () => ['Calzado', 'Ropa', 'Accesorios', 'Electrónica', 'Hogar', 'Belleza', 'Deportes', 'Juguetes', 'Librería', 'Alimentos'],
+    variante: () => ['XS', 'S', 'M', 'L', 'XL', '36', '38', '40', '42', 'Única'],
+  },
+};
+// lo que ya usaste en tu stock aparece primero
+function opcionesDe(w, k) {
+  if (['km', 'm2c', 'm2t', 'direccion'].includes(k)) return []; // cada uno es distinto: no sirve sugerir
+  const usadas = [...new Set(itemsOf(w).map(i => i.specs && i.specs[k]).filter(v => v != null && v !== '—' && v !== '').map(String))];
+  const base = (QUICK[w] && QUICK[w][k]) ? QUICK[w][k]() : [];
+  const out = [...new Set([...usadas.filter(v => k !== 'modelo' || base.includes(v) || !base.length), ...base])];
+  if (k === 'anio') return out.filter(v => /^\d{4}$/.test(v)).sort((a, b) => b - a);
+  if (['dorm', 'banos'].includes(k)) return out.filter(v => /^\d+$/.test(v) && +v > 0).sort((a, b) => a - b);
+  return out;
+}
+function campoItem(w, k, l, t, v) {
+  if (k === 'operacion') return `<label class="field"><span>${l}</span><select data-k="${k}" class="ni-f">${['Venta', 'Arriendo'].map(o => `<option ${v === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`;
+  const ops = opcionesDe(w, k), num = t === 'number';
+  const input = `<input data-k="${k}" ${num ? 'inputmode="numeric" pattern="[0-9]*"' : ''} type="${num ? 'text' : 'text'}" class="ni-f" value="${clean(v)}" ${ops.length ? `list="dl-${k}"` : ''} autocomplete="off" placeholder="${ops.length ? 'Toca una opción o escribe' : ''}">`;
+  if (!ops.length) return `<label class="field" ${num ? '' : 'style="grid-column:span 2"'}><span>${l}</span>${input}</label>`;
+  return `<div style="grid-column:span 2"><label class="field"><span>${l}</span>${input}</label><datalist id="dl-${k}">${ops.map(o => `<option value="${clean(o)}">`).join('')}</datalist>
+    <div class="qchips" data-k="${k}">${chipsHtml(k, ops, v)}</div></div>`;
+}
+const chipsHtml = (k, ops, v) => ops.slice(0, k === 'comuna' || k === 'marca' ? 12 : 10).map(o => `<button type="button" class="opt ${String(v) === o ? 'on' : ''}" data-act="qFill" data-k="${k}" data-v="${clean(o)}">${clean(o)}</button>`).join('');
+// el nombre del auto se arma solo con marca, modelo y año (mientras no lo escribas tú)
+function nombreAuto() {
+  const n = $('#ni-n'); if (!n || n.dataset.manual === '1' || W().key !== 'auto') return;
+  const g = k => ($('.ni-f[data-k=' + k + ']') || {}).value || ''; n.value = [g('marca'), g('modelo'), g('anio')].map(s => s.trim()).filter(Boolean).join(' ');
+}
+ACT.qFill = d => {
+  const i = $('.ni-f[data-k=' + d.k + ']'); if (!i) return; i.value = d.v;
+  $$('.qchips[data-k=' + d.k + '] .opt').forEach(b => b.classList.toggle('on', b.dataset.v === d.v));
+  if (d.k === 'marca') { i.value = d.v; const m = $('.ni-f[data-k=modelo]'); if (m) { m.value = ''; refrescarModelos(); } }
+  nombreAuto();
+};
+function refrescarModelos() {
+  const ops = opcionesDe('auto', 'modelo'), q = $('.qchips[data-k=modelo]'), dl = $('#dl-modelo');
+  if (q) q.innerHTML = chipsHtml('modelo', ops, ''); if (dl) dl.innerHTML = ops.map(o => `<option value="${clean(o)}">`).join('');
+}
+ACT.niLive = (d, f, e) => {
+  const t = e && e.target; if (!t) return;
+  if (t.id === 'ni-n') { t.dataset.manual = t.value.trim() ? '1' : '0'; return; }
+  if (t.classList.contains('ni-f')) {
+    $$('.qchips[data-k=' + t.dataset.k + '] .opt').forEach(b => b.classList.toggle('on', b.dataset.v === t.value));
+    if (t.dataset.k === 'marca') refrescarModelos();
+    nombreAuto();
+  }
+};
 function openNuevoItem(it) {
   const w = W(), e = it || null; editingId = e ? e.id : null;
   const val = (v, money) => v == null || v === '—' ? '' : money ? fmt(v) : v;
   const specV = k => e ? val(e.specs[k]) : '';
-  openSheet(e ? `Editar ${w.itemOne.toLowerCase()}` : `Ingresar ${w.itemOne.toLowerCase()}`, `<div style="display:flex;flex-direction:column;gap:14px">
-    <label class="field"><span>Nombre</span><input id="ni-n" placeholder="${w.nombrePh}" value="${e ? e.nombre : ''}"></label>
-    <div class="grid2">${w.campos.map(([k, l, t]) => `<label class="field" style="${t === 'number' || w.campos.length < 4 ? '' : 'grid-column:span 2'}"><span>${l}</span>${k === 'operacion' ? `<select data-k="${k}" class="ni-f">${['Venta', 'Arriendo'].map(o => `<option ${specV(k) === o ? 'selected' : ''}>${o}</option>`).join('')}</select>` : `<input data-k="${k}" type="${t}" class="ni-f" value="${specV(k)}">`}</label>`).join('')}</div>
+  openSheet(e ? `Editar ${w.itemOne.toLowerCase()}` : `Ingresar ${w.itemOne.toLowerCase()}`, `<div style="display:flex;flex-direction:column;gap:14px" data-live="niLive">
+    <label class="field"><span>Nombre</span><input id="ni-n" placeholder="${w.key === 'auto' ? 'Se arma con marca, modelo y año' : w.nombrePh}" value="${e ? e.nombre : ''}" data-manual="${e ? '1' : '0'}" autocomplete="off"></label>
+    <div class="grid2">${w.campos.map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
     <label class="field"><span>${w.idLabel}</span><input id="ni-s" placeholder="${w.key === 'auto' ? 'BKTS·41' : w.key === 'prop' ? '004-112' : 'NK-AM-42'}" style="text-transform:uppercase" value="${e ? val(e.sku) : ''}"></label>
     <div class="grid2"><label class="field"><span>${w.key === 'prop' ? 'Precio / arriendo' : w.key === 'auto' ? 'Precio de venta estimado' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.precio, 1) : ''}"></label>
     ${w.key === 'prop' ? `<label class="field"><span>Mandato hasta</span><input id="ni-md" type="date" value="${e ? e.mandato : addDays(TODAY, 180)}"></label>` : isVend() ? '' : `<label class="field"><span>${w.key === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="ni-c" data-money inputmode="numeric" placeholder="$0" value="${e ? val(w.key === 'tienda' ? e.costoU : e.costo, 1) : ''}"></label>`}</div>
@@ -335,7 +405,8 @@ function openNuevoItem(it) {
 }
 ACT.saveItem = () => {
   const w = W(), nombre = $('#ni-n').value.trim(); if (!nombre) { toast('Falta el nombre', 'warn'); return; }
-  const specs = {}; $$('.ni-f').forEach(i => specs[i.dataset.k] = i.type === 'number' ? (i.value === '' ? '—' : +i.value) : (i.value.trim() || '—'));
+  const NUMS = w.campos.filter(c => c[2] === 'number').map(c => c[0]);
+  const specs = {}; $$('.ni-f').forEach(i => { const v = i.value.trim(); specs[i.dataset.k] = NUMS.includes(i.dataset.k) ? (v === '' || isNaN(+v.replace(/\./g, '')) ? '—' : +v.replace(/\./g, '')) : (v || '—'); });
   const ex0 = editingId ? getItem(editingId) : null;
   const sku = ($('#ni-s').value || '').trim().toUpperCase() || '—', precio = money($('#ni-p').value), costo = $('#ni-c') ? money($('#ni-c').value) : ex0 ? (w.key === 'tienda' ? ex0.costoU : ex0.costo) || 0 : 0;
   if (!precio) { toast(w.key === 'prop' ? 'Falta el precio' : 'Falta el precio de venta', 'warn'); return; }
