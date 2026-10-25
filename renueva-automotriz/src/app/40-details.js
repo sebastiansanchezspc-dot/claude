@@ -350,61 +350,96 @@ function opcionesDe(w, k) {
   return out;
 }
 function campoItem(w, k, l, t, v) {
-  if (k === 'operacion') return `<label class="field"><span>${l}</span><select data-k="${k}" class="ni-f">${['Venta', 'Arriendo'].map(o => `<option ${v === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`;
+  if (k === 'operacion') return `<div class="field"><span>${l}</span><div class="qchips wrap">${['Venta', 'Arriendo'].map(o => `<button type="button" class="opt ${(v || 'Venta') === o ? 'on' : ''}" data-act="qFill" data-k="${k}" data-v="${o}">${o}</button>`).join('')}</div><input type="hidden" data-k="${k}" class="ni-f" value="${v || 'Venta'}"></div>`;
   const ops = opcionesDe(w, k), num = t === 'number';
-  const input = `<input data-k="${k}" ${num ? 'inputmode="numeric" pattern="[0-9]*"' : ''} type="${num ? 'text' : 'text'}" class="ni-f" value="${clean(v)}" ${ops.length ? `list="dl-${k}"` : ''} autocomplete="off" placeholder="${ops.length ? 'Toca una opción o escribe' : ''}">`;
-  if (!ops.length) return `<label class="field" ${num ? '' : 'style="grid-column:span 2"'}><span>${l}</span>${input}</label>`;
-  return `<div style="grid-column:span 2"><label class="field"><span>${l}</span>${input}</label><datalist id="dl-${k}">${ops.map(o => `<option value="${clean(o)}">`).join('')}</datalist>
-    <div class="qchips" data-k="${k}">${chipsHtml(k, ops, v)}</div></div>`;
+  const attrs = `data-k="${k}" ${num ? 'inputmode="numeric" pattern="[0-9]*"' : ''} type="text" class="ni-f" autocomplete="off"`;
+  if (!ops.length) return `<label class="field"><span>${l}</span><input ${attrs} value="${clean(v)}"></label>`;
+  const otra = v !== '' && v != null && !ops.slice(0, nChips(k)).includes(String(v));
+  return `<div class="field fq" style="grid-column:span 2"><span>${l}</span>
+    <div class="qchips" data-k="${k}">${chipsHtml(k, ops, v)}<button type="button" class="opt otra ${otra ? 'on' : ''}" data-act="qOtra" data-k="${k}">${icon('edit', 14)}Otra</button></div>
+    <input ${attrs} value="${clean(v)}" list="dl-${k}" placeholder="Escribe ${l.toLowerCase()}" style="margin-top:8px;${otra ? '' : 'display:none'}"><datalist id="dl-${k}">${ops.map(o => `<option value="${clean(o)}">`).join('')}</datalist></div>`;
 }
-const chipsHtml = (k, ops, v) => ops.slice(0, k === 'comuna' || k === 'marca' ? 12 : 10).map(o => `<button type="button" class="opt ${String(v) === o ? 'on' : ''}" data-act="qFill" data-k="${k}" data-v="${clean(o)}">${clean(o)}</button>`).join('');
+const nChips = k => k === 'comuna' || k === 'marca' ? 12 : 10;
+const chipsHtml = (k, ops, v) => ops.slice(0, nChips(k)).map(o => `<button type="button" class="opt ${String(v) === o ? 'on' : ''}" data-act="qFill" data-k="${k}" data-v="${clean(o)}">${clean(o)}</button>`).join('');
 // el nombre del auto se arma solo con marca, modelo y año (mientras no lo escribas tú)
 function nombreAuto() {
   const n = $('#ni-n'); if (!n || n.dataset.manual === '1' || W().key !== 'auto') return;
   const g = k => ($('.ni-f[data-k=' + k + ']') || {}).value || ''; n.value = [g('marca'), g('modelo'), g('anio')].map(s => s.trim()).filter(Boolean).join(' ');
+  const pv = $('#ni-prev'); if (pv) pv.textContent = n.value || 'Elige marca, modelo y año';
 }
 ACT.qFill = d => {
-  const i = $('.ni-f[data-k=' + d.k + ']'); if (!i) return; i.value = d.v;
-  $$('.qchips[data-k=' + d.k + '] .opt').forEach(b => b.classList.toggle('on', b.dataset.v === d.v));
-  if (d.k === 'marca') { i.value = d.v; const m = $('.ni-f[data-k=modelo]'); if (m) { m.value = ''; refrescarModelos(); } }
+  const i = $('.ni-f[data-k=' + d.k + ']'); if (!i) return;
+  const ya = i.value === d.v && i.type !== 'hidden'; i.value = ya ? '' : d.v;   // tocar de nuevo la quita
+  if (i.type !== 'hidden') i.style.display = 'none';
+  $$('[data-act=qFill][data-k=' + d.k + '],[data-act=qOtra][data-k=' + d.k + ']').forEach(b => b.classList.toggle('on', !ya && b.dataset.v === d.v));
+  if (d.k === 'marca') { const m = $('.ni-f[data-k=modelo]'); if (m) { m.value = ''; m.style.display = 'none'; refrescarModelos(); } }
   nombreAuto();
+};
+ACT.qOtra = d => {
+  const i = $('.ni-f[data-k=' + d.k + ']'); if (!i) return; i.style.display = ''; i.value = ''; i.focus();
+  $$('[data-act=qFill][data-k=' + d.k + ']').forEach(b => b.classList.remove('on')); $('[data-act=qOtra][data-k=' + d.k + ']').classList.add('on'); nombreAuto();
 };
 function refrescarModelos() {
   const ops = opcionesDe('auto', 'modelo'), q = $('.qchips[data-k=modelo]'), dl = $('#dl-modelo');
-  if (q) q.innerHTML = chipsHtml('modelo', ops, ''); if (dl) dl.innerHTML = ops.map(o => `<option value="${clean(o)}">`).join('');
+  if (q) q.innerHTML = chipsHtml('modelo', ops, '') + `<button type="button" class="opt otra" data-act="qOtra" data-k="modelo">${icon('edit', 14)}Otra</button>`; if (dl) dl.innerHTML = ops.map(o => `<option value="${clean(o)}">`).join('');
 }
 ACT.niLive = (d, f, e) => {
   const t = e && e.target; if (!t) return;
-  if (t.id === 'ni-n') { t.dataset.manual = t.value.trim() ? '1' : '0'; return; }
+  if (t.id === 'ni-n') { t.dataset.manual = t.value.trim() ? '1' : '0'; const pv = $('#ni-prev'); if (pv) pv.textContent = t.value || 'Elige marca, modelo y año'; return; }
   if (t.classList.contains('ni-f')) {
-    $$('.qchips[data-k=' + t.dataset.k + '] .opt').forEach(b => b.classList.toggle('on', b.dataset.v === t.value));
+    $$('[data-act=qFill][data-k=' + t.dataset.k + ']').forEach(b => b.classList.remove('on'));
     if (t.dataset.k === 'marca') refrescarModelos();
     nombreAuto();
   }
 };
+const PRINCIPALES = { auto: ['marca', 'modelo', 'anio'], prop: ['operacion', 'tipo', 'comuna', 'dorm', 'banos'], tienda: ['marca', 'categoria', 'variante'] };
+let nuevasFotos = [];
 function openNuevoItem(it) {
-  const w = W(), e = it || null; editingId = e ? e.id : null;
+  const w = W(), e = it || null; editingId = e ? e.id : null; nuevasFotos = [];
   const val = (v, money) => v == null || v === '—' ? '' : money ? fmt(v) : v;
   const specV = k => e ? val(e.specs[k]) : '';
-  openSheet(e ? `Editar ${w.itemOne.toLowerCase()}` : `Ingresar ${w.itemOne.toLowerCase()}`, `<div style="display:flex;flex-direction:column;gap:14px" data-live="niLive">
-    <label class="field"><span>Nombre</span><input id="ni-n" placeholder="${w.key === 'auto' ? 'Se arma con marca, modelo y año' : w.nombrePh}" value="${e ? e.nombre : ''}" data-manual="${e ? '1' : '0'}" autocomplete="off"></label>
-    <div class="grid2">${w.campos.map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
-    <label class="field"><span>${w.idLabel}</span><input id="ni-s" placeholder="${w.key === 'auto' ? 'BKTS·41' : w.key === 'prop' ? '004-112' : 'NK-AM-42'}" style="text-transform:uppercase" value="${e ? val(e.sku) : ''}"></label>
-    <div class="grid2"><label class="field"><span>${w.key === 'prop' ? 'Precio / arriendo' : w.key === 'auto' ? 'Precio de venta estimado' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.precio, 1) : ''}"></label>
-    ${w.key === 'prop' ? `<label class="field"><span>Mandato hasta</span><input id="ni-md" type="date" value="${e ? e.mandato : addDays(TODAY, 180)}"></label>` : isVend() ? '' : `<label class="field"><span>${w.key === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="ni-c" data-money inputmode="numeric" placeholder="$0" value="${e ? val(w.key === 'tienda' ? e.costoU : e.costo, 1) : ''}"></label>`}</div>
-    ${w.key === 'auto' && !isVend() ? `<div class="grid2"><label class="field"><span>Reacondicionamiento</span><input id="ni-r" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.recon, 1) : ''}"></label><label class="field"><span>Precio de mercado</span><input id="ni-mk" data-money inputmode="numeric" placeholder="Opcional" value="${e && e.mercado ? fmt(e.mercado) : ''}"></label></div>
-    <p style="font-size:12px;color:var(--fg3);margin-top:-6px"><b>Precio de venta estimado:</b> al que lo publicas; se propone solo al registrar la venta y el vendedor lo ve como referencia. <b>Precio de mercado:</b> lo escribes tú mirando autos parecidos en Chileautos o Yapo; la app no lo calcula, solo lo usa para avisarte si tu precio está alto.</p>` : ''}
-    ${w.key === 'auto' ? `
-<div class="grid2"><label class="field"><span>Revisión técnica vence</span><input id="ni-rev" type="date" value="${e ? e.rev : ''}"></label><label class="field"><span>SOAP vence</span><input id="ni-soap" type="date" value="${e ? e.soap : proxMarzo()}"></label></div>
-    <div class="grid2"><label class="field"><span>Permiso de circulación</span><select id="ni-pc">${[[0, 'Pendiente'], [1, '1ª cuota pagada'], [2, 'Al día (2 cuotas)']].map(([n, t]) => `<option value="${n}" ${e && e.permiso.pagadas === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label class="field"><span>Proveedor</span><input id="ni-pv" placeholder="Particular, automotora…" value="${e ? val(e.prov.n) : ''}"></label></div>` : ''}
-    ${w.key === 'tienda' ? `<div class="grid2"><label class="field"><span>${e ? 'Stock actual' : 'Cantidad'}</span><input id="ni-q" type="number" value="${e ? e.stock : 10}"></label><label class="field"><span>Stock mínimo</span><input id="ni-m" type="number" value="${e ? e.minimo : 5}"></label></div><label class="field"><span>Proveedor</span><input id="ni-pv" value="${e ? val(e.prov.n) : ''}"></label>` : ''}
-    ${w.key === 'prop' ? `<label class="field"><span>Propietario</span><input id="ni-du" value="${e ? val(e.dueno) : ''}"></label>` : ''}
-    ${e && w.key !== 'tienda' ? `<label class="field"><span>Estado</span><select id="ni-e">${(w.key === 'auto' ? [['disponible', 'Disponible'], ['reservado', 'Reservado'], ['taller', 'En taller'], ['vendido', 'Vendido']] : [['disponible', 'Disponible'], ['reservado', 'En promesa'], ['vendido', 'Vendida'], ['arrendado', 'Arrendada']]).map(([k, t]) => `<option value="${k}" ${e.estado === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
+  const princ = w.campos.filter(c => PRINCIPALES[w.key].includes(c[0])), resto = w.campos.filter(c => !PRINCIPALES[w.key].includes(c[0]));
+  const nombre = `<label class="field"><span>${w.key === 'auto' ? 'Nombre (se arma solo)' : 'Nombre'}</span><input id="ni-n" placeholder="${w.key === 'auto' ? 'Marca modelo año' : w.nombrePh}" value="${e ? e.nombre : ''}" data-manual="${e ? '1' : '0'}" autocomplete="off"></label>`;
+  const costo = w.key === 'prop' ? `<label class="field"><span>Mandato hasta</span><input id="ni-md" type="date" value="${e ? e.mandato : addDays(TODAY, 180)}"></label>` : isVend() ? '' : `<label class="field"><span>${w.key === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="ni-c" data-money inputmode="numeric" placeholder="$0" value="${e ? val(w.key === 'tienda' ? e.costoU : e.costo, 1) : ''}"></label>`;
+  const papeles = w.key === 'auto' ? `<div class="grid2"><label class="field"><span>Revisión técnica vence</span><input id="ni-rev" type="date" value="${e ? e.rev : ''}"></label><label class="field"><span>SOAP vence</span><input id="ni-soap" type="date" value="${e ? e.soap : proxMarzo()}"></label></div>
+    <div class="grid2"><label class="field"><span>Permiso de circulación</span><select id="ni-pc">${[[0, 'Pendiente'], [1, '1ª cuota pagada'], [2, 'Al día (2 cuotas)']].map(([n, t]) => `<option value="${n}" ${e && e.permiso.pagadas === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label class="field"><span>Proveedor</span><input id="ni-pv" placeholder="Particular, automotora…" value="${e ? val(e.prov.n) : ''}"></label></div>` : '';
+  const costosAuto = w.key === 'auto' && !isVend() ? `<div class="grid2"><label class="field"><span>Reacondicionamiento</span><input id="ni-r" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.recon, 1) : ''}"></label><label class="field"><span>Precio de mercado</span><input id="ni-mk" data-money inputmode="numeric" placeholder="Opcional" value="${e && e.mercado ? fmt(e.mercado) : ''}"></label></div>
+    <p style="font-size:12px;color:var(--fg3);margin-top:-6px">El precio de mercado lo escribes tú mirando autos parecidos en Chileautos o Yapo; la app lo usa para avisarte si tu precio está alto.</p>` : '';
+  const masTxt = { auto: 'Color, tipo, transmisión, papeles, reacondicionamiento', prop: 'Dirección, metros, propietario', tienda: 'Stock, proveedor' }[w.key];
+  openSheet(e ? `Editar ${w.itemOne.toLowerCase()}` : `Ingresar ${w.itemOne.toLowerCase()}`, `<div style="display:flex;flex-direction:column;gap:16px" data-live="niLive">
+    ${e ? '' : `<div class="nfotos" id="ni-fotos"><label class="addshot mini">${icon('camera')}<span>Fotos</span><input type="file" accept="image/*" multiple hidden data-change="niFotos"></label></div>`}
+    ${w.key === 'auto' ? `<p class="ni-prev" id="ni-prev">${e ? clean(e.nombre) : 'Elige marca, modelo y año'}</p>` : nombre}
+    <div class="grid2">${princ.map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
+    <div class="grid2"><label class="field"><span>${w.idLabel}</span><input id="ni-s" placeholder="${w.key === 'auto' ? 'BKTS·41' : w.key === 'prop' ? '004-112' : 'NK-AM-42'}" style="text-transform:uppercase" value="${e ? val(e.sku) : ''}" autocomplete="off"></label>
+    ${w.key === 'auto' ? `<label class="field"><span>Kilometraje</span><input data-k="km" inputmode="numeric" pattern="[0-9]*" type="text" class="ni-f" autocomplete="off" placeholder="0" value="${specV('km')}"></label>` : ''}</div>
+    <div class="grid2"><label class="field"><span>${w.key === 'prop' ? 'Precio / arriendo' : w.key === 'auto' ? 'Precio de venta' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.precio, 1) : ''}"></label>${costo}</div>
+    ${w.key === 'tienda' ? `<div class="grid2"><label class="field"><span>${e ? 'Stock actual' : 'Cantidad'}</span><input id="ni-q" type="number" value="${e ? e.stock : 10}"></label><label class="field"><span>Stock mínimo</span><input id="ni-m" type="number" value="${e ? e.minimo : 5}"></label></div>` : ''}
+    <details class="mas"><summary><span><b>Más detalles</b><br><small>${masTxt}</small></span>${icon('chevD', 18)}</summary><div class="mas-body">
+      <div class="grid2">${resto.filter(c => c[0] !== 'km').map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
+      ${costosAuto}${papeles}
+      ${w.key === 'tienda' ? `<label class="field"><span>Proveedor</span><input id="ni-pv" value="${e ? val(e.prov.n) : ''}"></label>` : ''}
+      ${w.key === 'prop' ? `<label class="field"><span>Propietario</span><input id="ni-du" value="${e ? val(e.dueno) : ''}"></label>` : ''}
+      ${w.key === 'auto' ? nombre : ''}
+      ${e && w.key !== 'tienda' ? `<label class="field"><span>Estado</span><select id="ni-e">${(w.key === 'auto' ? [['disponible', 'Disponible'], ['reservado', 'Reservado'], ['taller', 'En taller'], ['vendido', 'Vendido']] : [['disponible', 'Disponible'], ['reservado', 'En promesa'], ['vendido', 'Vendida'], ['arrendado', 'Arrendada']]).map(([k, t]) => `<option value="${k}" ${e.estado === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
+    </div></details>
     <button class="btn primary" data-act="saveItem">${icon('check')}${e ? 'Guardar cambios' : 'Ingresar a ' + w.tabs.stock.toLowerCase()}</button>
     ${e ? `<button class="btn danger" data-act="delItem" data-id="${e.id}">${icon('trash')}Eliminar</button>` : ''}</div>`);
 }
+// fotos al ingresar: se ven al tiro y se suben al guardar
+ACT.niFotos = async (d, el) => {
+  const files = [...el.files].slice(0, 8 - nuevasFotos.length); el.value = '';
+  for (const f of files) { try { nuevasFotos.push(await readImage(f)); } catch (e) { } }
+  pintarNuevasFotos();
+};
+ACT.niFotoRm = d => { nuevasFotos.splice(+d.i, 1); pintarNuevasFotos(); };
+function pintarNuevasFotos() {
+  const c = $('#ni-fotos'); if (!c) return;
+  $$('.nshot', c).forEach(x => x.remove());
+  c.insertAdjacentHTML('beforeend', nuevasFotos.map((f, i) => `<div class="nshot"><img src="${f}" alt=""><button type="button" data-act="niFotoRm" data-i="${i}" aria-label="Quitar foto">${icon('close', 12)}</button></div>`).join(''));
+}
+
 ACT.saveItem = () => {
-  const w = W(), nombre = $('#ni-n').value.trim(); if (!nombre) { toast('Falta el nombre', 'warn'); return; }
+  const w = W(), nombre = $('#ni-n').value.trim(); if (!nombre) { toast(w.key === 'auto' ? 'Elige la marca y el modelo' : 'Falta el nombre', 'warn'); return; }
   const NUMS = w.campos.filter(c => c[2] === 'number').map(c => c[0]);
   const specs = {}; $$('.ni-f').forEach(i => { const v = i.value.trim(); specs[i.dataset.k] = NUMS.includes(i.dataset.k) ? (v === '' || isNaN(+v.replace(/\./g, '')) ? '—' : +v.replace(/\./g, '')) : (v || '—'); });
   const ex0 = editingId ? getItem(editingId) : null;
@@ -430,7 +465,16 @@ ACT.saveItem = () => {
   if (ex) STOCK[STOCK.indexOf(ex)] = it; else STOCK.push(it);
   closeSheet(); renderAll(); animateIn($('#scr-panel'));
   if (ex) { toast('Cambios guardados'); if (topPush()) { const cta = $('.cta-bar', topPush()); refreshItem(it.id); if (cta) cta.innerHTML = itemCta(it); } }
-  else { go('stock'); toast(`${w.itemOne} ingresado`); setTimeout(() => openItem(id), 450); }
+  else {
+    go('stock'); toast(`${w.itemOne} ingresado`); setTimeout(() => openItem(id), 450);
+    // las fotos elegidas al ingresar se suben ahora
+    const fotos = nuevasFotos.slice(); nuevasFotos = [];
+    if (fotos.length) (async () => {
+      try { for (const f of fotos) it.fotos.push(await storeImage(f)); toast(`${fotos.length} foto${fotos.length > 1 ? 's' : ''} agregada${fotos.length > 1 ? 's' : ''}`, 'camera'); }
+      catch (e) { toast('No se pudieron subir algunas fotos. Agrégalas desde la ficha.', 'warn'); }
+      saved(); renderStock(); if (topPush()) refreshItem(it.id);
+    })();
+  }
 };
 ACT.delItem = d => {
   const it = getItem(d.id); if (!it) return;
