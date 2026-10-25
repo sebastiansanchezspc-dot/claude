@@ -178,8 +178,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('mess
 RV.onStatus = (s, msg) => {
   let el = $('#savechip');
   if (!el) { el = document.createElement('div'); el.id = 'savechip'; el.className = 'savechip'; $('#shell').appendChild(el); }
-  el.className = 'savechip ' + s; el.textContent = s === 'guardando' ? 'Guardando…' : s === 'guardado' ? 'Guardado' : s === 'error' ? (msg || 'Sin conexión') : '';
-  clearTimeout(el._t); if (s === 'guardado') el._t = setTimeout(() => { el.className = 'savechip'; }, 1400);
+  // el guardado es automático: solo se avisa cuando algo NO se guardó (queda visible hasta que se resuelve)
+  el.className = 'savechip' + (s === 'error' ? ' error' : ''); el.textContent = s === 'error' ? (navigator.onLine === false ? 'Sin conexión' : 'Sin guardar') : '';
   if (s === 'error' && msg) toast(msg, 'warn');
 };
 
