@@ -410,3 +410,67 @@
   .yb.on>span:last-child{color:var(--accent);}
   .ybv{font:600 8.5px/1 var(--mono);color:var(--fg2);white-space:nowrap;letter-spacing:-.02em;}
   .yb[disabled]{opacity:.35;}
+
+  /* =====================================================================
+     COMPUTADOR (1024 px o más): menú lateral, contenido ancho, fichas en
+     panel a la derecha y formularios en ventana centrada.
+     En el celular nada de esto aplica.
+     ===================================================================== */
+  .dock-brand{display:none;}
+  .mod{display:flex;flex-direction:column;gap:14px;}
+  .mod:empty{display:none;}
+  @media (min-width:1024px){
+    body{background:var(--bg);align-items:stretch;}
+    .shell{max-width:none;height:100%;border-radius:0;border:0;box-shadow:none;}
+    .shell::after{display:none;}
+
+    /* lobby y entrada */
+    .lobby{padding:48px max(56px,calc((100% - 1080px) / 2)) 32px;}
+    .lobby h1{font-size:46px;margin-top:56px;}
+    .lobby .sub{font-size:15px;max-width:52ch;}
+    .worlds{flex-direction:row;flex:none;gap:18px;margin-top:36px;}
+    .worlds .wcard{flex:1;min-height:300px;}
+    .gform{max-width:420px;}
+    .lobby-foot{margin-top:auto;padding-top:40px;}
+
+    /* menú lateral */
+    .dock{left:16px;right:auto;top:16px;bottom:16px;width:228px;height:auto;flex-direction:column;justify-content:flex-start;gap:4px;padding:14px 10px;border-radius:28px;}
+    .dock.hide{transform:none;opacity:1;pointer-events:auto;}
+    .dock-brand{display:flex;align-items:center;gap:10px;padding:6px 12px 20px;color:var(--fg);font:800 20px/1 var(--display);letter-spacing:-.02em;}
+    .dock button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;height:48px;padding:0 16px;font:600 14px/1 var(--body);border-radius:22px;}
+    .dock button:hover{color:var(--fg);}
+    .dock button.active{color:var(--accent);}
+    .dock .pill{left:10px;right:10px;top:0;bottom:auto;border-radius:22px;}
+
+    /* pantallas: contenido centrado al lado del menú */
+    .screen{left:260px;padding-bottom:48px;transition:right .5s var(--spring),opacity .28s var(--ease),transform .45s var(--spring);}
+    /* con una ficha abierta, la lista se angosta y queda a la vista al lado */
+
+    .screen>*{max-width:1120px;margin-left:auto;margin-right:auto;}
+    .px{padding-left:32px;padding-right:32px;}
+    .hscroll{margin:0 -32px;padding:2px 32px;}
+    .hd-large h1{font-size:40px;}
+    /* el panel en dos columnas */
+    #scr-panel .body{display:block;columns:2;column-gap:22px;}
+    #scr-panel .body>*{break-inside:avoid;margin-bottom:22px;}
+    #scr-panel .body>.mesbar,#scr-panel .body>:first-child{column-span:all;}
+
+    /* fichas: panel a la derecha, la lista sigue a la vista */
+    .push{left:auto;width:min(600px,48vw);border-left:1px solid var(--line2);}
+    .push.under{transform:none;}
+    .push .px{padding-left:24px;padding-right:24px;}
+    .pnav{padding:16px 20px 8px;}
+
+    /* formularios: ventana centrada */
+    .sheet{left:50%;right:auto;top:50%;bottom:auto;width:min(560px,92vw);max-height:86%;border-radius:28px;border-bottom:1px solid var(--line2);transform:translate(-50%,-44%) scale(.97);opacity:0;transition:transform .45s var(--spring),opacity .25s var(--ease);}
+    .sbackdrop.open .sheet{transform:translate(-50%,-50%);opacity:1;}
+    .sheet .grab{display:none;}
+    .sbody{padding-bottom:24px;}
+
+    /* avisos arriba a la derecha */
+    .notif{left:auto;right:20px;width:380px;}
+    #toast-wrap{left:260px;}
+  }
+  @media (min-width:1280px){
+    #app:has(#push-layer .push.in) .screen{right:min(600px,44vw);}
+  }

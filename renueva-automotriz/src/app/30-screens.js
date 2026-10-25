@@ -82,13 +82,15 @@ function sec(label, count = '', more = '') { return `<div class="sec"><span clas
 const TABS_ALL = () => [{ k: 'panel', l: 'Panel', i: 'gauge' }, { k: 'stock', l: W().tabs.stock, i: W().icon }, { k: 'ventas', l: W().tabs.ventas, i: 'dollar' }, { k: 'caja', l: 'Caja', i: 'calc' }, { k: 'equipo', l: 'Equipo', i: 'people' }];
 const TABS = () => isVend() ? TABS_ALL().filter(t => ['panel', 'stock', 'ventas'].includes(t.k)) : TABS_ALL();
 function renderDock() {
-  $('#dock').innerHTML = `<span class="pill" id="pill"></span>` + TABS().map(t => `<button data-act="tab" data-tab="${t.k}" class="${state.tab === t.k ? 'active' : ''}" aria-label="${t.l}">${icon(t.i, 22)}<span>${t.l}</span></button>`).join('');
+  $('#dock').innerHTML = `<div class="dock-brand">${logo(26, 'var(--fg)')}renueva</div><span class="pill" id="pill"></span>` + TABS().map(t => `<button data-act="tab" data-tab="${t.k}" class="${state.tab === t.k ? 'active' : ''}" aria-label="${t.l}">${icon(t.i, 22)}<span>${t.l}</span></button>`).join('');
   movePill(true);
 }
 function movePill(instant) {
   const b = $('#dock button.active'), p = $('#pill'); if (!b || !p) return;
   if (instant) p.style.transition = 'none';
-  p.style.width = b.offsetWidth + 'px'; p.style.transform = `translateX(${b.offsetLeft - 5}px)`;
+  // en el computador el menú es vertical (a la izquierda)
+  if (getComputedStyle($('#dock')).flexDirection === 'column') { p.style.width = ''; p.style.height = b.offsetHeight + 'px'; p.style.transform = `translateY(${b.offsetTop}px)`; }
+  else { p.style.height = ''; p.style.width = b.offsetWidth + 'px'; p.style.transform = `translateX(${b.offsetLeft - 5}px)`; }
   if (instant) { void p.offsetWidth; p.style.transition = ''; }
 }
 function go(tab, instant) {
@@ -251,7 +253,7 @@ function renderPanel() {
     : w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
     : w.key === 'prop' ? [heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
       : [heroHtml, qaHtml, atencionHtml, pulsoHtml, saludHtml, accionHtml, equipoHtml];
-  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`) .replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => m(w)).join('')}</div>`;
+  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`) .replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
 }
 ACT.alert = d => { const a = alertsFor(state.world)[+d.i]; if (a) runAlert(a); };
 function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'fincom') openFinCom(); else if (a.act === 'ventas') { while (pushes.length) popScreen(); go('ventas'); } else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
