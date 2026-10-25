@@ -348,7 +348,7 @@
   .tear{position:relative;height:0;border-top:2px dashed var(--line2);margin:0 -18px;}
   .tear::before,.tear::after{content:"";position:absolute;top:-13px;width:24px;height:24px;border-radius:99px;background:var(--bg);border:1px solid var(--line2);}
   .tear::before{left:-13px;clip-path:inset(0 0 0 50%);} .tear::after{right:-13px;clip-path:inset(0 50% 0 0);}
-  .pay{display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;align-items:center;}
+  .pay{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 40px;gap:8px;align-items:center;}
   .pay .x{height:46px;width:40px;border-radius:12px;background:var(--s2);border:none;color:var(--fg3);display:flex;align-items:center;justify-content:center;} .pay .x svg{width:16px;height:16px;}
   .cuadra{display:flex;justify-content:space-between;align-items:center;border-radius:var(--r-md);padding:12px 14px;font:600 12.5px/1 var(--body);transition:background .3s,color .3s;}
   .cuadra.ok{background:var(--good-soft);color:var(--good);} .cuadra.no{background:var(--warn-soft);color:var(--warn);}
@@ -489,3 +489,6 @@
   @media (min-width:1280px){
     #app:has(#push-layer .push.in) .screen{right:min(600px,44vw);}
   }
+
+  /* iPhone: con letra menor a 16 px Safari acerca la pantalla al tocar un campo y no vuelve sola */
+  @media (hover:none){ input,select,textarea{font-size:16px;} .pay select{padding-right:30px;background-position:right 10px center;} }
