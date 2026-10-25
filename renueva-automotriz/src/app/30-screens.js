@@ -102,10 +102,9 @@ function go(tab, instant, animar) {
   // al tocar la pestaña la animación sale una sola vez; al refrescarse los datos solos, todo aparece en su valor
   const s = $('#scr-' + tab); if (!s) return;
   if (!animar) { sinAnimar(s); return; }
-  // al tocar la pestaña: todas las animaciones de entrada, una sola vez
-  s.classList.add('anima'); clearTimeout(s._anima);
+  // al tocar la pestaña: todas las animaciones de entrada, una sola vez (y después no se toca nada)
   const els = $$('.reveal,.row,.alert,.qa button', s); els.forEach(e => { e.style.animation = 'none'; }); void s.offsetWidth; els.forEach(e => { e.style.animation = ''; });
-  reanimar(s); s._anima = setTimeout(() => s.classList.remove('anima'), 1800);
+  reanimar(s);
 }
 ACT.tab = d => go(d.tab, false, true);
 window.addEventListener('resize', () => movePill(true));
@@ -491,4 +490,4 @@ function openAnio(y) {
 ACT.anioMove = d => openAnio(+d.y);
 ACT.anioPick = d => { closeSheet(); setMes(d.mk); };
 
-function renderAll() { renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); renderDock(); animateIn($('#scr-panel')); }
+function renderAll() { renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); renderDock(); if ($('#app').classList.contains('quieto')) quietas(); else animateIn($('#scr-panel')); }

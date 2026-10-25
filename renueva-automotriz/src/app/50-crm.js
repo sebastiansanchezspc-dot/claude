@@ -16,7 +16,7 @@ const contactoOf = l => CONTACTOS.find(c => c.w === l.w && (c.fono === l.fono ||
 const waText = l => { const it = getItem(l.itemId); return `Hola ${firstName(l.nombre)}, soy ${firstName(l.vend)} de ${W().brand}. Vi que te interesó ${it ? 'el ' + shortName(it.nombre) : 'nuestra oferta'}. ¿Te puedo ayudar con algo?`; };
 function logLead(l, tipo, txt) { l.log.push({ ts: tick(), tipo, txt }); }
 function touchLead(l) { l.ts = nowISO(); if (l.etapa === 'nuevo') { l.etapa = 'contactado'; } }
-const refreshAll = () => { renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); animateIn($('#scr-panel')); };
+const refreshAll = () => { renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); quietas(); };
 
 /* ---------------- hub ---------------- */
 function hubTabs() { return W().key === 'tienda' ? [['contactos', 'Contactos'], ['recordatorios', 'Recordatorios']] : [['consultas', 'Consultas'], ['contactos', 'Contactos'], ['recordatorios', 'Recordatorios']]; }

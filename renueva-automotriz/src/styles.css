@@ -50,7 +50,6 @@
   /* en pantallas táctiles (iPhone) la textura de grano apaga los colores y suaviza los íconos finos */
   /* sin animaciones de relleno: al cambiar de pestaña o al refrescarse los datos todo aparece en su valor */
   .noanim,.noanim *{transition:none!important;}
-  .quieto .screen:not(.anima) :is(.reveal,.row,.alert,.qa button){animation:none!important;}
   @media (hover:none){
     .shell::after{display:none;}
   }
@@ -492,8 +491,6 @@
   /* iPhone: con letra menor a 16 px Safari acerca la pantalla al tocar un campo y no vuelve sola */
   @media (hover:none){
     input,select,textarea{font-size:16px;} .pay select{padding-right:30px;background-position:right 10px center;}
-    /* encabezado sin "sticky": en iOS el encabezado pegado al borde se veía borroso hasta hacer scroll */
-    .hd{position:relative;}
   }
 
   /* formulario para ingresar al stock */
@@ -515,3 +512,12 @@
   details.mas>summary svg{width:18px;height:18px;color:var(--fg3);transition:transform .3s var(--spring);flex:none;}
   details.mas[open]>summary svg{transform:rotate(180deg);}
   .mas-body{display:flex;flex-direction:column;gap:14px;padding:0 16px 16px;}
+
+  /* iOS 26+ dibuja un desenfoque propio sobre la parte de arriba de las apps instaladas en la pantalla de
+     inicio (alcanza el encabezado). Una franja fija pintada en el borde superior evita que lo aplique.
+     Es invisible: el fondo se recorta al texto y no tiene texto. Ver tips.ojapp.app (iOS PWA top blur). */
+  .quita-blur{display:none;}
+  @media (display-mode: standalone){
+    .quita-blur{display:block;position:fixed;top:0;left:0;right:0;height:11px;z-index:2147483647;pointer-events:none;
+      background:var(--bg,#0D0E10);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  }
