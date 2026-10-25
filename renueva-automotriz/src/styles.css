@@ -54,7 +54,7 @@
 
   /* ---------- lobby (elige tu mundo) ---------- */
   .lobby{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;overflow-y:auto;
-    padding:22px max(18px,env(safe-area-inset-right,0px)) 24px max(18px,env(safe-area-inset-left,0px));
+    padding:calc(22px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));
     background:radial-gradient(500px 320px at 50% -10%, rgba(255,255,255,.07), transparent 70%),var(--bg);
     transition:opacity .45s var(--ease),transform .6s var(--spring);}
   .lobby.out{opacity:0;transform:scale(1.04);pointer-events:none;}

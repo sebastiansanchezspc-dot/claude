@@ -170,7 +170,7 @@ function aprobarCard(v, it) {
     <div class="grid2" style="margin-top:14px"><label class="field"><span>Comisión</span><select id="va-ct" data-change="vaCt"><option value="pct" ${ct === 'pct' ? 'selected' : ''}>% porcentaje</option><option value="monto" ${ct === 'monto' ? 'selected' : ''}>$ Monto fijo</option></select></label>
     <label class="field"><span id="va-l">${ct === 'pct' ? 'Valor (%)' : 'Valor (CLP)'}</span><input id="va-cv" inputmode="${ct === 'pct' ? 'decimal' : 'numeric'}" ${ct === 'monto' ? 'data-money' : ''} value="${ct === 'pct' ? cv : fmt(cv)}"></label></div>
     <p style="font-size:12px;color:var(--fg3);margin-top:8px">Comisión base de ${firstName(v.vend)}: ${comTxt(b.t, b.v)}. Puedes ajustarla. Revisa los pagos de abajo antes de aprobar.</p>
-    <label class="field" style="margin-top:12px"><span>Nota para ${firstName(v.vend)} (opcional)</span><textarea id="va-nota" maxlength="300" placeholder="Ej: comisión ajustada por el descuento"></textarea></label>
+    <div style="margin-top:14px"><label class="field"><span>Nota para ${firstName(v.vend)} (opcional)</span><textarea id="va-nota" maxlength="300" placeholder="Ej: comisión ajustada por el descuento"></textarea></label></div>
     <div class="grid2" style="margin-top:14px"><button class="btn ghost" data-act="ventaRechazar" data-id="${v.id}">${icon('close')}Rechazar</button><button class="btn primary" data-act="ventaAprobar" data-id="${v.id}">${icon('check')}Aprobar</button></div></div>`;
 }
 ACT.vaCt = (d, el) => { const i = $('#va-cv'), m = el.value === 'monto'; i.toggleAttribute('data-money', m); i.inputMode = m ? 'numeric' : 'decimal'; i.value = m ? '$0' : '0'; $('#va-l').textContent = m ? 'Valor (CLP)' : 'Valor (%)'; };
