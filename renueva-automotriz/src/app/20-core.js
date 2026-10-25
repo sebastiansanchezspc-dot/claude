@@ -221,11 +221,24 @@ function openSheet(title, html, onReady) {
   grab.addEventListener('pointerup', end); grab.addEventListener('pointercancel', end);
   rAF2(() => { sb.classList.add('open'); onReady && onReady(sh); animateIn(sh); });
 }
-function notify(title, body) {
+// aviso dentro de la app: se va solo, se quita arrastrándolo hacia arriba y al tocarlo abre lo que avisa
+function notify(title, body, onTap) {
   const el = document.createElement('div'); el.className = 'notif'; el.setAttribute('role', 'status');
-  el.innerHTML = `<span class="nicon">${logo(22, 'var(--accent-ink)')}</span><span class="grow"><span class="top"><b>RENUEVA</b><i>ahora</i></span><p class="t">${clean(title)}</p><p class="b">${clean(body)}</p></span>`;
-  $('#shell').appendChild(el); rAF2(() => el.classList.add('in')); setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 700); }, 5200);
-  el.addEventListener('click', () => { el.classList.remove('in'); setTimeout(() => el.remove(), 600); });
+  el.innerHTML = `<span class="nicon">${logo(22, 'var(--accent-ink)')}</span><span class="grow"><span class="top"><b>RENUEVA</b><i>${onTap ? 'toca para abrir' : 'ahora'}</i></span><p class="t">${clean(title)}</p><p class="b">${clean(body)}</p></span>`;
+  $('#shell').appendChild(el); rAF2(() => el.classList.add('in'));
+  let gone = false, y0 = null, dy = 0, t0 = 0;
+  const quitar = () => { if (gone) return; gone = true; el.style.transition = ''; el.style.transform = ''; el.classList.remove('in'); setTimeout(() => el.remove(), 600); };
+  let timer = setTimeout(quitar, 6000);
+  el.addEventListener('pointerdown', e => { y0 = e.clientY; dy = 0; t0 = performance.now(); el.style.transition = 'none'; clearTimeout(timer); el.setPointerCapture(e.pointerId); });
+  el.addEventListener('pointermove', e => { if (y0 === null) return; dy = Math.min(0, e.clientY - y0); el.style.transform = `translateY(${dy}px)`; });
+  const soltar = () => {
+    if (y0 === null) return; y0 = null; const v = -dy / Math.max(1, performance.now() - t0);
+    if (dy < -24 || v > 0.4) { quitar(); return; }                 // arrastrado hacia arriba
+    el.style.transition = ''; el.style.transform = '';
+    if (dy > -6) { quitar(); if (onTap) onTap(); return; }          // fue un toque
+    timer = setTimeout(quitar, 4000);
+  };
+  el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar);
 }
 const pushes = [];
 function pushScreen(title, html, { cta = '', right = '', onReady } = {}) {
@@ -252,7 +265,7 @@ const topPush = () => pushes[pushes.length - 1];
 /* ---------------- delegación de eventos ---------------- */
 const ACT = {};
 // acciones que cambian datos (solo lectura no puede) y las que son solo del administrador
-const WRITE_ACTS = new Set('ventaBorrar crFcp crFcs saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
+const WRITE_ACTS = new Set('recSetTime ventaBorrar crFcp crFcs saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
 const ADMIN_ACTS = new Set('ventaAprobar ventaRechazar ventaRechazarOk vaCt leadVend vDatos catFinCom catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
 function allowAct(name) {
   if (ADMIN_ACTS.has(name) && !isAdmin()) { toast('Solo el administrador puede cambiar esto', 'lock'); return false; }

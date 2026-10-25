@@ -51,7 +51,7 @@ function enterWorld(key, x, y) {
     $('#lobby').classList.add('out'); go('panel', true);
     try { localStorage.setItem('renueva_world', key); } catch (e) { }
     if (PREFS.accent[key]) setAccent(PREFS.accent[key]); else resetAccent();
-    if (window.RV && RV.mode === 'demo' && key === 'auto' && !window._notified) { window._notified = 1; setTimeout(() => notify('Recordatorio vencido', 'Enviar fotos del interior a Daniela Cortés'), 4500); }
+    if (window.RV && RV.mode === 'demo' && key === 'auto' && !window._notified) { window._notified = 1; setTimeout(() => { const r = REMS.find(x => /Daniela Cort/.test(x.titulo)); notify('Recordatorio vencido', 'Enviar fotos del interior a Daniela Cortés', r ? () => abrirRecordatorio(r.id) : null); }, 4500); }
   }, 330);
   setTimeout(() => iris.classList.remove('go'), 900);
 }
@@ -98,7 +98,8 @@ function go(tab, instant) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + tab));
   $$('#dock button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   movePill(instant);
-  const s = $('#scr-' + tab); if (s) { animateIn(s); $$('.reveal', s).forEach(r => { r.style.animation = 'none'; void r.offsetWidth; r.style.animation = ''; }); }
+  // la pantalla ya está dibujada: solo aparece (antes se repetía la animación de cada tarjeta y parecía cargar dos veces)
+  const s = $('#scr-' + tab); if (s) animateIn(s);
 }
 ACT.tab = d => go(d.tab);
 window.addEventListener('resize', () => movePill(true));
