@@ -513,11 +513,17 @@
   details.mas[open]>summary svg{transform:rotate(180deg);}
   .mas-body{display:flex;flex-direction:column;gap:14px;padding:0 16px 16px;}
 
-  /* iOS 26+ dibuja un desenfoque propio sobre la parte de arriba de las apps instaladas en la pantalla de
-     inicio (alcanza el encabezado). Una franja fija pintada en el borde superior evita que lo aplique.
-     Es invisible: el fondo se recorta al texto y no tiene texto. Ver tips.ojapp.app (iOS PWA top blur). */
-  .quita-blur{display:none;}
+  /* iOS 26+ (app instalada en la pantalla de inicio) dibuja su propio desenfoque "Liquid Glass" en una franja
+     de unos 38 pt justo bajo la hora, y no se puede desactivar. Se baja el contenido de arriba para que
+     quede fuera de esa franja (solución confirmada en iPhone por otros desarrolladores). Solo aplica si la
+     página se dibuja bajo la hora (safe-area-inset-top > 0). */
   @media (display-mode: standalone){
-    .quita-blur{display:block;position:fixed;top:0;left:0;right:0;height:11px;z-index:2147483647;pointer-events:none;
-      background:var(--bg,#0D0E10);-webkit-background-clip:text;background-clip:text;color:transparent;}
+    :root{--rampa:min(38px, calc(env(safe-area-inset-top, 0px) * 100));}
+    .hd{padding-top:calc(10px + env(safe-area-inset-top, 0px) + var(--rampa));background:var(--bg);}
+    .hd::before{background:var(--bg);}
+    .pnav{padding-top:calc(10px + env(safe-area-inset-top, 0px) + var(--rampa));}
+    .lobby{padding-top:calc(22px + env(safe-area-inset-top, 0px) + var(--rampa));}
+    .sheet{max-height:calc(100% - env(safe-area-inset-top, 0px) - var(--rampa) - 10px);}
+    .notif{top:calc(10px + env(safe-area-inset-top, 0px) + var(--rampa));}
+    #toast-wrap{top:calc(12px + env(safe-area-inset-top, 0px) + var(--rampa));}
   }
