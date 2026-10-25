@@ -332,6 +332,12 @@ async function removeOrgFiles(org) {
     if (e2 || data.length < 100) return
   }
 }
+// el administrador activa otro mundo incluido en su plan (la base de datos valida el límite)
+async function activarMundo(k) {
+  const ctx = await context(); const mundos = [...new Set([...ctx.org.mundos, k])]
+  const { error } = await sb.rpc('set_mundos', { p_mundos: mundos }); if (error) fail(error)
+  await refreshContext()
+}
 async function cancelPlan() { await billing('cancel'); await refreshContext() }
 async function refreshContext() { const ctx = await context(); if (refs && refs.applyCtx) refs.applyCtx(ctx) }
 async function renameOrg(nombre) { const { error } = await sb.rpc('renombrar_org', { p_nombre: nombre }); if (error) fail(error); await refreshContext() }
@@ -399,7 +405,7 @@ export const RV = {
   init, enter, signIn, signUp, resetPassword, updatePassword, logout, createOrg, acceptInvite, context, pendingInvite,
   dirty, flush, reload, upload, fileUrl,
   loadMembers, invite, updateMember, removeMember,
-  choosePlan, cancelPlan, refreshContext, renameOrg, dailySync, deleteAccount,
+  choosePlan, cancelPlan, activarMundo, refreshContext, renameOrg, dailySync, deleteAccount,
   platformOrgs, platformSet, billingSetup: () => billing('setup-plans'),
   askNotif, systemNotify, pushEstado, pushActivar, pushProbar, pushDesactivar, pushRefrescar,
 }

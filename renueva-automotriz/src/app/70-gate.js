@@ -123,6 +123,8 @@ function rerender() {
   clearTimeout(rrTimer);
   rrTimer = setTimeout(() => {
     if (!state.world) { renderLobby(); return; }
+    // si la animación de la pestaña está corriendo, se espera a que termine (si no, los números saltaban al final)
+    if (Date.now() < animHasta) { clearTimeout(rrTimer); rrTimer = setTimeout(rerender, animHasta - Date.now()); return; }
     // no rehacer la pantalla mientras alguien escribe en un formulario
     if ($('#sb') || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) { rerender(); return; }
     const sc = $('#scr-' + state.tab) && $('#scr-' + state.tab).scrollTop;
