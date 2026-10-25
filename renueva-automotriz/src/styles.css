@@ -86,7 +86,10 @@
 
   /* ---------- app / screens ---------- */
   .app{position:absolute;inset:0;}
-  .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:118px;
+  /* el contenido se desvanece detrás de la barra de abajo (como las apps nativas) */
+  .app::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(96px + env(safe-area-inset-bottom,0px));z-index:39;pointer-events:none;
+    background:linear-gradient(to bottom,color-mix(in srgb,var(--bg) 0%,transparent),color-mix(in srgb,var(--bg) 85%,transparent) 45%,var(--bg) 80%);}
+  .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(118px + env(safe-area-inset-bottom,0px));
     opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .28s var(--ease),transform .45s var(--spring),visibility 0s .28s;scrollbar-width:none;}
   .screen::-webkit-scrollbar{display:none;}
   .screen.active{opacity:1;visibility:visible;transform:none;transition:opacity .28s var(--ease),transform .45s var(--spring);}
@@ -114,7 +117,7 @@
   .ibtn.solid:active{background:var(--accent);}
 
   /* ---------- dock ---------- */
-  .dock{position:absolute;left:max(14px,env(safe-area-inset-left,0px));right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;height:66px;border-radius:33px;display:flex;padding:5px;
+  .dock{position:absolute;left:max(14px,env(safe-area-inset-left,0px));right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 2px));z-index:40;height:66px;border-radius:33px;display:flex;padding:5px;
     background:color-mix(in srgb,var(--s1) 82%,transparent);backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);
     border:1px solid var(--line2);box-shadow:0 18px 44px -10px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06);transition:transform .45s var(--spring),opacity .3s;}
   .dock.hide{transform:translateY(120%);opacity:0;pointer-events:none;}
@@ -437,6 +440,7 @@
     /* menú lateral */
     .dock{left:16px;right:auto;top:16px;bottom:16px;width:228px;height:auto;flex-direction:column;justify-content:flex-start;gap:4px;padding:14px 10px;border-radius:28px;}
     .dock.hide{transform:none;opacity:1;pointer-events:auto;}
+    .app::after{display:none;}
     .dock-brand{display:flex;align-items:center;gap:10px;padding:6px 12px 20px;color:var(--fg);font:800 20px/1 var(--display);letter-spacing:-.02em;}
     .dock button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;height:48px;padding:0 16px;font:600 14px/1 var(--body);border-radius:22px;}
     .dock button:hover{color:var(--fg);}
