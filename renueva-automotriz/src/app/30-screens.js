@@ -284,6 +284,12 @@ function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab)
 ACT.agecell = d => { state.fBucket = +d.b; state.fFilter = 'todos'; renderStock(); go('stock'); };
 
 /* ---------------- STOCK ---------------- */
+// resumen arriba del stock (con la misma animación de números que el panel)
+function stockResumen(w) {
+  const act = activos(w.key), valor = sum(act, i => w.key === 'tienda' ? i.precio * i.stock : i.precio);
+  const tercero = w.key === 'tienda' ? ['Unidades', odo(sum(act, i => i.stock), false)] : ['Días prom.', odo(act.length ? Math.round(sum(act, diasStock) / act.length) : 0, false)];
+  return `<div class="card reveal" style="padding:14px 16px"><div class="grid3" style="gap:10px">${[[w.key === 'tienda' ? 'Productos' : 'En stock', odo(act.length, false)], ['Valor publicado', odo(valor)], tercero].map(([k, v]) => `<div><span class="kicker" style="font-size:9px">${k}</span><div class="num" style="font-size:19px;margin-top:8px;white-space:nowrap">${v}</div></div>`).join('')}</div></div>`;
+}
 function rowItem(it, k = 0) {
   const w = WORLDS[it.w], thumb = it.fotos && it.fotos[0] ? `<img src="${fotoSrc(it.fotos[0])}" alt="" loading="lazy">` : icon(w.icon, 22);
   let sub, right;
@@ -324,6 +330,7 @@ function renderStock() {
   const bl = state.fBucket != null ? (w.key === 'tienda' ? BUCKETS_T : BUCKETS)[state.fBucket].l : null;
   $('#scr-stock').innerHTML = hdr(w.tabs.stock, `${itemsOf(w.key).length} ${w.itemMany.toLowerCase()} · ${w.name}`, `<button class="ibtn solid" data-act="nuevoItem" aria-label="Ingresar ${w.itemOne.toLowerCase()}">${icon('plus', 20, 2.2)}</button>`) + `
   <div class="body px">
+    ${stockResumen(w)}
     <div class="search">${icon('search')}<input id="q" placeholder="Buscar ${w.itemMany.toLowerCase()}, ${w.idLabel.toLowerCase()}…" value="${state.q}" data-live="liveQ" autocomplete="off"></div>
     <div class="seg" id="seg-f">${fl.map(([k, t]) => `<button data-act="fFilter" data-k="${k}" class="${state.fFilter === k ? 'active' : ''}">${t}</button>`).join('')}<span class="ind"></span></div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -378,8 +385,8 @@ function renderVentas() {
   $('#scr-ventas').innerHTML = hdr(w.tabs.ventas, `${mesDe(MK())} ${MK().slice(0, 4)} · ${vs.length} ${w.key === 'tienda' ? 'tickets' : 'cierres'}`, `<button class="ibtn solid" data-act="nuevaVenta" aria-label="Registrar">${icon('plus', 20, 2.2)}</button>`) + `
   <div class="body px">
     ${mesBar()}
-    <div class="card reveal" style="background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--s1)),var(--s1) 70%)"><span class="kicker">${w.key === 'prop' ? 'Volumen de operaciones' : 'Vendido en ' + mesDe(MK()).toLowerCase()}</span><div class="num" style="font-size:34px;margin-top:10px;line-height:1">${fmt(st.volumen || st.ingreso)}</div></div>
-    <div class="grid2">${(isVend() ? [['Mi comisión', st.com, 'var(--good)'], [w.key === 'tienda' ? 'Tickets' : 'Ventas', st.n, '', 1]] : [['Utilidad', st.bruta, 'var(--good)'], ['Comisiones', st.com, '']]).map(([k, v, c, n], i) => `<div class="card reveal" style="padding:14px 16px;animation-delay:${(i + 1) * .06}s"><span class="kicker" style="font-size:9.5px">${k}</span><div class="num" style="font-size:21px;margin-top:9px;white-space:nowrap;${c ? 'color:' + c : ''}">${n ? v : fmt(v)}</div></div>`).join('')}</div>
+    <div class="card reveal" style="background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--s1)),var(--s1) 70%)"><span class="kicker">${w.key === 'prop' ? 'Volumen de operaciones' : 'Vendido en ' + mesDe(MK()).toLowerCase()}</span><span class="big" style="display:block;font-size:38px;margin-top:10px;line-height:1">${odo(st.volumen || st.ingreso)}</span></div>
+    <div class="grid2">${(isVend() ? [['Mi comisión', st.com, 'var(--good)'], [w.key === 'tienda' ? 'Tickets' : 'Ventas', st.n, '', 1]] : [['Utilidad', st.bruta, 'var(--good)'], ['Comisiones', st.com, '']]).map(([k, v, c, n], i) => `<div class="card reveal" style="padding:14px 16px;animation-delay:${(i + 1) * .06}s"><span class="kicker" style="font-size:9.5px">${k}</span><div class="num" style="font-size:21px;margin-top:9px;white-space:nowrap;${c ? 'color:' + c : ''}">${odo(v, !n)}</div></div>`).join('')}</div>
     ${(() => { const pa = VENTAS.filter(v => v.w === w.key && (v.aprob === 'pendiente' || (v.aprob === 'rechazada' && isVend()))).sort((a, b) => b.fecha.localeCompare(a.fecha)); return pa.length ? sec(isAdmin() ? 'Por aprobar' : 'Enviadas al administrador', pa.length) + `<div class="card tight" style="border-color:var(--warn)">${pa.map(ventaRow).join('')}</div>` : ''; })()}
     ${vendFiltro(w)}
     ${sec(w.key === 'tienda' ? 'Tickets recientes' : w.tabs.ventas, vs.length)}
@@ -462,7 +469,7 @@ function renderEquipo() {
   $('#scr-equipo').innerHTML = hdr('Equipo', `${eq.filter(e => e.activo).length} activos · ${w.name}`, `<button class="ibtn solid" data-act="nuevoVendedor" aria-label="Agregar vendedor">${icon('plus', 20, 2.2)}</button>`) + `
   <div class="body px">
     ${mesBar()}
-    <div class="card reveal"><span class="kicker">Comisiones${esMesActual() ? ' por pagar' : ''} · ${mesDe(MK())}</span><div class="num" style="font-size:36px;margin-top:10px;line-height:1">${fmt(tot)}</div></div>
+    <div class="card reveal"><span class="kicker">Comisiones${esMesActual() ? ' por pagar' : ''} · ${mesDe(MK())}</span><span class="big" style="display:block;font-size:38px;margin-top:10px;line-height:1">${odo(tot)}</span></div>
     ${eq.length ? '' : `<div class="card"><div class="empty">${icon('people', 30)}<p>Agrega a tus vendedores para calcular sus comisiones en cada venta.</p></div><button class="btn primary" data-act="nuevoVendedor">${icon('userplus')}Agregar vendedor</button></div>`}
     ${eq.map((e, i) => { const s = vendStats(e); return `<button class="card pressable reveal" data-act="vendor" data-id="${e.id}" style="text-align:left;animation-delay:${i * .07 + .06}s;width:100%">
       <div style="display:flex;align-items:center;gap:13px"><span class="avatar">${initials(e.nombre)}</span><span class="grow"><p class="rt" style="font-size:15px">${e.nombre}</p><p class="rs">${e.comTipo === 'pct' ? e.comVal + '%' : fmt(e.comVal)} comisión base ${e.activo ? '' : '<span class="chip">Inactivo</span>'}</p></span>${icon('chevR', 16)}</div>
