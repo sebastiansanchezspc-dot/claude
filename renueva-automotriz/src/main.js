@@ -9,9 +9,16 @@ function altoReal() {
   if (navigator.standalone !== true) return
   const vertical = innerHeight > innerWidth
   const alto = vertical ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height)
-  const falta = alto - innerHeight
-  document.documentElement.style.setProperty('--app-h', falta > 0 && falta < 120 ? alto + 'px' : '')
+  const visible = Math.min(innerHeight, document.documentElement.clientHeight || innerHeight)
+  const falta = alto - visible
+  const v = falta > 0 && falta < 120 ? alto + 'px' : ''
+  if (document.documentElement.style.getPropertyValue('--app-h') !== v) document.documentElement.style.setProperty('--app-h', v)
 }
+// iOS a veces cambia la altura un momento después de abrir o al volver a la app, sin avisar:
+// se vuelve a revisar en esos momentos y cada segundo (solo en modo app; es una medición barata)
 altoReal()
 addEventListener('resize', altoReal)
+addEventListener('pageshow', altoReal)
 addEventListener('orientationchange', () => setTimeout(altoReal, 300))
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { altoReal(); setTimeout(altoReal, 400) } })
+if (navigator.standalone === true) setInterval(altoReal, 1000)
