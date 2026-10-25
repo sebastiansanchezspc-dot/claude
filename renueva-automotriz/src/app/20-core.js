@@ -202,6 +202,12 @@ function sinAnimar(root) {
   $$('.odo,.ring,.spark,.agebar,.funnel,.bars6,.pulse,.pbar,.gauge', root).forEach(e => e.classList.add('go'));
   void root.offsetWidth; rAF2(() => root.classList.remove('noanim'));
 }
+// al tocar una pestaña: los números parten de cero y se animan una sola vez
+function reanimar(root) {
+  const els = $$('.odo,.ring,.spark,.agebar,.funnel,.bars6,.pulse,.pbar,.gauge', root);
+  root.classList.add('noanim'); els.forEach(e => e.classList.remove('go')); void root.offsetWidth; root.classList.remove('noanim');
+  rAF2(() => els.forEach(e => e.classList.add('go')));
+}
 function animateIn(root = document) {
   // ya dentro del mundo, las pantallas principales no se vuelven a animar (al guardar, filtrar o cambiar de mes)
   if (root && root.classList && root.classList.contains('screen') && $('#app').classList.contains('quieto')) { sinAnimar(root); return; }

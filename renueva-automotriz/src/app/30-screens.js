@@ -99,11 +99,10 @@ function go(tab, instant, animar) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + tab));
   $$('#dock button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   movePill(instant);
-  // solo se anima al entrar a un mundo; al cambiar de pestaña o al refrescarse los datos, todo aparece
-  // ya en su valor final (los números que "giraban" y las barras que crecían parecían cargar varias veces)
-  const s = $('#scr-' + tab); if (s) { if (animar) animateIn(s); else sinAnimar(s); }
+  // al tocar la pestaña la animación sale una sola vez; al refrescarse los datos solos, todo aparece en su valor
+  const s = $('#scr-' + tab); if (s) { if (animar) reanimar(s); else sinAnimar(s); }
 }
-ACT.tab = d => go(d.tab);
+ACT.tab = d => go(d.tab, false, true);
 window.addEventListener('resize', () => movePill(true));
 
 /* ---------------- PANEL ---------------- */
