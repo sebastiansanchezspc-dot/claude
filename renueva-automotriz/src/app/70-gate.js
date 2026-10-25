@@ -126,7 +126,7 @@ function rerender() {
     // no rehacer la pantalla mientras alguien escribe en un formulario
     if ($('#sb') || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) { rerender(); return; }
     const sc = $('#scr-' + state.tab) && $('#scr-' + state.tab).scrollTop;
-    renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); renderDock();
+    renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); renderDock(); quietas();
     go(state.tab, true); if ($('#scr-' + state.tab)) $('#scr-' + state.tab).scrollTop = sc;
   }, 250);
 }
