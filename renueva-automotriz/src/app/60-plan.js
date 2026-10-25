@@ -53,12 +53,36 @@ ACT.plan = () => openPlan(); ACT.usuarios = () => openUsuarios(); ACT.catalogos 
 function openNotifs() {
   const row = (k, t, s) => `<div class="pickrow" style="padding:14px 16px"><span class="grow"><b style="font:600 14.5px var(--body)">${t}</b><br><span style="font-size:12px;color:var(--fg3)">${s}</span></span><button class="toggle ${NOTIF[k] ? 'on' : ''}" data-act="togNotif" data-k="${k}" aria-label="${t}"></button></div>`;
   pushScreen('Notificaciones', `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px">
+    <div class="card" id="push-card"><span class="kicker">Notificaciones en este celular</span><p style="font-size:13px;color:var(--fg3);margin-top:10px">Revisando…</p></div>
     <div class="card tight">${row('recordatorios', 'Recordatorios', 'A la hora que elijas')}${row('consultas', 'Consultas nuevas', 'Cuando alguien escribe')}${row('papeles', 'Papeles por vencer', 'Permiso, revisión, SOAP, certificados')}${row('cobros', 'Cobros del día', 'Cheques y créditos por cobrar')}${row('resumen', 'Resumen de las 9:00', 'Qué requiere tu atención hoy')}</div>
-    <button class="btn ghost" data-act="probarNotif">${icon('bell')}Probar notificación</button>
+    <button class="btn ghost" data-act="probarNotif">${icon('bell')}Ver cómo se ve un aviso dentro de la app</button>
     <div class="card"><span class="kicker">Cómo llegan</span>
-      <div class="pickrow" style="align-items:flex-start;border-top:none"><span class="thumb" style="width:38px;height:38px">${icon('bell', 18)}</span><span class="grow" style="font-size:13px;color:var(--fg2)"><b style="color:var(--fg);font-weight:600">Notificación en el celular.</b> Con la app abierta te avisamos a la hora del recordatorio. En iPhone, instálala en la pantalla de inicio (Compartir → Añadir a pantalla de inicio) y acepta los permisos (iOS 16.4 o superior).</span></div>
+      <div class="pickrow" style="align-items:flex-start;border-top:none"><span class="thumb" style="width:38px;height:38px">${icon('bell', 18)}</span><span class="grow" style="font-size:13px;color:var(--fg2)"><b style="color:var(--fg);font-weight:600">Notificación en el celular.</b> Con las notificaciones activadas en este celular, te avisamos a la hora del recordatorio aunque la app esté cerrada. En iPhone, primero agrégala a la pantalla de inicio (Compartir → Agregar a inicio) y ábrela desde el ícono (iOS 16.4 o superior).</span></div>
       <div class="pickrow" style="align-items:flex-start"><span class="thumb" style="width:38px;height:38px;color:#25D366">${icon('whatsapp', 18)}</span><span class="grow" style="font-size:13px;color:var(--fg2)"><b style="color:var(--fg);font-weight:600">WhatsApp al cliente.</b> Se abre el chat con el mensaje ya escrito y tú lo envías con un toque. El envío automático sin abrir nada necesita la API de WhatsApp Business (con costo por mensaje); se puede sumar más adelante.</span></div></div></div>`);
+  pintarPush();
 }
+// estado de las notificaciones push de este celular
+async function pintarPush() {
+  const c = $('#push-card'); if (!c || !window.RV || !RV.pushEstado) return;
+  const st = await RV.pushEstado().catch(() => 'no');
+  const txt = {
+    activo: [`<span class="chip good">${icon('check', 12)}Activadas</span>`, 'Te llegarán los recordatorios aunque la app esté cerrada.', `<div class="grid2" style="margin-top:12px"><button class="btn ghost small" data-act="pushProbar">${icon('send')}Enviar prueba</button><button class="btn ghost small" data-act="pushOff">Desactivar</button></div>`],
+    inactivo: ['', 'Recibe tus recordatorios como notificación del celular, aunque la app esté cerrada.', `<button class="btn primary" style="margin-top:12px;width:100%" data-act="pushOn">${icon('bell')}Activar notificaciones</button>`],
+    instalar: ['', 'En iPhone las notificaciones funcionan con la app instalada: toca Compartir → <b>Agregar a inicio</b>, abre Renueva desde el ícono y vuelve aquí.', ''],
+    bloqueado: [`<span class="chip bad">Bloqueadas</span>`, 'Las bloqueaste en este celular. Actívalas en Ajustes del iPhone → Notificaciones → Renueva y vuelve aquí.', ''],
+    nativo: [`<span class="chip good">${icon('check', 12)}App instalada</span>`, 'Los recordatorios llegan como notificación del iPhone.', ''],
+    demo: ['', 'En la demo no se envían notificaciones. Crea tu cuenta para activarlas.', ''],
+    no: ['', 'Este navegador no permite notificaciones push.', ''],
+  }[st] || ['', '', ''];
+  c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Notificaciones en este celular</span>${txt[0]}</div><p style="font-size:13px;color:var(--fg2);margin-top:10px;line-height:1.45">${txt[1]}</p>${txt[2]}`;
+}
+ACT.pushOn = async (d, el) => {
+  el.disabled = true; el.textContent = 'Activando…';
+  try { await RV.pushActivar(); await RV.pushProbar().catch(() => { }); toast('Notificaciones activadas', 'bell'); } catch (e) { toast(e.message, 'warn'); }
+  pintarPush();
+};
+ACT.pushProbar = async () => { try { await RV.pushProbar(); toast('Enviamos una notificación de prueba', 'send'); } catch (e) { toast(e.message, 'warn'); } };
+ACT.pushOff = async () => { try { await RV.pushDesactivar(); toast('Notificaciones desactivadas en este celular'); } catch (e) { toast(e.message, 'warn'); } pintarPush(); };
 ACT.togNotif = (d, el) => { NOTIF[d.k] = !NOTIF[d.k]; el.classList.toggle('on', NOTIF[d.k]); try { localStorage.setItem('renueva_notif', JSON.stringify(NOTIF)); } catch (e) { } if (NOTIF[d.k] && window.RV && RV.askNotif) RV.askNotif(); };
 try { Object.assign(NOTIF, JSON.parse(localStorage.getItem('renueva_notif') || '{}')); } catch (e) { }
 
