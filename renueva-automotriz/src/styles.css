@@ -26,7 +26,8 @@
   .shell[data-world="tienda"]{--accent:#FF8A6B;--accent-ink:#2A0D05;--accent-soft:rgba(255,138,107,.13);--accent-glow:rgba(255,138,107,.32);}
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;margin:0;}
+  html,body{height:var(--app-h,100%);margin:0;}
+  html{overflow:hidden;background:var(--bg,#0D0E10);}
   body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.35;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;overflow:hidden;}
   button{font-family:inherit;color:inherit;cursor:pointer;}
   p,h1,h2,h3{margin:0;}
