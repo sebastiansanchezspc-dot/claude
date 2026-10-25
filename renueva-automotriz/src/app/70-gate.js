@@ -161,7 +161,16 @@ async function startCloud(st) {
   RV.dailySync(st.ctx);
   startReminders();
   if (RV.syncReminders) RV.syncReminders(REMS.filter(r => puedeMundo(r.w)));
+  if (RV.pushRefrescar) RV.pushRefrescar();
+  // se abrió desde una notificación: ir directo al recordatorio
+  const q = new URLSearchParams(location.search), rem = q.get('rem');
+  if (rem) { q.delete('rem'); q.delete('w'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '')); setTimeout(() => abrirRecordatorio(rem), 700); }
 }
+// con la app ya abierta, la notificación tocada llega como mensaje del service worker
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
+  const u = e.data && e.data.abrir; if (!u) return;
+  const rem = new URL(u, location.origin).searchParams.get('rem'); if (rem && REMS.some(r => r.id === rem)) abrirRecordatorio(rem);
+});
 
 /* ---------------------------------------------------------------- estado de guardado */
 RV.onStatus = (s, msg) => {

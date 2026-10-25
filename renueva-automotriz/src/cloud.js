@@ -341,6 +341,50 @@ async function platformOrgs() { const { data, error } = await sb.rpc('plataforma
 async function platformSet(org, cambios) { const { error } = await sb.rpc('plataforma_set_org', { p_org: org, p_cambios: cambios }); if (error) fail(error) }
 
 /* ---------------------------------------------------------------- avisos del celular */
+// notificaciones push: el celular se registra y el servidor le avisa a la hora del recordatorio
+const pushSoportado = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+const b64uBytes = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0))
+async function pushEstado() {
+  if (NATIVE) return 'nativo'
+  if (mode !== 'cloud') return 'demo'
+  if (!pushSoportado()) return /iPhone|iPad|iPod/.test(navigator.userAgent) && navigator.standalone !== true ? 'instalar' : 'no'
+  if (Notification.permission === 'denied') return 'bloqueado'
+  const reg = await navigator.serviceWorker.getRegistration(); const s = reg && await reg.pushManager.getSubscription()
+  return s && Notification.permission === 'granted' ? 'activo' : 'inactivo'
+}
+async function guardarSub(s) {
+  const j = s.toJSON()
+  const { error } = await sb.rpc('guardar_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth }); if (error) fail(error)
+}
+async function pushActivar() {
+  // el permiso se pide primero, directo del toque del usuario (iOS lo exige)
+  const perm = await Notification.requestPermission()
+  if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Bloqueaste las notificaciones. Actívalas en Ajustes del iPhone → Notificaciones → Renueva.' : 'No se activaron las notificaciones')
+  const { data, error } = await sb.functions.invoke('push', { body: { action: 'clave' } })
+  if (error || !data || !data.publicKey) throw new Error('No pudimos activar las notificaciones. Intenta de nuevo.')
+  const reg = await navigator.serviceWorker.ready
+  let s = await reg.pushManager.getSubscription()
+  if (s && s.options && s.options.applicationServerKey) {
+    const k = new Uint8Array(s.options.applicationServerKey), n = b64uBytes(data.publicKey)
+    if (k.length !== n.length || k.some((x, i) => x !== n[i])) { await s.unsubscribe(); s = null }
+  }
+  if (!s) s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(data.publicKey) })
+  await guardarSub(s)
+}
+async function pushProbar() {
+  const { data, error } = await sb.functions.invoke('push', { body: { action: 'prueba' } })
+  if (error || !data || data.error) throw new Error((data && data.error) || 'No se pudo enviar la prueba')
+  return data
+}
+async function pushDesactivar() {
+  const reg = await navigator.serviceWorker.getRegistration(); const s = reg && await reg.pushManager.getSubscription(); if (!s) return
+  await sb.rpc('quitar_push', { p_endpoint: s.endpoint }).catch(() => { }); await s.unsubscribe()
+}
+// al abrir la app: si el celular ya tenía las notificaciones activas, se vuelve a registrar
+// (las suscripciones pueden cambiar y así quedan asociadas a la empresa actual)
+async function pushRefrescar() {
+  try { if (await pushEstado() !== 'activo') return; const reg = await navigator.serviceWorker.getRegistration(); const s = reg && await reg.pushManager.getSubscription(); if (s) await guardarSub(s) } catch (e) { }
+}
 function askNotif() { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => { }) }
 function systemNotify(title, body) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return false
@@ -357,7 +401,7 @@ export const RV = {
   loadMembers, invite, updateMember, removeMember,
   choosePlan, cancelPlan, refreshContext, renameOrg, dailySync, deleteAccount,
   platformOrgs, platformSet, billingSetup: () => billing('setup-plans'),
-  askNotif, systemNotify,
+  askNotif, systemNotify, pushEstado, pushActivar, pushProbar, pushDesactivar, pushRefrescar,
 }
 setupNative(RV)
 window.RV = RV
