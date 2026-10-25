@@ -197,7 +197,14 @@ function spark(vals, w = 380, h = 62) {
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".32"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
   ${min < 0 ? `<line class="goalln" x1="0" x2="${w}" y1="${z}" y2="${z}"/>` : ''}<path class="area" d="${d} L${X(last)},${h} L${X(0)},${h} Z"/><path class="ln" pathLength="1" d="${d}"/><circle class="dot" cx="${X(last)}" cy="${Y(vals[last])}" r="4"/></svg>`;
 }
+function sinAnimar(root) {
+  root.classList.add('noanim');
+  $$('.odo,.ring,.spark,.agebar,.funnel,.bars6,.pulse,.pbar,.gauge', root).forEach(e => e.classList.add('go'));
+  void root.offsetWidth; rAF2(() => root.classList.remove('noanim'));
+}
 function animateIn(root = document) {
+  // ya dentro del mundo, las pantallas principales no se vuelven a animar (al guardar, filtrar o cambiar de mes)
+  if (root && root.classList && root.classList.contains('screen') && $('#app').classList.contains('quieto')) { sinAnimar(root); return; }
   rAF2(() => $$('.odo,.ring,.spark,.agebar,.funnel,.bars6,.pulse,.pbar,.gauge', root).forEach(e => e.classList.add('go')));
 }
 

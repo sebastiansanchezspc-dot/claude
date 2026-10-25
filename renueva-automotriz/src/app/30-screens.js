@@ -48,7 +48,8 @@ function enterWorld(key, x, y) {
   setTimeout(() => {
     state.world = key; state.tab = 'panel'; state.fFilter = 'todos'; state.fSort = 'rec'; state.q = ''; state.fBucket = null; state.fVend = null;
     shell.dataset.world = key; $('#app').hidden = false; renderAll();
-    $('#lobby').classList.add('out'); go('panel', true);
+    $('#lobby').classList.add('out'); $('#app').classList.remove('quieto'); go('panel', true, true);
+    setTimeout(() => $('#app').classList.add('quieto'), 1800);
     try { localStorage.setItem('renueva_world', key); } catch (e) { }
     if (PREFS.accent[key]) setAccent(PREFS.accent[key]); else resetAccent();
     if (window.RV && RV.mode === 'demo' && key === 'auto' && !window._notified) { window._notified = 1; setTimeout(() => { const r = REMS.find(x => /Daniela Cort/.test(x.titulo)); notify('Recordatorio vencido', 'Enviar fotos del interior a Daniela Cortés', r ? () => abrirRecordatorio(r.id) : null); }, 4500); }
@@ -93,13 +94,14 @@ function movePill(instant) {
   else { p.style.height = ''; p.style.width = b.offsetWidth + 'px'; p.style.transform = `translateX(${b.offsetLeft - 5}px)`; }
   if (instant) { void p.offsetWidth; p.style.transition = ''; }
 }
-function go(tab, instant) {
+function go(tab, instant, animar) {
   state.tab = tab;
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + tab));
   $$('#dock button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   movePill(instant);
-  // la pantalla ya está dibujada: solo aparece (antes se repetía la animación de cada tarjeta y parecía cargar dos veces)
-  const s = $('#scr-' + tab); if (s) animateIn(s);
+  // solo se anima al entrar a un mundo; al cambiar de pestaña o al refrescarse los datos, todo aparece
+  // ya en su valor final (los números que "giraban" y las barras que crecían parecían cargar varias veces)
+  const s = $('#scr-' + tab); if (s) { if (animar) animateIn(s); else sinAnimar(s); }
 }
 ACT.tab = d => go(d.tab);
 window.addEventListener('resize', () => movePill(true));

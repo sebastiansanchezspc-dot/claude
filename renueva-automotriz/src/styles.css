@@ -48,8 +48,13 @@
   }
 
   /* en pantallas táctiles (iPhone) la textura de grano apaga los colores y suaviza los íconos finos */
+  /* sin animaciones de relleno: al cambiar de pestaña o al refrescarse los datos todo aparece en su valor */
+  .noanim,.noanim *{transition:none!important;}
+  .quieto .reveal,.quieto .row,.quieto .alert,.quieto .qa button{animation:none!important;}
   @media (hover:none){
     .shell::after{display:none;}
+    /* las pestañas cambian al instante, como en las apps del iPhone (el fundido además dejaba borroso el encabezado) */
+    .screen,.screen.active{transition:none!important;}
     /* en el iPhone las pantallas entran solo con un fundido: el deslizamiento con rebote
        dejaba el encabezado entre píxeles (borroso) hasta hacer scroll */
     .screen,.screen.active{transform:none;}
