@@ -58,7 +58,7 @@ gate.mundos = ['auto']; gate.ejemplo = false;
 const gv = id => ($('#' + id) || { value: '' }).value.trim();
 async function gRun(fn) {
   if (gate.busy) return;
-  const vals = {}; $$('#lobby input').forEach(i => vals[i.id] = i.value);
+  const vals = {}; $$('#lobby input').forEach(i => { if (i.id && i.type !== 'file') vals[i.id] = i.value; });
   gate.busy = true; gate.err = ''; renderGate(); Object.entries(vals).forEach(([k, v]) => { const i = $('#' + k); if (i) i.value = v; });
   try { await fn(vals); } catch (e) { gate.err = traducir(e.message); }
   gate.busy = false; if (gate.view !== 'app') { renderGate(); Object.entries(vals).forEach(([k, v]) => { const i = $('#' + k); if (i && i.type !== 'password') i.value = v; }); }
@@ -83,7 +83,7 @@ ACT.gRegistro = () => gRun(async v => {
 ACT.gRecuperar = () => gRun(async v => { if (!v['g-e']) throw new Error('Escribe tu correo'); await RV.resetPassword(v['g-e'].trim()); gate.info = 'Listo. Revisa tu correo para crear una contraseña nueva.'; });
 ACT.gNuevaClave = () => gRun(async v => { if ((v['g-p'] || '').length < 8) throw new Error('Mínimo 8 caracteres'); await RV.updatePassword(v['g-p']); await afterAuth(); });
 ACT.gMundo = d => { const i = gate.mundos.indexOf(d.w); if (i >= 0) { if (gate.mundos.length > 1) gate.mundos.splice(i, 1); } else gate.mundos.push(d.w); $$('#g-m .opt').forEach(b => b.classList.toggle('on', gate.mundos.includes(b.dataset.w))); };
-ACT.gLogo = async (d, el) => { const f = el.files[0]; if (!f) return; try { gate.logo = await readLogo(f); $('#g-logo').innerHTML = `<img src="${gate.logo}" alt="">`; } catch (e) { toast('No se pudo leer la imagen', 'warn'); } };
+ACT.gLogo = async (d, el) => { const f = el.files[0]; el.value = ''; if (!f) return; try { gate.logo = await readLogo(f); $$('#g-logo > :not(input)').forEach(x => x.remove()); $('#g-logo').insertAdjacentHTML('afterbegin', `<img src="${gate.logo}" alt="">`); } catch (e) { toast('No se pudo leer la imagen. Prueba con otra (JPG o PNG).', 'warn'); } };
 ACT.gEjemplo = (d, el) => { gate.ejemplo = !gate.ejemplo; el.classList.toggle('on', gate.ejemplo); };
 ACT.gCrearOrg = () => gRun(async v => {
   const o = clean(v['g-o'] || '').trim(); if (!o) throw new Error('Escribe el nombre de tu empresa');
@@ -276,8 +276,10 @@ ACT.renombrarOrg = () => openSheet('Tu empresa', `<div style="display:flex;flex-
   <p style="font-size:12px;color:var(--fg3);margin-top:-6px">Tu logo aparece en el inicio, en el panel y en la versión de computador de todo tu equipo. Ideal cuadrado y con fondo transparente (PNG).</p>
   <label class="field"><span>Nombre</span><input id="ro-n" value="${clean(ORG.nombre)}"></label><button class="btn primary" data-act="renombrarOk">${icon('check')}Guardar</button></div>`);
 ACT.orgLogo = async (d, el) => {
-  const f = el.files[0]; if (!f) return; toast('Subiendo logo…', 'camera');
-  try { PREFS.logo = await storeImage(await readLogo(f)); saved(); rerender(); renderDock(); closeSheet(); ACT.renombrarOrg(); toast('Logo actualizado'); } catch (e) { toast('No se pudo subir el logo', 'warn'); }
+  const f = el.files[0]; el.value = ''; if (!f) return; toast('Subiendo logo…', 'camera');
+  let img; try { img = await readLogo(f); } catch (e) { toast('No se pudo leer la imagen. Prueba con otra (JPG o PNG).', 'warn'); return; }
+  try { PREFS.logo = await storeImage(img); saved(); rerender(); renderDock(); closeSheet(); ACT.renombrarOrg(); toast('Logo actualizado'); }
+  catch (e) { console.error(e); toast('No se pudo subir el logo. Revisa tu conexión e inténtalo de nuevo.', 'warn'); }
 };
 ACT.orgLogoRm = () => { PREFS.logo = null; saved(); rerender(); renderDock(); closeSheet(); ACT.renombrarOrg(); };
 ACT.renombrarOk = async () => {
