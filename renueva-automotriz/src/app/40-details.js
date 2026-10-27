@@ -28,12 +28,37 @@ function itemHtml(it) {
     <div class="gallery">${gal}<label class="addshot">${icon('camera')}<span>Agregar foto</span><input type="file" accept="image/*" multiple hidden data-change="addFotos" data-id="${it.id}"></label></div>
     <div class="px" style="padding-top:18px;display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div class="grow"><h2 style="font:700 26px/1.05 var(--display);font-variation-settings:'wdth' 82,'opsz' 60;letter-spacing:-.02em;text-wrap:balance">${it.nombre}</h2><div style="margin-top:12px">${idChip(it, true)}</div></div><span class="chip ${estChip[0]}">${estChip[1]}</span></div>
-      ${kp}
+      ${it.aprob === 'pendiente' ? precioCard(it) : kp}
       ${seg('seg-i', itemTabs(it), tab, 'itemTab', `data-id="${it.id}"`)}
       <div id="itab" class="tabs-body">${itemTabHtml(it, tab)}</div>
     </div>`;
 }
+// lo que ingresa un vendedor queda "por aprobar" hasta que el administrador pone precio y costo
+function precioCard(it) {
+  const quien = it.creadoPor ? clean(it.creadoPor.nombre || it.creadoPor.email) : 'Un vendedor', sug = it.precioSug ? fmt(it.precioSug) : '';
+  if (!isAdmin()) return `<div class="tip">${icon('clock')}<span>Esperando que el administrador ponga el precio de venta.${sug ? ` Sugeriste ${sug}.` : ''} Cuando lo apruebe quedará a la venta.</span></div>`;
+  return `<div class="card" style="border-color:var(--warn)"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Por aprobar</span><span class="chip warn">${icon('clock', 12)}${firstName(quien)}</span></div>
+    <p style="font-size:13px;color:var(--fg2);margin-top:12px;line-height:1.45">${quien} ingresó este ${WORLDS[it.w].itemOne.toLowerCase()} el ${fechaCL(it.ingreso)}.${sug ? ` Precio sugerido: <b style="color:var(--fg)">${sug}</b>.` : ''}</p>
+    <div class="grid2" style="margin-top:14px"><label class="field"><span>Precio de venta</span><input id="pa-p" data-money inputmode="numeric" placeholder="$0" value="${it.precioSug ? fmt(it.precioSug) : ''}"></label>
+    ${it.w === 'prop' ? '' : `<label class="field"><span>${it.w === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="pa-c" data-money inputmode="numeric" placeholder="$0"></label>`}</div>
+    <div class="grid2" style="margin-top:14px"><button class="btn ghost" data-act="itemDescartar" data-id="${it.id}">${icon('trash')}Descartar</button><button class="btn primary" data-act="itemAprobar" data-id="${it.id}">${icon('check')}Aprobar</button></div></div>`;
+}
+ACT.itemAprobar = d => {
+  const it = getItem(d.id); if (!it || it.aprob !== 'pendiente') return;
+  const precio = money($('#pa-p').value), costo = $('#pa-c') ? money($('#pa-c').value) : 0;
+  if (!precio) { toast('Pon el precio de venta', 'warn'); return; }
+  it.precio = precio; if (it.w === 'tienda') { it.costoU = costo; it.costo = costo * it.stock; } else if (it.w === 'auto') it.costo = costo;
+  delete it.aprob; it.aprobadoPor = ME.nombre;
+  refreshItem(it.id); renderAll(); toast(`${shortName(it.nombre)} quedó a la venta en ${fmtM(precio)}`);
+  const cta = topPush() && $('.cta-bar', topPush()); if (cta) cta.innerHTML = itemCta(it);
+};
+ACT.itemDescartar = d => {
+  const it = getItem(d.id); if (!it) return;
+  if (!confirm(`¿Descartar "${it.nombre}"? Se elimina del stock.`)) return;
+  STOCK.splice(STOCK.indexOf(it), 1); while (pushes.length) popScreen(); renderAll(); toast('Ingreso descartado', 'trash');
+};
 function itemCta(it) {
+  if (it.aprob === 'pendiente') return `<button class="btn ghost" data-act="editarItem" data-id="${it.id}" style="width:100%">${icon('edit')}Editar datos</button>`;
   const cerrado = ['vendido', 'arrendado'].includes(it.estado);
   if (it.w === 'tienda') return `<button class="btn ghost" data-act="reponer" data-id="${it.id}">${icon('box')}Reponer</button><button class="btn primary" data-act="nuevaVentaItem" data-id="${it.id}" ${it.stock ? '' : 'disabled'}>${icon('dollar')}Vender</button>`;
   if (it.pendVenta && VENTAS.some(x => x.id === it.pendVenta)) return `<button class="btn primary" data-act="venta" data-id="${it.pendVenta}">${icon('clock')}Venta por aprobar</button>`;
@@ -412,7 +437,8 @@ function openNuevoItem(it) {
     <div class="grid2">${princ.map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
     <div class="grid2"><label class="field"><span>${w.idLabel}</span><input id="ni-s" placeholder="${w.key === 'auto' ? 'BKTS·41' : w.key === 'prop' ? '004-112' : 'NK-AM-42'}" style="text-transform:uppercase" value="${e ? val(e.sku) : ''}" autocomplete="off"></label>
     ${w.key === 'auto' ? `<label class="field"><span>Kilometraje</span><input data-k="km" inputmode="numeric" pattern="[0-9]*" type="text" class="ni-f" autocomplete="off" placeholder="0" value="${specV('km')}"></label>` : ''}</div>
-    <div class="grid2"><label class="field"><span>${w.key === 'prop' ? 'Precio / arriendo' : w.key === 'auto' ? 'Precio de venta' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.precio, 1) : ''}"></label>${costo}</div>
+    <div class="grid2"><label class="field"><span>${isVend() && (!e || e.aprob === 'pendiente') ? 'Precio sugerido (opcional)' : w.key === 'prop' ? 'Precio / arriendo' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.aprob === 'pendiente' ? e.precioSug : e.precio, 1) : ''}" ${isVend() && e && e.aprob !== 'pendiente' ? 'readonly style="opacity:.6"' : ''}></label>${costo}</div>
+    ${isVend() && !e ? `<p style="font-size:12px;color:var(--fg3);margin-top:-6px">El administrador pone el precio de venta final y lo deja a la venta.</p>` : ''}
     ${w.key === 'tienda' ? `<div class="grid2"><label class="field"><span>${e ? 'Stock actual' : 'Cantidad'}</span><input id="ni-q" type="number" value="${e ? e.stock : 10}"></label><label class="field"><span>Stock mínimo</span><input id="ni-m" type="number" value="${e ? e.minimo : 5}"></label></div>` : ''}
     <details class="mas"><summary><span><b>Más detalles</b><br><small>${masTxt}</small></span>${icon('chevD', 18)}</summary><div class="mas-body">
       <div class="grid2">${resto.filter(c => c[0] !== 'km').map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
@@ -423,7 +449,7 @@ function openNuevoItem(it) {
       ${e && w.key !== 'tienda' ? `<label class="field"><span>Estado</span><select id="ni-e">${(w.key === 'auto' ? [['disponible', 'Disponible'], ['reservado', 'Reservado'], ['taller', 'En taller'], ['vendido', 'Vendido']] : [['disponible', 'Disponible'], ['reservado', 'En promesa'], ['vendido', 'Vendida'], ['arrendado', 'Arrendada']]).map(([k, t]) => `<option value="${k}" ${e.estado === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
     </div></details>
     <button class="btn primary" data-act="saveItem">${icon('check')}${e ? 'Guardar cambios' : 'Ingresar a ' + w.tabs.stock.toLowerCase()}</button>
-    ${e ? `<button class="btn danger" data-act="delItem" data-id="${e.id}">${icon('trash')}Eliminar</button>` : ''}</div>`);
+    ${e && (isAdmin() || (e.aprob === 'pendiente' && e.creadoPor && e.creadoPor.email === lc(ME.email))) ? `<button class="btn danger" data-act="delItem" data-id="${e.id}">${icon('trash')}Eliminar</button>` : ''}</div>`);
 }
 // fotos al ingresar: se ven al tiro y se suben al guardar
 ACT.niFotos = async (d, el) => {
@@ -444,7 +470,8 @@ ACT.saveItem = () => {
   const specs = {}; $$('.ni-f').forEach(i => { const v = i.value.trim(); specs[i.dataset.k] = NUMS.includes(i.dataset.k) ? (v === '' || isNaN(+v.replace(/\./g, '')) ? '—' : +v.replace(/\./g, '')) : (v || '—'); });
   const ex0 = editingId ? getItem(editingId) : null;
   const sku = ($('#ni-s').value || '').trim().toUpperCase() || '—', precio = money($('#ni-p').value), costo = $('#ni-c') ? money($('#ni-c').value) : ex0 ? (w.key === 'tienda' ? ex0.costoU : ex0.costo) || 0 : 0;
-  if (!precio) { toast(w.key === 'prop' ? 'Falta el precio' : 'Falta el precio de venta', 'warn'); return; }
+  const vendPend = isVend() && (!editingId || (getItem(editingId) || {}).aprob === 'pendiente');
+  if (!precio && !vendPend) { toast(w.key === 'prop' ? 'Falta el precio' : 'Falta el precio de venta', 'warn'); return; }
   const prov = $('#ni-pv') ? { n: $('#ni-pv').value.trim() || '—', f: '—' } : null;
   const ex = editingId ? getItem(editingId) : null, id = ex ? ex.id : nuevoId('i');
   let it;
@@ -462,11 +489,13 @@ ACT.saveItem = () => {
     it.estado = q === 0 ? 'agotado' : 'disponible';
   }
   if (ex && $('#ni-e')) it.estado = $('#ni-e').value;
+  if (vendPend) { it.aprob = 'pendiente'; it.precioSug = precio || null; it.precio = ex ? ex.precio || 0 : 0; if (!ex) it.creadoPor = { email: lc(ME.email), nombre: ME.nombre }; }
+  else if (isVend() && ex) it.precio = ex.precio;
   if (ex) STOCK[STOCK.indexOf(ex)] = it; else STOCK.push(it);
   closeSheet(); renderAll(); animateIn($('#scr-panel'));
   if (ex) { toast('Cambios guardados'); if (topPush()) { const cta = $('.cta-bar', topPush()); refreshItem(it.id); if (cta) cta.innerHTML = itemCta(it); } }
   else {
-    go('stock'); toast(`${w.itemOne} ingresado`); setTimeout(() => openItem(id), 450);
+    go('stock'); toast(vendPend ? `${w.itemOne} ingresado · el administrador pondrá el precio` : `${w.itemOne} ingresado`); setTimeout(() => openItem(id), 450);
     // las fotos elegidas al ingresar se suben ahora
     const fotos = nuevasFotos.slice(); nuevasFotos = [];
     if (fotos.length) (async () => {
@@ -504,7 +533,7 @@ const comBaseDe = (w, nombre) => { const e = EQUIPO.find(x => x.w === w && x.nom
 let saleLead = null;
 function openNuevaVenta(preId, leadId) {
   saleLead = leadId || null; const lead = leadId ? LEADS.find(l => l.id === leadId) : null;
-  const w = W(), disp = itemsOf(w.key).filter(i => w.key === 'tienda' ? i.stock > 0 : ['disponible', 'reservado'].includes(i.estado) && !i.pendVenta), vend = EQUIPO.filter(e => e.w === w.key && e.activo);
+  const w = W(), disp = itemsOf(w.key).filter(i => w.key === 'tienda' ? i.stock > 0 : ['disponible', 'reservado'].includes(i.estado) && !i.pendVenta && i.aprob !== 'pendiente'), vend = EQUIPO.filter(e => e.w === w.key && e.activo);
   if (!disp.length) { toast(w.key === 'tienda' ? 'No hay productos con stock' : `No hay ${w.itemMany.toLowerCase()} disponibles`, 'warn'); return; }
   // el vendedor registra a su nombre y con su comisión base; el admin elige a quién
   const vendNames = isVend() ? [miNombre(w.key)] : vend.length ? vend.map(e => e.nombre) : [ME.nombre];
