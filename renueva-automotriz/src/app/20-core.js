@@ -67,7 +67,9 @@ const icon = (n, s = 18, sw = 1.75) => `<svg viewBox="0 0 24 24" width="${s}" he
 
 /* ---------------- marca ---------------- */
 const logo = (s = 28, color = 'currentColor') => `<svg viewBox="0 0 32 32" width="${s}" height="${s}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5.8 24a12.6 12.6 0 1 1 20.4 0"/><path d="M16 20.2l5.6-7.2"/><circle cx="16" cy="20.4" r="2.1" fill="${color}" stroke="none"/></svg>`;
-const plate = (t, lg = false) => { const [a, b] = t.split('·'); return `<span class="plate${lg ? ' lg' : ''}" aria-label="Patente ${t}"><b>${a}·${b}</b><i>CHILE</i></span>`; };
+// patente chilena: acepta "PLKT62", "PLKT-62" o "PLKT·62" y la muestra como PLKT·62
+const fmtPatente = t => { const s = String(t || '').toUpperCase().replace(/[\s·.\-]/g, ''), m = s.match(/^([A-Z]{2,4})(\d{2,4})$/); return m ? m[1] + '·' + m[2] : String(t || '—'); };
+const plate = (t, lg = false) => { const x = clean(fmtPatente(t)); return `<span class="plate${lg ? ' lg' : ''}" aria-label="Patente ${x}"><b>${x}</b><i>CHILE</i></span>`; };
 const rolTag = t => `<span class="rol">${icon('key', 12)}ROL ${t}</span>`;
 const skuTag = t => `<span class="sku">${t}</span>`;
 const idChip = (it, lg) => it.w === 'auto' ? plate(it.sku, lg) : it.w === 'prop' ? rolTag(it.sku) : skuTag(it.sku);

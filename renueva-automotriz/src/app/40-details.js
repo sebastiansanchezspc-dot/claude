@@ -469,7 +469,7 @@ ACT.saveItem = () => {
   const NUMS = w.campos.filter(c => c[2] === 'number').map(c => c[0]);
   const specs = {}; $$('.ni-f').forEach(i => { const v = i.value.trim(); specs[i.dataset.k] = NUMS.includes(i.dataset.k) ? (v === '' || isNaN(+v.replace(/\./g, '')) ? '—' : +v.replace(/\./g, '')) : (v || '—'); });
   const ex0 = editingId ? getItem(editingId) : null;
-  const sku = ($('#ni-s').value || '').trim().toUpperCase() || '—', precio = money($('#ni-p').value), costo = $('#ni-c') ? money($('#ni-c').value) : ex0 ? (w.key === 'tienda' ? ex0.costoU : ex0.costo) || 0 : 0;
+  const sku = (w.key === 'auto' ? fmtPatente(($('#ni-s').value || '').trim()) : ($('#ni-s').value || '').trim().toUpperCase()) || '—', precio = money($('#ni-p').value), costo = $('#ni-c') ? money($('#ni-c').value) : ex0 ? (w.key === 'tienda' ? ex0.costoU : ex0.costo) || 0 : 0;
   const vendPend = isVend() && (!editingId || (getItem(editingId) || {}).aprob === 'pendiente');
   if (!precio && !vendPend) { toast(w.key === 'prop' ? 'Falta el precio' : 'Falta el precio de venta', 'warn'); return; }
   const prov = $('#ni-pv') ? { n: $('#ni-pv').value.trim() || '—', f: '—' } : null;
