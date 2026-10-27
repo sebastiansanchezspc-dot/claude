@@ -71,16 +71,7 @@ const orgNombre = () => ORG.nombre || 'Mi empresa';
 const orgLogo = (s = 34) => PREFS.logo && fotoSrc(PREFS.logo) ? `<img class="orglogo" src="${fotoSrc(PREFS.logo)}" alt="Logo de ${clean(orgNombre())}" style="width:${s}px;height:${s}px">`
   : `<span class="orglogo ini" style="width:${s}px;height:${s}px;font-size:${Math.round(s * 0.36)}px">${clean(initials(orgNombre()))}</span>`;
 // logo: se achica a 512 px y se guarda como PNG para conservar la transparencia
-function readLogo(file) {
-  return new Promise((ok, bad) => {
-    const r = new FileReader(); r.onerror = bad;
-    r.onload = () => { const img = new Image(); img.onerror = bad; img.onload = () => {
-      const k = Math.min(1, 512 / Math.max(img.width || 512, img.height || 512)), c = document.createElement('canvas');
-      c.width = Math.round((img.width || 512) * k); c.height = Math.round((img.height || 512) * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      ok(c.toDataURL('image/png')); }; img.src = r.result; };
-    r.readAsDataURL(file);
-  });
-}
+function readLogo(file) { return achicarImagen(file, 512, 'image/png'); }
 const logo = (s = 28, color = 'currentColor') => `<svg viewBox="0 0 32 32" width="${s}" height="${s}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5.8 24a12.6 12.6 0 1 1 20.4 0"/><path d="M16 20.2l5.6-7.2"/><circle cx="16" cy="20.4" r="2.1" fill="${color}" stroke="none"/></svg>`;
 // patente chilena: acepta "PLKT62", "PLKT-62" o "PLKT·62" y la muestra como PLKT·62
 const fmtPatente = t => { const s = String(t || '').toUpperCase().replace(/[\s·.\-]/g, ''), m = s.match(/^([A-Z]{2,4})(\d{2,4})$/); return m ? m[1] + '·' + m[2] : String(t || '—'); };
@@ -335,15 +326,25 @@ ACT.sbBg = (d, el, e) => { if (e.target === el) closeSheet(); };
 const money = v => Number(String(v).replace(/\D/g, '')) || 0;
 
 /* ---------------- fotos: se achican antes de guardar ---------------- */
-function readImage(file, max = 1400, q = 0.82) {
-  return new Promise((ok, bad) => {
-    const r = new FileReader(); r.onerror = bad;
-    r.onload = () => { const img = new Image(); img.onerror = () => ok(r.result); img.onload = () => {
-      const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
-      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      ok(c.toDataURL('image/jpeg', q)); }; img.src = r.result; };
-    r.readAsDataURL(file);
-  });
+function readImage(file, max = 1400, q = 0.82) { return achicarImagen(file, max, 'image/jpeg', q); }
+// abre la imagen sin pasarla a texto (las fotos de galería del iPhone pueden pesar 10-20 MB o venir en HEIC)
+// y la achica en un canvas; si el navegador no la puede leer, avisa en vez de descartarla en silencio
+async function achicarImagen(file, max, tipo, q = 0.85) {
+  let src = null, w = 0, h = 0, url = null;
+  try {
+    url = URL.createObjectURL(file);
+    src = await new Promise((ok, bad) => { const img = new Image(); img.decoding = 'async'; img.onload = () => ok(img); img.onerror = bad; img.src = url; });
+    w = src.naturalWidth; h = src.naturalHeight;
+  } catch (e) { src = null; }
+  if ((!src || !w) && window.createImageBitmap) { try { src = await createImageBitmap(file); w = src.width; h = src.height; } catch (e) { src = null; } }
+  if (!src) { if (url) URL.revokeObjectURL(url); throw new Error('No se pudo leer la imagen. Prueba con otra o sácale una captura de pantalla.'); }
+  if (!w || !h) { w = h = max; }   // SVG sin tamaño
+  const k = Math.min(1, max / Math.max(w, h)), c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+  const g = c.getContext('2d'); if (tipo === 'image/jpeg') { g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); }
+  g.drawImage(src, 0, 0, c.width, c.height);
+  if (url) URL.revokeObjectURL(url); if (src.close) src.close();
+  return c.toDataURL(tipo, q);
 }
 // en la nube la foto sube al almacenamiento y se guarda su ruta; en demo queda en memoria
 const storeImage = async dataUrl => (window.RV && RV.upload) ? RV.upload(dataUrl) : dataUrl;

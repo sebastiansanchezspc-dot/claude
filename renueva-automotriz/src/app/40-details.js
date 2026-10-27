@@ -146,7 +146,7 @@ ACT.addFotos = async (d, el) => {
   try {
     for (const f of files) it.fotos.push(await storeImage(await readImage(f)));
     refreshItem(it.id); renderStock(); toast(`${files.length} foto${files.length > 1 ? 's' : ''} agregada${files.length > 1 ? 's' : ''}`, 'camera');
-  } catch (e) { console.error(e); toast('No se pudo subir la foto. Revisa tu conexión.', 'warn'); refreshItem(it.id); }
+  } catch (e) { console.error(e); toast(/leer la imagen/.test(e && e.message) ? e.message : 'No se pudo subir la foto. Revisa tu conexión.', 'warn'); refreshItem(it.id); }
 };
 ACT.rmFoto = d => { const it = getItem(d.id); it.fotos.splice(+d.i, 1); refreshItem(it.id); renderStock(); };
 ACT.reponer = d => { const it = getItem(d.id); const q = Math.max(it.minimo * 2 - it.stock, 1); it.stock += q; it.estado = 'disponible'; it.ultimaVenta = it.ultimaVenta; refreshItem(it.id); renderAll(); animateIn($('#scr-panel')); toast(`Reposición registrada: +${q} un.`, 'box'); };
@@ -269,7 +269,7 @@ ACT.addComp = async (d, el) => {
   const v = VENTAS.find(x => x.id === d.id), files = [...el.files].slice(0, 6); if (!files.length) return; el.value = '';
   toast(files.length > 1 ? `Subiendo ${files.length} comprobantes…` : 'Subiendo comprobante…', 'receipt');
   try { await subirComps(v, await Promise.all(files.map(leerComp))); toast(files.length > 1 ? 'Comprobantes guardados' : 'Comprobante guardado', 'receipt'); }
-  catch (e) { toast(e && /6 MB/.test(e.message) ? e.message : 'No se pudo subir el comprobante', 'warn'); }
+  catch (e) { toast(e && /6 MB|leer la imagen/.test(e.message) ? e.message : 'No se pudo subir el comprobante', 'warn'); }
   renderAll(); popScreen(); setTimeout(() => openVenta(v.id), 120);
 };
 ACT.rmComp = d => {
@@ -335,7 +335,7 @@ ACT.togFijo = (d, el) => { const g = GASTOS.find(x => x.id === d.id); g.fijo = !
 ACT.gastoNota = (d, el) => { const g = GASTOS.find(x => x.id === d.id); if (g) g.notas = el.value; };
 ACT.gastoBoleta = async (d, el) => {
   const g = GASTOS.find(x => x.id === d.id), f = el.files[0]; if (!f) return; toast('Subiendo boleta…', 'receipt');
-  try { g.boleta = await storeImage(await readImage(f, 1800, 0.85)); popScreen(); setTimeout(() => openGasto(g.id), 120); toast('Boleta adjuntada', 'receipt'); } catch (e) { toast('No se pudo subir la boleta', 'warn'); }
+  try { g.boleta = await storeImage(await readImage(f, 1800, 0.85)); popScreen(); setTimeout(() => openGasto(g.id), 120); toast('Boleta adjuntada', 'receipt'); } catch (e) { toast(e && /leer la imagen/.test(e.message) ? e.message : 'No se pudo subir la boleta', 'warn'); }
 };
 ACT.delGasto = d => { const i = GASTOS.findIndex(x => x.id === d.id); GASTOS.splice(i, 1); popScreen(); popScreen(); renderAll(); animateIn($('#scr-panel')); setTimeout(openGastos, 300); toast('Gasto eliminado', 'trash'); };
 ACT.nuevoGasto = () => openSheet('Registrar gasto', `<div data-live="noop" style="display:flex;flex-direction:column;gap:14px">
@@ -488,7 +488,8 @@ function openNuevoItem(it) {
 // fotos al ingresar: se ven al tiro y se suben al guardar
 ACT.niFotos = async (d, el) => {
   const files = [...el.files].slice(0, 8 - nuevasFotos.length); el.value = '';
-  for (const f of files) { try { nuevasFotos.push(await readImage(f)); } catch (e) { } }
+  let malas = 0; for (const f of files) { try { nuevasFotos.push(await readImage(f)); } catch (e) { malas++; } }
+  if (malas) toast(malas > 1 ? `${malas} fotos no se pudieron leer. Prueba con otras.` : 'Una foto no se pudo leer. Prueba con otra.', 'warn');
   pintarNuevasFotos();
 };
 ACT.niFotoRm = d => { nuevasFotos.splice(+d.i, 1); pintarNuevasFotos(); };
