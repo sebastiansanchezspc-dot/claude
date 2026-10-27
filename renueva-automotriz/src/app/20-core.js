@@ -66,6 +66,21 @@ const ICONS = {
 const icon = (n, s = 18, sw = 1.75) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
 /* ---------------- marca ---------------- */
+// marca de la empresa del cliente: su logo (o sus iniciales) y su nombre
+const orgNombre = () => ORG.nombre || 'Mi empresa';
+const orgLogo = (s = 34) => PREFS.logo && fotoSrc(PREFS.logo) ? `<img class="orglogo" src="${fotoSrc(PREFS.logo)}" alt="Logo de ${clean(orgNombre())}" style="width:${s}px;height:${s}px">`
+  : `<span class="orglogo ini" style="width:${s}px;height:${s}px;font-size:${Math.round(s * 0.36)}px">${clean(initials(orgNombre()))}</span>`;
+// logo: se achica a 512 px y se guarda como PNG para conservar la transparencia
+function readLogo(file) {
+  return new Promise((ok, bad) => {
+    const r = new FileReader(); r.onerror = bad;
+    r.onload = () => { const img = new Image(); img.onerror = bad; img.onload = () => {
+      const k = Math.min(1, 512 / Math.max(img.width || 512, img.height || 512)), c = document.createElement('canvas');
+      c.width = Math.round((img.width || 512) * k); c.height = Math.round((img.height || 512) * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      ok(c.toDataURL('image/png')); }; img.src = r.result; };
+    r.readAsDataURL(file);
+  });
+}
 const logo = (s = 28, color = 'currentColor') => `<svg viewBox="0 0 32 32" width="${s}" height="${s}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5.8 24a12.6 12.6 0 1 1 20.4 0"/><path d="M16 20.2l5.6-7.2"/><circle cx="16" cy="20.4" r="2.1" fill="${color}" stroke="none"/></svg>`;
 // patente chilena: acepta "PLKT62", "PLKT-62" o "PLKT·62" y la muestra como PLKT·62
 const fmtPatente = t => { const s = String(t || '').toUpperCase().replace(/[\s·.\-]/g, ''), m = s.match(/^([A-Z]{2,4})(\d{2,4})$/); return m ? m[1] + '·' + m[2] : String(t || '—'); };

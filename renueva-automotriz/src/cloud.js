@@ -232,9 +232,12 @@ async function upload(dataUrl) {
   // la foto viene como data: URL; se convierte a archivo sin fetch (la política de seguridad no permite fetch a data:)
   const [head, b64] = dataUrl.split(','), bin = atob(b64), bytes = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  const blob = new Blob([bytes], { type: (head.match(/data:([^;]+)/) || [])[1] || 'image/jpeg' })
-  const path = `${orgId}/${crypto.randomUUID()}.jpg`
-  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+  // fotos en JPG; el logo en PNG (transparencia) y los comprobantes también en PDF
+  const tipo = (head.match(/data:([^;]+)/) || [])[1] || '', ext = { 'application/pdf': 'pdf', 'image/png': 'png' }[tipo] || 'jpg'
+  const ct = ext === 'jpg' ? 'image/jpeg' : tipo
+  const blob = new Blob([bytes], { type: ct })
+  const path = `${orgId}/${crypto.randomUUID()}.${ext}`
+  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: ct, upsert: false })
   if (error) fail(error)
   signed.set(path, dataUrl) // mientras tanto se muestra la versión local
   return path

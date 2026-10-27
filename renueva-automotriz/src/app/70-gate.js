@@ -39,6 +39,7 @@ function renderGate(view) {
       ${invs.map(i => `<button class="card pressable" data-act="gAceptar" data-t="${clean(i.token)}" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%;border-color:var(--accent)"><span class="thumb" style="background:var(--accent);color:var(--accent-ink)">${icon('people', 22)}</span><span class="grow"><b style="font:700 15px var(--body)">${clean(i.org)}</b><br><span style="font-size:12px;color:var(--fg3)">Te invitaron como ${ROL_TXT[i.rol] || i.rol}</span></span>${icon('arrowR', 16)}</button>`).join('')}
       ${!invs.length && enIOS() && !(gate.ctx && gate.ctx.inactivo) ? `<div class="card" style="font-size:13.5px;color:var(--fg2);line-height:1.5">Tu correo todavía no tiene una invitación. Pide al administrador de tu empresa que te invite desde <b style="color:var(--fg)">Ajustes → Usuarios y permisos</b>, usando este mismo correo.</div><button type="button" class="btn ghost" data-act="gReload">${icon('history')}Ya me invitaron, revisar</button>` : ''}
       ${gate.ctx && gate.ctx.inactivo || enIOS() || invs.length ? '' : `${gField('g-o', 'Nombre de tu empresa', 'text', 'Ej: Automotora Los Andes')}
+      <div class="glogo"><label class="addshot mini" id="g-logo">${gate.logo ? `<img src="${gate.logo}" alt="">` : `${icon('camera')}<span>Logo</span>`}<input type="file" accept="image/*" hidden data-change="gLogo"></label><span><b style="font:600 14px var(--body)">Logo de tu empresa</b><br><span style="font-size:12px;color:var(--fg3)">Opcional. Aparece en la app de todo tu equipo.</span></span></div>
       <label class="field"><span>Tu nombre</span><input id="g-n" value="${clean(nombre)}" placeholder="Nombre y apellido"></label>
       <div><p class="kicker" style="margin-bottom:10px">¿En qué trabajas?</p><div class="optrow" id="g-m">${Object.values(WORLDS).map(w => `<button class="opt ${gate.mundos.includes(w.key) ? 'on' : ''}" data-act="gMundo" data-w="${w.key}">${icon(w.icon)}${w.name}</button>`).join('')}</div></div>
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px"><span><b style="font:600 14px var(--body)">Partir con datos de ejemplo</b><br><span style="font-size:12px;color:var(--fg3)">Para conocer la app. Los borras cuando quieras.</span></span><button class="toggle ${gate.ejemplo ? 'on' : ''}" data-act="gEjemplo" aria-label="Datos de ejemplo"></button></div>
@@ -82,6 +83,7 @@ ACT.gRegistro = () => gRun(async v => {
 ACT.gRecuperar = () => gRun(async v => { if (!v['g-e']) throw new Error('Escribe tu correo'); await RV.resetPassword(v['g-e'].trim()); gate.info = 'Listo. Revisa tu correo para crear una contraseña nueva.'; });
 ACT.gNuevaClave = () => gRun(async v => { if ((v['g-p'] || '').length < 8) throw new Error('Mínimo 8 caracteres'); await RV.updatePassword(v['g-p']); await afterAuth(); });
 ACT.gMundo = d => { const i = gate.mundos.indexOf(d.w); if (i >= 0) { if (gate.mundos.length > 1) gate.mundos.splice(i, 1); } else gate.mundos.push(d.w); $$('#g-m .opt').forEach(b => b.classList.toggle('on', gate.mundos.includes(b.dataset.w))); };
+ACT.gLogo = async (d, el) => { const f = el.files[0]; if (!f) return; try { gate.logo = await readLogo(f); $('#g-logo').innerHTML = `<img src="${gate.logo}" alt="">`; } catch (e) { toast('No se pudo leer la imagen', 'warn'); } };
 ACT.gEjemplo = (d, el) => { gate.ejemplo = !gate.ejemplo; el.classList.toggle('on', gate.ejemplo); };
 ACT.gCrearOrg = () => gRun(async v => {
   const o = clean(v['g-o'] || '').trim(); if (!o) throw new Error('Escribe el nombre de tu empresa');
@@ -139,11 +141,11 @@ function avisoAprobacion(antes, v) {
   if (isVend() && antes === 'pendiente' && v.aprob === 'rechazada') notify('Venta rechazada', v.motivo || 'Revisa con el administrador');
 }
 function avisoItem(antes, it, nuevo) {
-  if (isAdmin() && it.aprob === 'pendiente' && antes !== 'pendiente') notify(`${WORLDS[it.w] ? WORLDS[it.w].itemOne : 'Ítem'} por aprobar`, `${it.creadoPor ? it.creadoPor.nombre : 'Un vendedor'} ingresó ${it.nombre}${it.precioSug ? ' · sugiere ' + fmtM(it.precioSug) : ''}`, () => openItem(it.id));
+  if (isAdmin() && it.aprob === 'pendiente' && antes !== 'pendiente') notify(`${WORLDS[it.w] ? WORLDS[it.w].itemOne : 'Ítem'} por aprobar`, `${it.creadoPor ? it.creadoPor.nombre : 'Un vendedor'} ingresó ${it.nombre}${(it.w === 'tienda' ? it.costoU : it.costo) ? ' · compra ' + fmtM(it.w === 'tienda' ? it.costoU : it.costo) : it.precioSug ? ' · sugiere ' + fmtM(it.precioSug) : ''}`, () => openItem(it.id));
   if (isVend() && antes === 'pendiente' && !it.aprob && !nuevo) notify('Precio listo', `${it.nombre} quedó a la venta en ${fmtM(it.precio)}`, () => openItem(it.id));
 }
 function applyRemote(col, id, data) {
-  if (col === 'config') { if (data && id === 'cat') Object.keys(CAT).forEach(k => { if (data[k]) CAT[k] = deepClean(data[k]); }); if (data && id === 'prefs') PREFS.accent = data.accent || {}; rerender(); return; }
+  if (col === 'config') { if (data && id === 'cat') Object.keys(CAT).forEach(k => { if (data[k]) CAT[k] = deepClean(data[k]); }); if (data && id === 'prefs') { PREFS.accent = data.accent || {}; PREFS.logo = data.logo || null; } rerender(); return; }
   const arr = COLS[col]; if (!arr) return; const i = arr.findIndex(x => String(x.id) === String(id));
   if (col === 'ventas' && data) avisoAprobacion(i >= 0 ? arr[i].aprob : null, deepClean(data));
   if (col === 'items' && data) avisoItem(i >= 0 ? arr[i].aprob : null, deepClean(data), i < 0);
@@ -160,6 +162,8 @@ async function startCloud(st) {
     Object.keys(d).forEach(k => { if (Array.isArray(d[k])) d[k] = d[k].filter(x => keep(x.w)); });
     loadData(d); RV.dirty(); toast('Cargamos datos de ejemplo para que explores', 'sparkle');
   } else loadData(deepClean(st.data));
+  // el logo elegido al crear la empresa se sube apenas existe la empresa
+  if (gate.logo && isAdmin()) { const l = gate.logo; gate.logo = null; storeImage(l).then(p => { PREFS.logo = p; saved(); rerender(); }).catch(() => toast('No se pudo subir el logo. Súbelo desde Ajustes → Tu empresa.', 'warn')); }
   renderLobby(); $('#lobby').classList.remove('out'); $('#app').hidden = true;
   const only = Object.keys(WORLDS).filter(puedeMundo);
   if (only.length === 1) setTimeout(() => enterWorld(only[0], innerWidth / 2, innerHeight / 2), 300);
@@ -267,6 +271,18 @@ ACT.platTrial = () => { const o = platList.find(x => x.id === $('#plat-f').datas
 ACT.platSusp = () => { const o = platList.find(x => x.id === $('#plat-f').dataset.id); if (!o.suspendida && !confirm('¿Suspender esta empresa? Quedará en solo lectura.')) return; platDo({ suspendida: !o.suspendida }, o.suspendida ? 'Empresa reactivada' : 'Empresa suspendida'); };
 
 /* ---------------------------------------------------------------- nombre de la empresa */
-ACT.renombrarOrg = () => openSheet('Nombre de la empresa', `<div style="display:flex;flex-direction:column;gap:14px"><label class="field"><span>Nombre</span><input id="ro-n" value="${ORG.nombre}"></label><button class="btn primary" data-act="renombrarOk">${icon('check')}Guardar</button></div>`);
-ACT.renombrarOk = async () => { const n = $('#ro-n').value.trim(); if (!n) return; try { await RV.renameOrg(n); closeSheet(); toast('Nombre actualizado'); } catch (e) { toast(e.message, 'warn'); } };
-ADMIN_ACTS.add('renombrarOrg'); ADMIN_ACTS.add('renombrarOk');
+ACT.renombrarOrg = () => openSheet('Tu empresa', `<div style="display:flex;flex-direction:column;gap:16px">
+  <div class="orgedit"><span id="ro-prev">${orgLogo(84)}</span><div style="display:flex;flex-direction:column;gap:8px;flex:1"><label class="btn ghost small">${icon('camera', 15)}${PREFS.logo ? 'Cambiar logo' : 'Subir logo'}<input type="file" accept="image/*" hidden data-change="orgLogo"></label>${PREFS.logo ? `<button class="btn ghost small" data-act="orgLogoRm">${icon('trash', 15)}Quitar</button>` : ''}</div></div>
+  <p style="font-size:12px;color:var(--fg3);margin-top:-6px">Tu logo aparece en el inicio, en el panel y en la versión de computador de todo tu equipo. Ideal cuadrado y con fondo transparente (PNG).</p>
+  <label class="field"><span>Nombre</span><input id="ro-n" value="${clean(ORG.nombre)}"></label><button class="btn primary" data-act="renombrarOk">${icon('check')}Guardar</button></div>`);
+ACT.orgLogo = async (d, el) => {
+  const f = el.files[0]; if (!f) return; toast('Subiendo logo…', 'camera');
+  try { PREFS.logo = await storeImage(await readLogo(f)); saved(); rerender(); renderDock(); closeSheet(); ACT.renombrarOrg(); toast('Logo actualizado'); } catch (e) { toast('No se pudo subir el logo', 'warn'); }
+};
+ACT.orgLogoRm = () => { PREFS.logo = null; saved(); rerender(); renderDock(); closeSheet(); ACT.renombrarOrg(); };
+ACT.renombrarOk = async () => {
+  const n = clean($('#ro-n').value.trim()); if (!n) return;
+  if (n === ORG.nombre) { closeSheet(); return; }
+  try { if (window.RV && RV.mode === 'cloud') await RV.renameOrg(n); else ORG.nombre = n; closeSheet(); rerender(); renderDock(); toast('Nombre actualizado'); } catch (e) { toast(e.message, 'warn'); }
+};
+['renombrarOrg', 'renombrarOk', 'orgLogo', 'orgLogoRm'].forEach(a => ADMIN_ACTS.add(a));

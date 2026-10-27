@@ -77,7 +77,7 @@ function demoData() {
     V('o4','prop','p9','2026-09-14','Pedro Alarcón','+56 9 0099 8877','Camila Rojas',3120000,78000000,0,'pct',40,[{m:'Transferencia',a:3120000,s:'cobrado'}],{op:'Venta · escritura firmada'}),
   ];
   // un auto que ingresó una vendedora y espera que el administrador le ponga precio
-  { const base = STOCK.find(i => i.id === 'a5'); if (base) STOCK.push({ ...JSON.parse(JSON.stringify(base)), id: 'a13', nombre: 'Suzuki Swift 2021', sku: 'RTKZ·31', precio: 0, precioSug: 9290000, costo: 0, recon: 0, mercado: null, estado: 'disponible', pendVenta: undefined, fotos: [], notas: 'Llegó en parte de pago. Único dueño.', aprob: 'pendiente', creadoPor: { email: 'marcela@renueva.cl', nombre: 'Marcela Fuentes' }, specs: { ...base.specs, marca: 'Suzuki', modelo: 'Swift', anio: 2021, km: 38500, color: 'Rojo', tipo: 'Hatchback' } }); }
+  { const base = STOCK.find(i => i.id === 'a5'); if (base) STOCK.push({ ...JSON.parse(JSON.stringify(base)), id: 'a13', nombre: 'Suzuki Swift 2021', sku: 'RTKZ·31', precio: 0, costo: 7800000, recon: 0, mercado: null, estado: 'disponible', pendVenta: undefined, fotos: [], notas: 'Llegó en parte de pago. Único dueño.', aprob: 'pendiente', creadoPor: { email: 'marcela@renueva.cl', nombre: 'Marcela Fuentes' }, specs: { ...base.specs, marca: 'Suzuki', modelo: 'Swift', anio: 2021, km: 38500, color: 'Rojo', tipo: 'Hatchback' } }); }
   // una venta que envió una vendedora y espera aprobación
   VENTAS.push(V('v6','auto','a5','2026-10-23','Tomás Herrera','+56 9 6123 4455','Marcela Fuentes',6700000,6700000,5550000,'pct',2,[{m:'Transferencia',a:6700000,s:'cobrado'}],{tramite:'pendiente',aprob:'pendiente',enviada:'2026-10-23T17:40',leadId:null}));
   { const a5 = STOCK.find(i => i.id === 'a5'); if (a5) { a5.estado = 'reservado'; a5.pendVenta = 'v6'; } }
@@ -184,6 +184,8 @@ function demoData() {
   return shift(data);
 }
 const addDaysFrom = (iso, n) => { const d = dateOf(iso); d.setDate(d.getDate() + n); return isoD(d); };
+// logo de ejemplo de la empresa de la demo
+const DEMO_LOGO = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="#1E3A5F"/><path d="M14 70 38 34l12 17 9-12 23 31Z" fill="#F4F1EA"/><circle cx="68" cy="27" r="7" fill="#F2A541"/><path d="M14 78h68" stroke="#F2A541" stroke-width="4" stroke-linecap="round"/></svg>');
 const DEMO_USERS = [
   { id: 'u1', nombre: 'Sebastián S.', email: 'sebastian@renueva.cl', rol: 'admin', mundos: ['auto', 'prop', 'tienda'], activo: true },
   { id: 'u2', nombre: 'Marcela Fuentes', email: 'marcela@renueva.cl', rol: 'vendedor', mundos: ['auto'], activo: true },

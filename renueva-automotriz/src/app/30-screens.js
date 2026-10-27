@@ -8,7 +8,7 @@ function renderLobby() {
   const sample = { auto: plate('KLPR·90'), prop: rolTag('004-112'), tienda: skuTag('NK-AM-42') };
   const stat = { auto: () => `<b>${activos('auto').length}</b> vehículos`, prop: () => `<b>${activos('prop').length}</b> propiedades`, tienda: () => `<b>${activos('tienda').length}</b> productos` };
   $('#lobby').innerHTML = `
-    <div class="brandbar">${logo(34, 'var(--fg)')}<span class="wordmark">gestix</span></div>
+    <div class="brandbar org">${orgLogo(44)}<span class="orgname"><b>${clean(orgNombre())}</b><small>${logo(11, 'currentColor')}con gestix</small></span></div>
     <h1>¿Dónde trabajamos hoy?</h1>
     <p class="sub">Cada mundo es un espacio separado: su inventario, su caja y su equipo. Nada se mezcla.</p>
     <div class="worlds">${Object.values(WORLDS).map((w, i) => `
@@ -21,7 +21,7 @@ function renderLobby() {
         <div class="wstats"><span>${stat[w.key]()}</span><span><b>${alertsFor(w.key).length}</b> alertas</span></div>
       </button>`).join('')}</div>
     ${lobbyBanner()}
-    <div class="lobby-foot"><button data-act="ajustesLobby" style="all:unset;cursor:pointer">${ME.nombre} · Plan ${planNow().n}${!SUB.escribible ? ' · solo lectura' : SUB.trial ? ` · prueba ${SUB.trialLeft} día${SUB.trialLeft === 1 ? '' : 's'}` : ''}</button><span class="mono" style="font-size:10.5px;letter-spacing:.1em">${window.RV && RV.mode === 'cloud' ? ORG.nombre.toUpperCase().slice(0, 22) : 'DEMO'}</span></div>`;
+    <div class="lobby-foot"><button data-act="ajustesLobby" style="all:unset;cursor:pointer">${ME.nombre} · Plan ${planNow().n}${!SUB.escribible ? ' · solo lectura' : SUB.trial ? ` · prueba ${SUB.trialLeft} día${SUB.trialLeft === 1 ? '' : 's'}` : ''}</button><span class="mono" style="font-size:10.5px;letter-spacing:.1em">${window.RV && RV.mode === 'cloud' ? 'GESTIX' : 'DEMO'}</span></div>`;
 }
 
 function lobbyBanner() {
@@ -100,7 +100,7 @@ function sec(label, count = '', more = '') { return `<div class="sec"><span clas
 const TABS_ALL = () => [{ k: 'panel', l: 'Panel', i: 'gauge' }, { k: 'stock', l: W().tabs.stock, i: W().icon }, { k: 'ventas', l: W().tabs.ventas, i: 'dollar' }, { k: 'caja', l: 'Caja', i: 'calc' }, { k: 'equipo', l: 'Equipo', i: 'people' }];
 const TABS = () => isVend() ? TABS_ALL().filter(t => ['panel', 'stock', 'ventas'].includes(t.k)) : TABS_ALL();
 function renderDock() {
-  $('#dock').innerHTML = `<div class="dock-brand">${logo(26, 'var(--fg)')}gestix</div><span class="pill" id="pill"></span>` + TABS().map(t => `<button data-act="tab" data-tab="${t.k}" class="${state.tab === t.k ? 'active' : ''}" aria-label="${t.l}">${icon(t.i, 22)}<span>${t.l}</span></button>`).join('');
+  $('#dock').innerHTML = `<div class="dock-brand">${orgLogo(34)}<span><b>${clean(orgNombre())}</b><small>${logo(10, 'currentColor')}gestix</small></span></div><span class="pill" id="pill"></span>` + TABS().map(t => `<button data-act="tab" data-tab="${t.k}" class="${state.tab === t.k ? 'active' : ''}" aria-label="${t.l}">${icon(t.i, 22)}<span>${t.l}</span></button>`).join('');
   movePill(true);
 }
 function movePill(instant) {
@@ -277,7 +277,7 @@ function renderPanel() {
     : w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
     : w.key === 'prop' ? [heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
       : [heroHtml, qaHtml, atencionHtml, pulsoHtml, saludHtml, accionHtml, equipoHtml];
-  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`) .replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
+  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`).replace('<div class="hd-large px">', `<div class="hd-large px"><div class="orgline">${orgLogo(30)}<span>${clean(orgNombre())}</span></div>`).replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
 }
 ACT.alert = d => { const a = alertsFor(state.world)[+d.i]; if (a) runAlert(a); };
 function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'fincom') openFinCom(); else if (a.act === 'ventas') { while (pushes.length) popScreen(); go('ventas'); } else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
@@ -399,9 +399,9 @@ function renderVentas() {
 /* ---------------- CAJA ---------------- */
 function cajaData(w, per) {
   const vs = ventasOf(w).filter(v => per === 'sem' ? v.fecha >= addDays(TODAY, -6) : per === 'mes' ? v.fecha.startsWith(MK()) : true);
-  const ent = {}, pen = {}; let rows = [];
-  vs.forEach(v => v.pagos.forEach(p => { const t = p.s === 'cobrado' ? ent : pen; t[p.m] = (t[p.m] || 0) + p.a; if (p.s !== 'cobrado') rows.push({ v, p }); }));
-  return { vs, ent, pen, total: sum(Object.values(ent), x => x), pend: sum(Object.values(pen), x => x), rows };
+  const ent = {}, pen = {}; let rows = [], pp = 0, ppN = 0;
+  vs.forEach(v => v.pagos.forEach(p => { if (p.pp) { pp += p.a; ppN++; return; } const t = p.s === 'cobrado' ? ent : pen; t[p.m] = (t[p.m] || 0) + p.a; if (p.s !== 'cobrado') rows.push({ v, p }); }));
+  return { vs, ent, pen, total: sum(Object.values(ent), x => x), pend: sum(Object.values(pen), x => x), rows, pp, ppN };
 }
 function finCajaHtml(c) {
   const m = {}; c.vs.forEach(v => v.pagos.filter(p => p.fin).forEach(p => { const o = m[p.fin] || (m[p.fin] = { cob: 0, pen: 0, n: 0 }); if (p.s === 'cobrado') o.cob += p.a; else o.pen += p.a; o.n++; }));
@@ -428,7 +428,7 @@ function finComListHtml() {
     <div class="card"><span class="kicker">${fcState.f === 'pend' ? 'Por cobrar' : fcState.f === 'pagada' ? 'Cobrado' : 'Total generado'}</span><span class="big" style="display:block;margin-top:10px;font-size:42px">${odo(tot)}</span><p style="font-size:12px;color:var(--fg3);margin-top:8px">${rows.length} crédito${rows.length === 1 ? '' : 's'}</p></div>
     ${Object.keys(porFin).length ? sec('Por financiera', Object.keys(porFin).length) + `<div class="card tight">${Object.entries(porFin).sort((a, b) => b[1].m - a[1].m).map(([k, o]) => `<div class="row" style="cursor:default"><span class="thumb" style="width:38px;height:38px;border-radius:11px">${icon('bank', 18)}</span><span class="rm"><p class="rt">${finName(k)}</p><p class="rs">${o.n} crédito${o.n > 1 ? 's' : ''} · ${finCom(k)}% actual</p></span><span class="rr"><span class="p">${fmt(o.m)}</span></span></div>`).join('')}</div>` : ''}
     ${sec('Detalle por auto', rows.length)}
-    <div class="card tight">${rows.map(({ v, p, i }) => { const it = getItem(v.itemId) || { nombre: 'Ítem eliminado' }; return `<div class="row"><button data-act="venta" data-id="${v.id}" style="all:unset;display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer"><span class="thumb">${icon('car', 20)}</span><span class="rm"><p class="rt">${it.nombre}</p><p class="rs">${finName(p.fin)} · ${p.fcp}% de ${fmt(p.a)} · ${fechaCorta(v.fecha)}${p.cr !== 'cursado' ? '<span class="chip">Crédito por cursar</span>' : ''}</p></span></button><span class="rr"><span class="p">${fmt(p.fcm)}</span>${p.fcs === 'pagada' ? `<span class="chip good">Pagada${p.fcf ? ' ' + fechaCorta(p.fcf) : ''}</span>` : `<button class="chip warn" style="border:0" data-act="crFcs" data-id="${v.id}" data-i="${i}" data-list="1">Me la pagaron</button>`}</span></div>`; }).join('') || `<div class="empty">${icon('bank', 30)}<p>${fcState.f === 'pend' ? 'No tienes comisiones pendientes' : 'Sin registros'}</p></div>`}</div>
+    <div class="card tight">${rows.map(({ v, p, i }) => { const it = getItem(v.itemId) || { nombre: 'Ítem eliminado' }; return `<div class="row"><button data-act="venta" data-id="${v.id}" style="all:unset;display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer"><span class="thumb">${icon('car', 20)}</span><span class="rm"><p class="rt">${it.nombre}</p><p class="rs">${finName(p.fin)} · ${p.fct === 'monto' ? 'monto fijo' : String(p.fcp).replace('.', ',') + '% de ' + fmt(p.a)} · ${fechaCorta(v.fecha)}${p.cr !== 'cursado' ? '<span class="chip">Crédito por cursar</span>' : ''}</p></span></button><span class="rr"><span class="p">${fmt(p.fcm)}</span>${p.fcs === 'pagada' ? `<span class="chip good">Pagada${p.fcf ? ' ' + fechaCorta(p.fcf) : ''}</span>` : `<button class="chip warn" style="border:0" data-act="crFcs" data-id="${v.id}" data-i="${i}" data-list="1">Me la pagaron</button>`}</span></div>`; }).join('') || `<div class="empty">${icon('bank', 30)}<p>${fcState.f === 'pend' ? 'No tienes comisiones pendientes' : 'Sin registros'}</p></div>`}</div>
     <p style="font-size:12px;color:var(--fg3);text-align:center;padding:0 10px">El % de cada financiera se configura en Ajustes → Catálogos. Al registrar una venta con crédito se propone ese % y lo puedes cambiar.</p></div>`;
 }
 function openFinCom() { const el = pushScreen('Comisiones financieras', finComListHtml(), { onReady: () => moveSeg('seg-fc') }); el.dataset.fincom = '1'; }
@@ -450,6 +450,7 @@ function renderCaja() {
     <div class="card tight">${metodos.map(([m, v], i) => `<button class="row" data-act="metodo" data-m="${m}" style="animation-delay:${i * .05}s;flex-direction:column;align-items:stretch;gap:10px">
       <span style="display:flex;align-items:center;gap:12px"><span class="thumb" style="width:38px;height:38px;border-radius:11px">${icon(METODO_ICON[m] || 'dollar', 18)}</span><span class="rm"><p class="rt">${m}</p></span><span class="p num" style="font-size:16px">${fmtM(v)}</span>${c.pen[m] ? `<span class="chip warn" style="margin-left:6px">+${fmtM(c.pen[m])} pend.</span>` : ''}</span>
       <span class="pbar" style="--w:${Math.max(2, v / mx * 100)}%"><i></i></span></button>`).join('')}</div>
+    ${c.ppN ? `<div class="tip" style="margin-top:10px">${icon('car')}<span>Además recibiste <b>${c.ppN} auto${c.ppN > 1 ? 's' : ''} en parte de pago</b> por ${fmtM(c.pp)}. No es plata en caja: entra${c.ppN > 1 ? 'n' : ''} al stock con ese costo.</span></div>` : ''}
     ${w.key === 'auto' ? finComHtml() + finCajaHtml(c) : ''}
     ${c.rows.length ? sec('Por cobrar', fmtM(c.pend)) + `<div class="card tight">${c.rows.map(({ v, p }, k) => `<button class="row" data-act="venta" data-id="${v.id}"><span class="thumb">${icon(METODO_ICON[p.m] || 'receipt', 20)}</span><span class="rm"><p class="rt">${p.m} · ${v.cliente}</p><p class="rs">Vence ${fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmtM(p.a)}</span></span></button>`).join('')}</div>` : ''}
     ${sec('Gastos', '')}
