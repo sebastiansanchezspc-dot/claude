@@ -13,7 +13,7 @@ function relTxt(ts) {
 }
 const leadsOf = w => LEADS.filter(l => l.w === w);
 const contactoOf = l => CONTACTOS.find(c => c.w === l.w && (c.fono === l.fono || c.nombre === l.nombre));
-const waText = l => { const it = getItem(l.itemId); return `Hola ${firstName(l.nombre)}, soy ${firstName(l.vend)} de ${W().brand}. Vi que te interesó ${it ? 'el ' + shortName(it.nombre) : 'nuestra oferta'}. ¿Te puedo ayudar con algo?`; };
+const waText = l => { const it = getItem(l.itemId); return `Hola ${firstName(l.nombre)}, soy ${firstName(l.vend)} de ${orgNombre()}. Vi que te interesó ${it ? 'el ' + shortName(it.nombre) : 'nuestra oferta'}. ¿Te puedo ayudar con algo?`; };
 function logLead(l, tipo, txt) { l.log.push({ ts: tick(), tipo, txt }); }
 function touchLead(l) { l.ts = nowISO(); if (l.etapa === 'nuevo') { l.etapa = 'contactado'; } }
 const refreshAll = () => { renderPanel(); renderStock(); renderVentas(); renderCaja(); renderEquipo(); quietas(); };
@@ -75,7 +75,7 @@ function contactosHtml(w) {
 }
 function contactoRows(cs) {
   return cs.map((c, k) => `<div class="row" style="animation-delay:${Math.min(k, 8) * .03}s"><button data-act="contacto" data-id="${c.id}" style="all:unset;display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer"><span class="avatar" style="width:44px;height:44px;border-radius:15px;font-size:15px">${initials(c.nombre)}</span><span class="rm"><p class="rt">${c.nombre}</p><p class="rs"><span class="mono" style="font-size:11px">${c.fono || 'Sin teléfono'}</span>${tagsContacto(c).map(([t, x]) => `<span class="chip ${t}">${x}</span>`).join('')}</p></span></button>
-    ${c.fono ? `<a class="iconlink" href="${telLink(c.fono)}" data-act="llamarContacto" data-id="${c.id}" aria-label="Llamar a ${c.nombre}">${icon('phone')}</a><a class="iconlink wa" href="${waLink(c.fono, 'Hola ' + firstName(c.nombre) + ', soy ' + firstName(ME.nombre) + ' de ' + W().brand + '.')}" target="_blank" rel="noopener" data-act="waContacto" data-id="${c.id}" aria-label="WhatsApp a ${c.nombre}">${icon('whatsapp')}</a>` : ''}</div>`).join('') || `<div class="empty">${icon('people', 30)}<p>Sin contactos todavía</p></div>`;
+    ${c.fono ? `<a class="iconlink" href="${telLink(c.fono)}" data-act="llamarContacto" data-id="${c.id}" aria-label="Llamar a ${c.nombre}">${icon('phone')}</a><a class="iconlink wa" href="${waLink(c.fono, 'Hola ' + firstName(c.nombre) + ', soy ' + firstName(ME.nombre) + ' de ' + orgNombre() + '.')}" target="_blank" rel="noopener" data-act="waContacto" data-id="${c.id}" aria-label="WhatsApp a ${c.nombre}">${icon('whatsapp')}</a>` : ''}</div>`).join('') || `<div class="empty">${icon('people', 30)}<p>Sin contactos todavía</p></div>`;
 }
 ACT.liveContactoQ = (d, el, e) => { hub.q = e.target.value; const q = hub.q.trim().toLowerCase(); $('#clist').innerHTML = contactoRows(CONTACTOS.filter(c => c.w === state.world && (!q || (c.nombre + c.fono).toLowerCase().includes(q))).sort((a, b) => a.nombre.localeCompare(b.nombre))); };
 ACT.llamarContacto = d => toast('Llamando a ' + firstName(CONTACTOS.find(c => c.id === d.id).nombre), 'phone');
@@ -85,7 +85,7 @@ function openContacto(id) {
   const c = CONTACTOS.find(x => x.id === id), ls = LEADS.filter(l => l.w === c.w && (l.fono === c.fono || l.nombre === c.nombre)), vs = VENTAS.filter(v => v.w === c.w && v.cliente === c.nombre);
   pushScreen('Contacto', `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:16px"><span class="avatar xl">${initials(c.nombre)}</span><div class="grow"><h2 style="font:700 24px/1.05 var(--display);font-variation-settings:'wdth' 82;letter-spacing:-.02em">${c.nombre}</h2><div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap">${tagsContacto(c).map(([t, x]) => `<span class="chip ${t}">${x}</span>`).join('') || '<span class="chip">Contacto</span>'}</div></div></div>
-    ${c.fono ? `<div class="grid2"><a class="btn ghost" href="${telLink(c.fono)}" data-act="llamarContacto" data-id="${c.id}">${icon('phone')}Llamar</a><a class="btn wa" href="${waLink(c.fono, 'Hola ' + firstName(c.nombre) + ', soy de ' + W().brand + '.')}" target="_blank" rel="noopener" data-act="waContacto" data-id="${c.id}">${icon('whatsapp')}WhatsApp</a></div>` : ''}
+    ${c.fono ? `<div class="grid2"><a class="btn ghost" href="${telLink(c.fono)}" data-act="llamarContacto" data-id="${c.id}">${icon('phone')}Llamar</a><a class="btn wa" href="${waLink(c.fono, 'Hola ' + firstName(c.nombre) + ', soy ' + firstName(ME.nombre) + ' de ' + orgNombre() + '.')}" target="_blank" rel="noopener" data-act="waContacto" data-id="${c.id}">${icon('whatsapp')}WhatsApp</a></div>` : ''}
     <div class="card">${drow('Teléfono', c.fono || '—')}${drow('Email', c.email || '—')}${c.nota ? drow('Nota', c.nota) : ''}</div>
     ${ls.length ? `<div><div class="sec" style="margin:0 0 10px"><span class="kicker">Consultas</span><span class="count">${ls.length}</span></div><div class="card tight">${ls.map(leadRow).join('')}</div></div>` : ''}
     ${vs.length ? `<div><div class="sec" style="margin:0 0 10px"><span class="kicker">Compras</span><span class="count">${vs.length}</span></div><div class="card tight">${vs.map(ventaRow).join('')}</div></div>` : ''}
@@ -226,15 +226,22 @@ function abrirRecordatorio(id) {
 function openReminder(id) {
   const r = REMS.find(x => x.id === id); if (!r) return; const ref = r.ref;
   const lead = ref && ref.t === 'lead' ? LEADS.find(l => l.id === ref.id) : null, canWa = lead && lead.fono;
+  const cto = ref && ref.t === 'contacto' ? CONTACTOS.find(c => c.id === ref.id) : null;
   openSheet('Recordatorio', `<div style="display:flex;flex-direction:column;gap:14px">
     <div class="card" style="background:var(--s2)"><p style="font:700 16px/1.3 var(--body)">${r.titulo}</p><p class="rs" style="margin-top:10px"><span class="chip ${r.cuando < nowISO() && !r.hecho ? 'bad' : ''}">${icon('clock', 12)}${cuandoTxt(r.cuando)}</span><span class="chip">${r.canal === 'wa' ? 'WhatsApp' : r.canal === 'ambos' ? 'Celular + WhatsApp' : 'Notificación'}</span></p></div>
     ${canWa ? `<a class="btn wa" href="${waLink(lead.fono, waText(lead))}" target="_blank" rel="noopener" data-act="leadWa" data-id="${lead.id}">${icon('whatsapp')}Enviar WhatsApp ahora</a>` : ''}
+    ${cto && cto.fono ? `<a class="btn wa" href="${waLink(cto.fono, recWaText(r, cto))}" target="_blank" rel="noopener" data-act="waContacto" data-id="${cto.id}">${icon('whatsapp')}WhatsApp a ${clean(firstName(cto.nombre))}</a>` : ''}
     <div class="grid2"><button class="btn ghost" data-act="recSnooze" data-id="${r.id}" data-m="60">${icon('clock')}En 1 hora</button><button class="btn ghost" data-act="recSnooze" data-id="${r.id}" data-m="tomorrow">${icon('calendar')}Mañana 9:00</button></div>
     <div class="grid2" style="align-items:end"><label class="field"><span>Otra hora</span><input id="rec-dt" type="datetime-local" value="${r.cuando > nowISO() ? r.cuando : enUnaHora()}"></label><button class="btn ghost" data-act="recSetTime" data-id="${r.id}">${icon('check')}Cambiar</button></div>
     <div class="grid2">${ref ? `<button class="btn ghost" data-act="recOpen" data-id="${r.id}">${icon('arrowR')}Abrir ficha</button>` : '<span></span>'}<button class="btn primary" data-act="recDone2" data-id="${r.id}">${icon('check')}Hecho</button></div>
     <button class="btn danger" data-act="recDel" data-id="${r.id}">${icon('trash')}Eliminar</button></div>`);
 }
-ACT.recOpen = d => { const r = REMS.find(x => x.id === d.id); closeSheet(); setTimeout(() => { if (r.ref.t === 'lead') openLead(r.ref.id); else if (r.ref.t === 'venta') openVenta(r.ref.id); else if (r.ref.t === 'item') openItem(r.ref.id); }, 350); };
+ACT.recOpen = d => { const r = REMS.find(x => x.id === d.id); closeSheet(); setTimeout(() => { if (r.ref.t === 'lead') openLead(r.ref.id); else if (r.ref.t === 'venta') openVenta(r.ref.id); else if (r.ref.t === 'item') openItem(r.ref.id); else if (r.ref.t === 'contacto') openContacto(r.ref.id); }, 350); };
+// mensaje de WhatsApp listo para el cliente de un recordatorio
+function recWaText(r, c) {
+  const h = `Hola ${firstName(c.nombre)}, soy ${firstName(ME.nombre)} de ${orgNombre()}.`;
+  return h + ({ cobrar: ' Te escribo por el pago pendiente. ¿Me confirmas cuándo lo puedes hacer?', visita: ' Te confirmo nuestra cita. ¿Sigue en pie?', papeles: ' Te escribo por los papeles pendientes.', llamar: ' ¿Tienes un minuto para conversar?' }[r.tpl] || ' ¿Cómo estás? Te escribo para seguir en contacto.');
+}
 ACT.recDone2 = d => { const r = REMS.find(x => x.id === d.id); r.hecho = true; closeSheet(); toast('Recordatorio hecho'); refreshHub(); refreshAll(); };
 ACT.recDel = d => { REMS.splice(REMS.findIndex(x => x.id === d.id), 1); closeSheet(); toast('Recordatorio eliminado', 'trash'); refreshHub(); refreshAll(); };
 const enUnaHora = () => { const t = new Date(nowISO() + ':00'), p = n => String(n).padStart(2, '0'); t.setHours(t.getHours() + 1, 0); return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}T${p(t.getHours())}:00`; };
