@@ -6,6 +6,7 @@
   $('#app').hidden = true;
   if (!window.RV || RV.mode === 'demo') {
     loadData(demoData()); USUARIOS.push(...DEMO_USERS.map(u => ({ ...u })));
+    ORG.nombre = 'Automotora Los Andes'; PREFS.logo = DEMO_LOGO;
     renderLobby(); $('#lobby').classList.remove('out');
     return;
   }

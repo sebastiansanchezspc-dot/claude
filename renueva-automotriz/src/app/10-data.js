@@ -59,7 +59,7 @@ const WORLDS = {
     campos: [['marca', 'Marca', 'text'], ['categoria', 'Categoría', 'text'], ['variante', 'Talla / variante', 'text']],
   },
 };
-const METODO_ICON = { 'Efectivo': 'dollar', 'Transferencia': 'swap', 'Crédito automotriz': 'car', 'Tarjeta de crédito': 'card', 'Débito': 'card', 'Cheque': 'receipt', 'Vale vista': 'doc' };
+const METODO_ICON = { 'Efectivo': 'dollar', 'Transferencia': 'swap', 'Crédito automotriz': 'car', 'Tarjeta de crédito': 'card', 'Débito': 'card', 'Cheque': 'receipt', 'Vale vista': 'doc', 'Parte de pago': 'car' };
 const mk = (arr, tipo) => arr.map(([k, n, on = true, t = tipo]) => ({ k, n, on, tipo: t }));
 const catDefaults = () => ({
   portales: {
@@ -95,7 +95,7 @@ const finCom = k => +((CAT.financieras.find(f => f.k === k) || {}).com || 0);
 /* ---------------- colecciones ---------------- */
 const STOCK = [], VENTAS = [], GASTOS = [], EQUIPO = [], LEADS = [], REMS = [], CONTACTOS = [];
 const COLS = { items: STOCK, ventas: VENTAS, gastos: GASTOS, equipo: EQUIPO, leads: LEADS, rems: REMS, contactos: CONTACTOS };
-const PREFS = { accent: {} }; // color por mundo (se guarda con la empresa)
+const PREFS = { accent: {}, logo: null }; // color por mundo (se guarda con la empresa)
 const V = (id, w, itemId, fecha, cliente, fono, vend, ingreso, precio, costo, comTipo, comVal, pagos, extra = {}) =>
   ({ id, w, itemId, fecha, cliente, fono, vend, ingreso, precio, costo, comTipo, comVal, pagos, ...extra });
 const G = (id, w, concepto, cat, monto, fecha, fijo, notas = '') => ({ id, w, concepto, cat, monto, fecha, fijo, notas, boleta: null });
@@ -155,5 +155,5 @@ function duenoOf(col, x) {
 function loadData(data) {
   Object.entries(COLS).forEach(([k, arr]) => { arr.length = 0; (data[k] || []).forEach(x => arr.push(x)); });
   const def = catDefaults(); Object.keys(def).forEach(k => { CAT[k] = data.cat && data.cat[k] ? data.cat[k] : def[k]; });
-  PREFS.accent = (data.prefs && data.prefs.accent) || {};
+  PREFS.accent = (data.prefs && data.prefs.accent) || {}; PREFS.logo = (data.prefs && data.prefs.logo) || null;
 }

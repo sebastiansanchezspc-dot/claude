@@ -36,11 +36,12 @@ function itemHtml(it) {
 // lo que ingresa un vendedor queda "por aprobar" hasta que el administrador pone precio y costo
 function precioCard(it) {
   const quien = it.creadoPor ? clean(it.creadoPor.nombre || it.creadoPor.email) : 'Un vendedor', sug = it.precioSug ? fmt(it.precioSug) : '';
-  if (!isAdmin()) return `<div class="tip">${icon('clock')}<span>Esperando que el administrador ponga el precio de venta.${sug ? ` Sugeriste ${sug}.` : ''} Cuando lo apruebe quedará a la venta.</span></div>`;
+  const compra = it.w === 'tienda' ? it.costoU : it.costo, pp = it.partePago;
+  if (!isAdmin()) return `<div class="tip">${icon('clock')}<span>Esperando que el administrador ponga el precio de venta.${compra ? ` Ingresaste un precio de compra de ${fmt(compra)}.` : sug ? ` Sugeriste ${sug}.` : ''} Cuando lo apruebe quedará a la venta.</span></div>`;
   return `<div class="card" style="border-color:var(--warn)"><div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Por aprobar</span><span class="chip warn">${icon('clock', 12)}${firstName(quien)}</span></div>
-    <p style="font-size:13px;color:var(--fg2);margin-top:12px;line-height:1.45">${quien} ingresó este ${WORLDS[it.w].itemOne.toLowerCase()} el ${fechaCL(it.ingreso)}.${sug ? ` Precio sugerido: <b style="color:var(--fg)">${sug}</b>.` : ''}</p>
+    <p style="font-size:13px;color:var(--fg2);margin-top:12px;line-height:1.45">${pp ? `Lo recibiste en parte de pago de ${clean(pp.cliente)} (venta de ${clean(it.gestor)}), tasado en <b style="color:var(--fg)">${fmt(compra)}</b>.` : `${quien} ingresó este ${WORLDS[it.w].itemOne.toLowerCase()} el ${fechaCL(it.ingreso)}.${compra ? ` Precio de compra: <b style="color:var(--fg)">${fmt(compra)}</b>.` : ''}${sug ? ` Precio sugerido: <b style="color:var(--fg)">${sug}</b>.` : ''}`} Ponle precio de venta para dejarlo a la venta.</p>
     <div class="grid2" style="margin-top:14px"><label class="field"><span>Precio de venta</span><input id="pa-p" data-money inputmode="numeric" placeholder="$0" value="${it.precioSug ? fmt(it.precioSug) : ''}"></label>
-    ${it.w === 'prop' ? '' : `<label class="field"><span>${it.w === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="pa-c" data-money inputmode="numeric" placeholder="$0"></label>`}</div>
+    ${it.w === 'prop' ? '' : `<label class="field"><span>${it.w === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="pa-c" data-money inputmode="numeric" placeholder="$0" value="${compra ? fmt(compra) : ''}"></label>`}</div>
     <div class="grid2" style="margin-top:14px"><button class="btn ghost" data-act="itemDescartar" data-id="${it.id}">${icon('trash')}Descartar</button><button class="btn primary" data-act="itemAprobar" data-id="${it.id}">${icon('check')}Aprobar</button></div></div>`;
 }
 ACT.itemAprobar = d => {
@@ -179,10 +180,12 @@ function openVenta(id) {
     </div>
     <div class="card">${v.w !== 'tienda' ? drow('Cliente', v.cliente) + drow('Contacto', v.fono) : ''}${drow('Vendedor', v.vend)}</div>
     ${v.nota || v.notaJefe ? `<div class="card">${v.nota ? `<span class="kicker">Observación del vendedor</span><p style="font-size:14px;line-height:1.45;margin-top:8px;white-space:pre-wrap">${clean(v.nota)}</p>` : ''}${v.notaJefe ? `<span class="kicker" style="display:block;${v.nota ? 'margin-top:14px' : ''}">Nota de la jefatura</span><p style="font-size:14px;line-height:1.45;margin-top:8px;white-space:pre-wrap">${clean(v.notaJefe)}</p>` : ''}</div>` : ''}
-    <div><div class="sec" style="margin:0 0 10px"><span class="kicker">Pagos</span></div><div class="card tight">${v.pagos.map((p, i) => `<div class="row" style="cursor:default"><span class="thumb" style="width:40px;height:40px">${icon(p.fin ? 'bank' : METODO_ICON[p.m] || 'dollar', 18)}</span><span class="rm"><p class="rt">${p.m}</p><p class="rs">${p.fin ? creditoTxt(p) : p.s === 'cobrado' ? 'Cobrado' : 'Vence ' + fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmt(p.a)}</span>${p.s === 'cobrado' ? '<span class="chip good">Cobrado</span>' : p.fin || ro || !ok ? '<span class="chip warn">Pendiente</span>' : `<button class="chip warn" style="border:0" data-act="cobrar" data-id="${v.id}" data-i="${i}">Marcar cobrado</button>`}</span></div>`).join('')}</div></div>
+    <div><div class="sec" style="margin:0 0 10px"><span class="kicker">Pagos</span></div><div class="card tight">${v.pagos.map((p, i) => `<div class="row" style="cursor:default"><span class="thumb" style="width:40px;height:40px">${icon(p.fin ? 'bank' : METODO_ICON[p.m] || 'dollar', 18)}</span><span class="rm"><p class="rt">${p.pp ? 'Auto en parte de pago' : p.m}</p><p class="rs">${p.pp ? clean(ppNombre(p.pp)) + (p.pp.sku && p.pp.sku !== '—' ? ' · ' + clean(p.pp.sku) : '') : p.fin ? creditoTxt(p) : p.s === 'cobrado' ? 'Cobrado' : 'Vence ' + fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmt(p.a)}</span>${p.pp ? (p.pp.itemId && getItem(p.pp.itemId) ? `<button class="chip accent" style="border:0" data-act="item" data-id="${p.pp.itemId}">Ver en stock</button>` : '<span class="chip">Entra al aprobar</span>') : p.s === 'cobrado' ? '<span class="chip good">Cobrado</span>' : p.fin || ro || !ok ? '<span class="chip warn">Pendiente</span>' : `<button class="chip warn" style="border:0" data-act="cobrar" data-id="${v.id}" data-i="${i}">Marcar cobrado</button>`}</span></div>`).join('')}</div></div>
     ${v.pagos.map((p, i) => p.fin ? creditoCard(v, p, i, ro || !ok) : '').join('')}
     ${trasp}
-    <div><div class="sec" style="margin:0 0 10px"><span class="kicker">Comprobante</span></div><div class="gallery" style="padding:0">${v.boleta ? `<div class="shot" style="width:120px;height:120px"><img src="${fotoSrc(v.boleta)}" alt="Comprobante"></div>` : ''}${ro ? '' : `<label class="addshot" style="width:120px;height:120px">${icon('receipt')}<span>Adjuntar</span><input type="file" accept="image/*" hidden data-change="addBoleta" data-id="${v.id}"></label>`}</div></div>
+    <div><div class="sec" style="margin:0 0 10px"><span class="kicker">Comprobantes</span><span class="kicker" style="color:var(--fg3)">${compsDe(v).length || ''}</span></div>
+      <div class="gallery comps" style="padding:0">${compsDe(v).map(c => compTile(c, ro ? '' : `<button class="rm2" data-act="rmComp" data-id="${v.id}" data-k="${c.k}" aria-label="Quitar comprobante">${icon('close')}</button>`)).join('')}${ro ? '' : `<label class="addshot" style="width:120px;height:120px">${icon('receipt')}<span>Adjuntar</span><input type="file" accept="image/*,application/pdf" multiple hidden data-change="addComp" data-id="${v.id}"></label>`}</div>
+      ${compsDe(v).length || ro ? '' : '<p style="font-size:12px;color:var(--fg3);margin-top:8px">Fotos o PDF de transferencias, vale vista, contrato o pagaré. Quedan guardados en la venta.</p>'}</div>
   </div>`;
   pushScreen(v.w === 'tienda' ? 'Ticket' : w.cierreLabel, html, { onReady: el => {} });
 }
@@ -207,7 +210,8 @@ ACT.ventaAprobar = d => {
   const nj = ($('#va-nota').value || '').trim().replace(/[<>"'`]/g, '').slice(0, 300); if (nj) v.notaJefe = nj;
   const it = getItem(v.itemId); if (it && it.pendVenta === v.id) { delete it.pendVenta; it.estado = it.op === 'Arriendo' ? 'arrendado' : 'vendido'; }
   const l = v.leadId && LEADS.find(x => x.id === v.leadId); if (l && l.etapa !== 'ganado') { l.etapa = 'ganado'; l.ts = nowISO(); l.log.push({ ts: tick(), tipo: 'etapa', txt: 'Venta aprobada' }); }
-  toast(`Venta aprobada · comisión ${fmt(comision(v))}`); popScreen(); setTimeout(() => openVenta(v.id), 120); renderAll();
+  const npp = ingresarPartePago(v);
+  toast(`Venta aprobada · comisión ${fmt(comision(v))}`); if (npp) setTimeout(() => toast('El auto en parte de pago entró al stock · ponle precio', 'car'), 1800); popScreen(); setTimeout(() => openVenta(v.id), 120); renderAll();
 };
 ACT.ventaRechazar = d => openSheet('Rechazar venta', `<div style="display:flex;flex-direction:column;gap:14px"><label class="field"><span>Motivo (lo verá el vendedor)</span><textarea id="vr-m" placeholder="Ej: el precio no corresponde, faltan pagos…"></textarea></label><button class="btn danger" data-act="ventaRechazarOk" data-id="${d.id}">${icon('close')}Rechazar venta</button></div>`);
 ACT.ventaRechazarOk = d => {
@@ -231,19 +235,47 @@ function creditoCard(v, p, i, ro) {
     <p style="font-size:12px;color:var(--fg3);margin-top:12px">Al marcar "Cursado" el pago de ${fmt(p.a)} pasa a cobrado y entra a la caja.</p>
     ${isVend() ? '' : `<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:14px">
       <div style="display:flex;justify-content:space-between;align-items:center"><span class="kicker">Comisión que te paga ${finName(p.fin)}</span>${p.fcm ? `<span class="chip ${p.fcs === 'pagada' ? 'good' : 'warn'}">${p.fcs === 'pagada' ? 'Pagada' : 'Pendiente'}</span>` : ''}</div>
-      <div class="grid2" style="margin-top:12px;align-items:end"><label class="field"><span>Porcentaje (%)</span><input inputmode="decimal" value="${p.fcp || ''}" placeholder="0" data-change="crFcp" data-id="${v.id}" data-i="${i}"></label><div style="padding-bottom:12px"><span class="num" style="font-size:20px;color:var(--good)">${fmt(p.fcm || 0)}</span></div></div>
+      <div class="grid2" style="margin-top:12px;align-items:end"><label class="field"><span>${p.fct === 'monto' ? 'Monto que te pagan' : 'Porcentaje del crédito'}</span><div class="pfw"><select data-change="crFct" data-id="${v.id}" data-i="${i}" aria-label="Tipo de comisión"><option value="pct" ${p.fct !== 'monto' ? 'selected' : ''}>%</option><option value="monto" ${p.fct === 'monto' ? 'selected' : ''}>$</option></select><input inputmode="${p.fct === 'monto' ? 'numeric' : 'decimal'}" ${p.fct === 'monto' ? 'data-money' : ''} value="${p.fct === 'monto' ? (p.fcm ? fmt(p.fcm) : '') : p.fcp || ''}" placeholder="0" data-change="crFcp" data-id="${v.id}" data-i="${i}"></div></label><div style="padding-bottom:12px"><span class="num" style="font-size:20px;color:var(--good)">${fmt(p.fcm || 0)}</span>${p.fct === 'monto' && p.fcp ? `<span style="display:block;font-size:11px;color:var(--fg3);margin-top:2px">${String(p.fcp).replace('.', ',')}% del crédito</span>` : ''}</div></div>
       ${p.fcm ? `<button class="btn ${p.fcs === 'pagada' ? 'ghost' : 'primary'} small" style="width:100%;margin-top:12px" data-act="crFcs" data-id="${v.id}" data-i="${i}">${icon(p.fcs === 'pagada' ? 'history' : 'check')}${p.fcs === 'pagada' ? 'Marcar como pendiente' : 'Me la pagaron'}</button>${p.fcs === 'pagada' && p.fcf ? `<p style="font-size:12px;color:var(--fg3);margin-top:8px;text-align:center">Pagada el ${fechaCL(p.fcf)}</p>` : p.cr !== 'cursado' ? '<p style="font-size:12px;color:var(--fg3);margin-top:8px">Normalmente la financiera la paga después de cursar el crédito.</p>' : ''}` : ''}
     </div>`}</div>`;
 }
-ACT.crFcp = (d, el) => { const v = VENTAS.find(x => x.id === d.id), p = v.pagos[+d.i]; p.fcp = Math.max(0, parseFloat(String(el.value).replace(',', '.')) || 0); p.fcm = Math.round(p.a * p.fcp / 100); if (!p.fcs) p.fcs = 'pendiente'; toast('Comisión: ' + fmt(p.fcm), 'bank'); popScreen(); setTimeout(() => openVenta(v.id), 120); renderAll(); };
+ACT.crFct = (d, el) => { const v = VENTAS.find(x => x.id === d.id), p = v.pagos[+d.i]; p.fct = el.value; p.fcm = 0; p.fcp = 0; popScreen(); setTimeout(() => openVenta(v.id), 120); renderAll(); };
+ACT.crFcp = (d, el) => { const v = VENTAS.find(x => x.id === d.id), p = v.pagos[+d.i]; Object.assign(p, finComDe(p.fct, el.value, p.a)); if (!p.fcs) p.fcs = 'pendiente'; toast('Comisión: ' + fmt(p.fcm), 'bank'); popScreen(); setTimeout(() => openVenta(v.id), 120); renderAll(); };
 ACT.crFcs = d => { const v = VENTAS.find(x => x.id === d.id), p = v.pagos[+d.i]; p.fcs = p.fcs === 'pagada' ? 'pendiente' : 'pagada'; p.fcf = p.fcs === 'pagada' ? TODAY : null; toast(p.fcs === 'pagada' ? `Comisión de ${finName(p.fin)} cobrada` : 'Marcada como pendiente', 'bank'); renderAll(); if (d.list) { refreshFinCom(); return; } popScreen(); setTimeout(() => { openVenta(v.id); refreshFinCom(); }, 120); };
 ACT.crFin = (d, el) => { const v = VENTAS.find(x => x.id === d.id); v.pagos[+d.i].fin = el.value; toast('Financiera: ' + finName(el.value), 'bank'); renderAll(); };
 ACT.crStep = d => { const v = VENTAS.find(x => x.id === d.id), p = v.pagos[+d.i]; p.cr = d.n; p.s = d.n === 'cursado' ? 'cobrado' : 'pendiente'; if (p.s === 'pendiente' && !p.v) p.v = addDays(TODAY, 7); toast(d.n === 'cursado' ? 'Crédito cursado: pago cobrado' : 'Crédito ' + (d.n === 'aprobado' ? 'aprobado' : 'en evaluación'), 'bank'); popScreen(); setTimeout(() => openVenta(d.id), 120); renderAll(); animateIn($('#scr-panel')); };
 ACT.cobrar = d => { const v = VENTAS.find(x => x.id === d.id); v.pagos[+d.i].s = 'cobrado'; toast('Pago marcado como cobrado'); popScreen(); setTimeout(() => openVenta(d.id), 120); renderAll(); animateIn($('#scr-panel')); };
 ACT.tramiteOk = d => { const v = VENTAS.find(x => x.id === d.id); v.tramite = 'ok'; toast('Traspaso inscrito'); popScreen(); setTimeout(() => openVenta(d.id), 120); renderAll(); };
-ACT.addBoleta = async (d, el) => {
-  const v = VENTAS.find(x => x.id === d.id), f = el.files[0]; if (!f) return; toast('Subiendo comprobante…', 'receipt');
-  try { v.boleta = await storeImage(await readImage(f, 1800, 0.85)); popScreen(); setTimeout(() => openVenta(v.id), 120); toast('Comprobante adjuntado', 'receipt'); } catch (e) { toast('No se pudo subir el comprobante', 'warn'); }
+// comprobantes de una venta: fotos o PDF (el antiguo campo "boleta" se muestra como el primero)
+const compsDe = v => [...(v.boleta ? [{ f: v.boleta, t: 'img', n: 'Comprobante', k: 'b' }] : []), ...(v.comprobantes || []).map((c, i) => ({ ...c, k: i }))];
+function compTile(c, extra = '') {
+  const src = fotoSrc(c.f), dl = /^data:application\/pdf/.test(src) ? ` download="${clean(c.n || 'comprobante')}.pdf"` : ' target="_blank" rel="noopener"';
+  return c.t === 'pdf' ? `<div class="shot comp pdf"><a href="${src}"${dl}>${icon('doc', 28)}<span>${clean(c.n || 'PDF')}</span></a>${extra}</div>`
+    : `<div class="shot comp"><a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${clean(c.n || 'Comprobante')}"></a>${extra}</div>`;
+}
+// lee un comprobante: las fotos se achican; los PDF van tal cual (hasta 6 MB)
+function leerComp(f) {
+  if (f.type === 'application/pdf') {
+    if (f.size > 6 * 1024 * 1024) return Promise.reject(new Error('El PDF pesa más de 6 MB'));
+    return new Promise((ok, bad) => { const r = new FileReader(); r.onerror = bad; r.onload = () => ok({ d: r.result, t: 'pdf', n: f.name.replace(/\.pdf$/i, '').replace(/[<>"'`]/g, '').slice(0, 40) }); r.readAsDataURL(f); });
+  }
+  return readImage(f, 1800, 0.85).then(d => ({ d, t: 'img', n: 'Comprobante' }));
+}
+async function subirComps(v, archivos) {
+  v.comprobantes = v.comprobantes || [];
+  for (const a of archivos) v.comprobantes.push({ f: await storeImage(a.d), t: a.t, n: a.n, fecha: TODAY, por: ME.nombre });
+}
+ACT.addComp = async (d, el) => {
+  const v = VENTAS.find(x => x.id === d.id), files = [...el.files].slice(0, 6); if (!files.length) return; el.value = '';
+  toast(files.length > 1 ? `Subiendo ${files.length} comprobantes…` : 'Subiendo comprobante…', 'receipt');
+  try { await subirComps(v, await Promise.all(files.map(leerComp))); toast(files.length > 1 ? 'Comprobantes guardados' : 'Comprobante guardado', 'receipt'); }
+  catch (e) { toast(e && /6 MB/.test(e.message) ? e.message : 'No se pudo subir el comprobante', 'warn'); }
+  renderAll(); popScreen(); setTimeout(() => openVenta(v.id), 120);
+};
+ACT.rmComp = d => {
+  const v = VENTAS.find(x => x.id === d.id); if (!v || !confirm('¿Quitar este comprobante?')) return;
+  if (d.k === 'b') v.boleta = null; else v.comprobantes.splice(+d.k, 1);
+  renderAll(); popScreen(); setTimeout(() => openVenta(v.id), 120);
 };
 
 /* ---------------- vendedor ---------------- */
@@ -378,7 +410,8 @@ function campoItem(w, k, l, t, v) {
   if (k === 'operacion') return `<div class="field"><span>${l}</span><div class="qchips wrap">${['Venta', 'Arriendo'].map(o => `<button type="button" class="opt ${(v || 'Venta') === o ? 'on' : ''}" data-act="qFill" data-k="${k}" data-v="${o}">${o}</button>`).join('')}</div><input type="hidden" data-k="${k}" class="ni-f" value="${v || 'Venta'}"></div>`;
   const ops = opcionesDe(w, k), num = t === 'number';
   const attrs = `data-k="${k}" ${num ? 'inputmode="numeric" pattern="[0-9]*"' : ''} type="text" class="ni-f" autocomplete="off"`;
-  if (!ops.length) return `<label class="field"><span>${l}</span><input ${attrs} value="${clean(v)}"></label>`;
+  // el modelo siempre lleva su fila de opciones: se llena al elegir la marca (aunque la empresa aún no tenga autos)
+  if (!ops.length && !(w === 'auto' && k === 'modelo')) return `<label class="field"><span>${l}</span><input ${attrs} value="${clean(v)}"></label>`;
   const otra = v !== '' && v != null && !ops.slice(0, nChips(k)).includes(String(v));
   return `<div class="field fq" style="grid-column:span 2"><span>${l}</span>
     <div class="qchips" data-k="${k}">${chipsHtml(k, ops, v)}<button type="button" class="opt otra ${otra ? 'on' : ''}" data-act="qOtra" data-k="${k}">${icon('edit', 14)}Otra</button></div>
@@ -425,7 +458,8 @@ function openNuevoItem(it) {
   const specV = k => e ? val(e.specs[k]) : '';
   const princ = w.campos.filter(c => PRINCIPALES[w.key].includes(c[0])), resto = w.campos.filter(c => !PRINCIPALES[w.key].includes(c[0]));
   const nombre = `<label class="field"><span>${w.key === 'auto' ? 'Nombre (se arma solo)' : 'Nombre'}</span><input id="ni-n" placeholder="${w.key === 'auto' ? 'Marca modelo año' : w.nombrePh}" value="${e ? e.nombre : ''}" data-manual="${e ? '1' : '0'}" autocomplete="off"></label>`;
-  const costo = w.key === 'prop' ? `<label class="field"><span>Mandato hasta</span><input id="ni-md" type="date" value="${e ? e.mandato : addDays(TODAY, 180)}"></label>` : isVend() ? '' : `<label class="field"><span>${w.key === 'tienda' ? 'Costo unitario' : 'Costo de compra'}</span><input id="ni-c" data-money inputmode="numeric" placeholder="$0" value="${e ? val(w.key === 'tienda' ? e.costoU : e.costo, 1) : ''}"></label>`;
+  const vPend = isVend() && (!e || e.aprob === 'pendiente'), compraV = vPend && w.key !== 'prop';
+  const costo = w.key === 'prop' ? `<label class="field"><span>Mandato hasta</span><input id="ni-md" type="date" value="${e ? e.mandato : addDays(TODAY, 180)}"></label>` : isVend() && !compraV ? '' : `<label class="field"><span>${w.key === 'tienda' ? 'Costo unitario' : compraV ? 'Precio de compra' : 'Costo de compra'}</span><input id="ni-c" data-money inputmode="numeric" placeholder="$0" value="${e ? val(w.key === 'tienda' ? e.costoU : e.costo, 1) : ''}"></label>`;
   const papeles = w.key === 'auto' ? `<div class="grid2"><label class="field"><span>Revisión técnica vence</span><input id="ni-rev" type="date" value="${e ? e.rev : ''}"></label><label class="field"><span>SOAP vence</span><input id="ni-soap" type="date" value="${e ? e.soap : proxMarzo()}"></label></div>
     <div class="grid2"><label class="field"><span>Permiso de circulación</span><select id="ni-pc">${[[0, 'Pendiente'], [1, '1ª cuota pagada'], [2, 'Al día (2 cuotas)']].map(([n, t]) => `<option value="${n}" ${e && e.permiso.pagadas === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label class="field"><span>Proveedor</span><input id="ni-pv" placeholder="Particular, automotora…" value="${e ? val(e.prov.n) : ''}"></label></div>` : '';
   const costosAuto = w.key === 'auto' && !isVend() ? `<div class="grid2"><label class="field"><span>Reacondicionamiento</span><input id="ni-r" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.recon, 1) : ''}"></label><label class="field"><span>Precio de mercado</span><input id="ni-mk" data-money inputmode="numeric" placeholder="Opcional" value="${e && e.mercado ? fmt(e.mercado) : ''}"></label></div>
@@ -437,8 +471,8 @@ function openNuevoItem(it) {
     <div class="grid2">${princ.map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
     <div class="grid2"><label class="field"><span>${w.idLabel}</span><input id="ni-s" placeholder="${w.key === 'auto' ? 'BKTS·41' : w.key === 'prop' ? '004-112' : 'NK-AM-42'}" style="text-transform:uppercase" value="${e ? val(e.sku) : ''}" autocomplete="off"></label>
     ${w.key === 'auto' ? `<label class="field"><span>Kilometraje</span><input data-k="km" inputmode="numeric" pattern="[0-9]*" type="text" class="ni-f" autocomplete="off" placeholder="0" value="${specV('km')}"></label>` : ''}</div>
-    <div class="grid2"><label class="field"><span>${isVend() && (!e || e.aprob === 'pendiente') ? 'Precio sugerido (opcional)' : w.key === 'prop' ? 'Precio / arriendo' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.aprob === 'pendiente' ? e.precioSug : e.precio, 1) : ''}" ${isVend() && e && e.aprob !== 'pendiente' ? 'readonly style="opacity:.6"' : ''}></label>${costo}</div>
-    ${isVend() && !e ? `<p style="font-size:12px;color:var(--fg3);margin-top:-6px">El administrador pone el precio de venta final y lo deja a la venta.</p>` : ''}
+    <div class="grid2">${compraV ? '' : `<label class="field"><span>${vPend ? 'Precio sugerido (opcional)' : w.key === 'prop' ? 'Precio / arriendo' : 'Precio de venta'}</span><input id="ni-p" data-money inputmode="numeric" placeholder="$0" value="${e ? val(e.aprob === 'pendiente' ? e.precioSug : e.precio, 1) : ''}" ${isVend() && e && e.aprob !== 'pendiente' ? 'readonly style="opacity:.6"' : ''}></label>`}${costo}</div>
+    ${vPend ? `<p style="font-size:12px;color:var(--fg3);margin-top:-6px">${compraV ? `Pon lo que se pagó ${w.key === 'tienda' ? 'por cada unidad' : 'por el auto'}. ` : ''}El administrador pone el precio de venta y lo deja a la venta.</p>` : ''}
     ${w.key === 'tienda' ? `<div class="grid2"><label class="field"><span>${e ? 'Stock actual' : 'Cantidad'}</span><input id="ni-q" type="number" value="${e ? e.stock : 10}"></label><label class="field"><span>Stock mínimo</span><input id="ni-m" type="number" value="${e ? e.minimo : 5}"></label></div>` : ''}
     <details class="mas"><summary><span><b>Más detalles</b><br><small>${masTxt}</small></span>${icon('chevD', 18)}</summary><div class="mas-body">
       <div class="grid2">${resto.filter(c => c[0] !== 'km').map(([k, l, t]) => campoItem(w.key, k, l, t, specV(k))).join('')}</div>
@@ -469,7 +503,7 @@ ACT.saveItem = () => {
   const NUMS = w.campos.filter(c => c[2] === 'number').map(c => c[0]);
   const specs = {}; $$('.ni-f').forEach(i => { const v = i.value.trim(); specs[i.dataset.k] = NUMS.includes(i.dataset.k) ? (v === '' || isNaN(+v.replace(/\./g, '')) ? '—' : +v.replace(/\./g, '')) : (v || '—'); });
   const ex0 = editingId ? getItem(editingId) : null;
-  const sku = (w.key === 'auto' ? fmtPatente(($('#ni-s').value || '').trim()) : ($('#ni-s').value || '').trim().toUpperCase()) || '—', precio = money($('#ni-p').value), costo = $('#ni-c') ? money($('#ni-c').value) : ex0 ? (w.key === 'tienda' ? ex0.costoU : ex0.costo) || 0 : 0;
+  const sku = (w.key === 'auto' ? fmtPatente(($('#ni-s').value || '').trim()) : ($('#ni-s').value || '').trim().toUpperCase()) || '—', precio = $('#ni-p') ? money($('#ni-p').value) : 0, costo = $('#ni-c') ? money($('#ni-c').value) : ex0 ? (w.key === 'tienda' ? ex0.costoU : ex0.costo) || 0 : 0;
   const vendPend = isVend() && (!editingId || (getItem(editingId) || {}).aprob === 'pendiente');
   if (!precio && !vendPend) { toast(w.key === 'prop' ? 'Falta el precio' : 'Falta el precio de venta', 'warn'); return; }
   const prov = $('#ni-pv') ? { n: $('#ni-pv').value.trim() || '—', f: '—' } : null;
@@ -530,9 +564,24 @@ ACT.saveVendedor = () => {
 /* ---------------- formulario: nueva venta ---------------- */
 const comTxt = (t, v) => t === 'pct' ? String(v).replace('.', ',') + '%' : fmt(v);
 const comBaseDe = (w, nombre) => { const e = EQUIPO.find(x => x.w === w && x.nombre === nombre); return e ? { t: e.comTipo, v: e.comVal } : null; };
-let saleLead = null;
+let saleLead = null, vfComps = [];
+ACT.vfComps = async (d, el) => {
+  const files = [...el.files].slice(0, 6 - vfComps.length); el.value = '';
+  for (const f of files) { try { vfComps.push(await leerComp(f)); } catch (e) { toast(e.message || 'No se pudo leer el archivo', 'warn'); } }
+  pintarVfComps();
+};
+ACT.vfCompRm = d => { vfComps.splice(+d.i, 1); pintarVfComps(); };
+function pintarVfComps() {
+  const c = $('#vf-comps'); if (!c) return; $$('.nshot', c).forEach(x => x.remove());
+  c.insertAdjacentHTML('beforeend', vfComps.map((a, i) => `<div class="nshot${a.t === 'pdf' ? ' pdf' : ''}">${a.t === 'pdf' ? icon('doc', 22) : `<img src="${a.d}" alt="">`}<button type="button" data-act="vfCompRm" data-i="${i}" aria-label="Quitar">${icon('close', 12)}</button></div>`).join(''));
+}
+// sube los comprobantes elegidos en el formulario a la venta recién creada
+function guardarVfComps(v) {
+  const a = vfComps.slice(); vfComps = []; if (!a.length) return;
+  subirComps(v, a).then(() => toast(a.length > 1 ? `${a.length} comprobantes guardados` : 'Comprobante guardado', 'receipt')).catch(() => toast('No se pudieron subir algunos comprobantes. Agrégalos desde la venta.', 'warn')).finally(() => renderAll());
+}
 function openNuevaVenta(preId, leadId) {
-  saleLead = leadId || null; const lead = leadId ? LEADS.find(l => l.id === leadId) : null;
+  saleLead = leadId || null; vfComps = []; const lead = leadId ? LEADS.find(l => l.id === leadId) : null;
   const w = W(), disp = itemsOf(w.key).filter(i => w.key === 'tienda' ? i.stock > 0 : ['disponible', 'reservado'].includes(i.estado) && !i.pendVenta && i.aprob !== 'pendiente'), vend = EQUIPO.filter(e => e.w === w.key && e.activo);
   if (!disp.length) { toast(w.key === 'tienda' ? 'No hay productos con stock' : `No hay ${w.itemMany.toLowerCase()} disponibles`, 'warn'); return; }
   // el vendedor registra a su nombre y con su comisión base; el admin elige a quién
@@ -546,6 +595,7 @@ function openNuevaVenta(preId, leadId) {
     ${w.key === 'prop' ? `<label class="field"><span>Honorario total (%)</span><input id="vf-h" type="number" step="0.1" value="4"></label>` : ''}
     <div class="grid2" ${envia ? 'style="display:none"' : ''}><label class="field"><span>Comisión</span><select id="vf-ct" data-change="vfCt"><option value="pct">% porcentaje</option><option value="monto">$ Monto fijo</option></select></label><label class="field"><span id="vf-cl2">Valor (%)</span><input id="vf-cv" inputmode="decimal" value="0"></label></div><p id="vf-hint" style="font-size:12px;color:var(--fg3);margin-top:-6px;${envia ? 'display:none' : ''}"></p>
     <div><p class="kicker" style="margin-bottom:10px">Pagos del cliente</p><div id="vf-pays" style="display:flex;flex-direction:column;gap:8px"></div><button class="btn ghost small" data-act="addPay" style="margin-top:10px;width:100%">${icon('plus', 15)}Agregar forma de pago</button></div>
+    <div><p class="kicker" style="margin-bottom:10px">Comprobantes (opcional)</p><div class="nfotos" id="vf-comps"><label class="addshot mini">${icon('receipt')}<span>Adjuntar</span><input type="file" accept="image/*,application/pdf" multiple hidden data-change="vfComps"></label></div></div>
     <label class="field"><span>Observación (opcional)</span><textarea id="vf-nota" maxlength="500" placeholder="Ej: el cliente deja el auto en parte de pago, entrega el lunes…"></textarea></label>
     <div class="card" id="vf-sum" style="padding:14px"></div>
     <div class="cuadra no" id="vf-ok"></div>
@@ -560,7 +610,37 @@ function vfDefault() {
 function vfFmt() { const t = $('#vf-ct').value, i = $('#vf-cv'); i.toggleAttribute('data-money', t === 'monto'); i.inputMode = t === 'pct' ? 'decimal' : 'numeric'; $('#vf-cl2').textContent = t === 'pct' ? 'Valor (%)' : 'Valor (CLP)'; }
 ACT.vfVend = () => { vfDefault(); liveVenta(); };
 ACT.vfCt = () => { vfFmt(); const i = $('#vf-cv'); i.value = $('#vf-ct').value === 'pct' ? 0 : '$0'; liveVenta(); };
-function payRow() { const w = W(); return `<div class="payw"><div class="pay"><select class="pm">${w.metodos.map(m => `<option value="${m}">${{ 'Crédito automotriz': 'Crédito', 'Tarjeta de crédito': 'Tarjeta' }[m] || m}</option>`).join('')}</select><input class="pa" data-money inputmode="numeric" placeholder="$0"><button class="x" data-act="rmPay" aria-label="Quitar pago">${icon('close')}</button></div><div class="payx" hidden style="margin-top:8px"><div class="grid2"><label class="field"><span>Financiera</span><select class="pf">${finsOn().map(f => `<option value="${f.k}">${f.n}</option>`).join('')}</select></label><label class="field"><span>Estado del crédito</span><select class="pc"><option value="evaluacion">En evaluación</option><option value="aprobado">Aprobado</option><option value="cursado">Cursado</option></select></label></div><div class="grid2" style="margin-top:8px"><label class="field"><span>Comisión financiera (%)</span><input class="pfc" inputmode="decimal" placeholder="0"></label><div class="pfm" style="align-self:end;font-size:12px;color:var(--fg3);padding-bottom:12px"></div></div></div></div>`; }
+function payRow() { const w = W(); return `<div class="payw"><div class="pay"><select class="pm">${[...w.metodos, ...(w.key === 'auto' ? [PARTE_PAGO] : [])].map(m => `<option value="${m}">${{ 'Crédito automotriz': 'Crédito', 'Tarjeta de crédito': 'Tarjeta', [PARTE_PAGO]: 'Parte de pago' }[m] || m}</option>`).join('')}</select><input class="pa" data-money inputmode="numeric" placeholder="$0"><button class="x" data-act="rmPay" aria-label="Quitar pago">${icon('close')}</button></div><div class="payx" hidden style="margin-top:8px"><div class="grid2"><label class="field"><span>Financiera</span><select class="pf">${finsOn().map(f => `<option value="${f.k}">${f.n}</option>`).join('')}</select></label><label class="field"><span>Estado del crédito</span><select class="pc"><option value="evaluacion">En evaluación</option><option value="aprobado">Aprobado</option><option value="cursado">Cursado</option></select></label></div><div class="grid2" style="margin-top:8px${isVend() ? ';display:none' : ''}"><label class="field"><span>Comisión financiera</span><div class="pfw"><select class="pft" aria-label="Tipo de comisión"><option value="pct">%</option><option value="monto">$</option></select><input class="pfc" inputmode="decimal" placeholder="0"></div></label><div class="pfm" style="align-self:end;font-size:12px;color:var(--fg3);padding-bottom:12px"></div></div></div>${w.key === 'auto' ? ppCampos() : ''}</div>`; }
+// auto que el cliente entrega en parte de pago: entra al stock con su valor de tasación como costo
+const PARTE_PAGO = 'Parte de pago';
+const ppCampos = () => `<div class="ppx" hidden style="margin-top:8px"><div class="grid2"><label class="field"><span>Marca</span><input class="pp-ma" placeholder="Kia" autocomplete="off"></label><label class="field"><span>Modelo</span><input class="pp-mo" placeholder="Rio 5" autocomplete="off"></label></div>
+  <div class="grid2" style="margin-top:8px"><label class="field"><span>Año</span><input class="pp-an" inputmode="numeric" placeholder="2017" maxlength="4"></label><label class="field"><span>Patente</span><input class="pp-pa" placeholder="HJKL·23" style="text-transform:uppercase" autocomplete="off"></label></div>
+  <div class="grid2" style="margin-top:8px"><label class="field"><span>Kilometraje</span><input class="pp-km" inputmode="numeric" placeholder="0"></label><p style="align-self:end;font-size:12px;color:var(--fg3);padding-bottom:6px">El monto de arriba es lo que le reconoces (tasación).</p></div>
+  <p style="font-size:12px;color:var(--fg3);margin-top:8px">${icon('car', 13)} Al ${isVend() ? 'aprobarse la venta' : 'registrar la venta'} entra al stock con ese valor como costo, para que le pongas precio de venta.</p></div>`;
+function ppDatos(r) {
+  const g = c => ($(c, r).value || '').trim().replace(/[<>"'`]/g, '').slice(0, 40), anio = +g('.pp-an') || null;
+  return { marca: g('.pp-ma'), modelo: g('.pp-mo'), anio, sku: fmtPatente(g('.pp-pa')), km: +String(g('.pp-km')).replace(/\D/g, '') || null };
+}
+const ppNombre = pp => [pp.marca, pp.modelo, pp.anio].filter(Boolean).join(' ') || 'Auto en parte de pago';
+// crea en stock los autos recibidos en parte de pago de una venta (una sola vez)
+function ingresarPartePago(v) {
+  let n = 0;
+  v.pagos.forEach(p => {
+    if (!p.pp || p.pp.itemId) return;
+    const id = nuevoId('i'), pp = p.pp;
+    STOCK.push({ id, w: 'auto', nombre: ppNombre(pp), sku: pp.sku || '—', costo: p.a, recon: 0, precio: 0, mercado: null, aprob: 'pendiente', ingreso: TODAY, gestor: v.vend, estado: 'disponible',
+      specs: { marca: pp.marca || '—', modelo: pp.modelo || '—', anio: pp.anio || '—', km: pp.km || '—' }, fotos: [], pubs: [], notas: '',
+      prov: { n: v.cliente, f: '—' }, creadoPor: { email: '', nombre: v.vend }, partePago: { venta: v.id, cliente: v.cliente },
+      permiso: { pagadas: 0, venc: proxMarzo() }, rev: addDays(TODAY, 30), soap: proxMarzo() });
+    pp.itemId = id; n++;
+  });
+  return n;
+}
+// comisión que paga la financiera: porcentaje del crédito o un monto fijo
+function finComDe(t, raw, a) {
+  if (t === 'monto') { const fcm = money(raw); return { fct: 'monto', fcm, fcp: a ? Math.round(fcm / a * 10000) / 100 : 0 }; }
+  const fcp = Math.min(100, Math.max(0, parseFloat(String(raw).replace(',', '.')) || 0)); return { fct: 'pct', fcp, fcm: Math.round(a * fcp / 100) };
+}
 function addPay() { $('#vf-pays').insertAdjacentHTML('beforeend', payRow()); }
 ACT.addPay = () => { addPay(); liveVenta(); };
 ACT.rmPay = (d, el) => { if ($$('#vf-pays .payw').length > 1) el.closest('.payw').remove(); liveVenta(); };
@@ -572,7 +652,8 @@ function ventaCalc() {
   else ingreso = it.op === 'Arriendo' ? precio : Math.round(precio * (+$('#vf-h').value || 0) / 100);
   const ct = $('#vf-ct').value, cvRaw = $('#vf-cv').value, cv = ct === 'monto' ? money(cvRaw) : parseFloat(String(cvRaw).replace(',', '.')) || 0;
   const com = ct === 'pct' ? Math.round(ingreso * cv / 100) : cv;
-  const pagos = $$('#vf-pays .payw').map(r => { const m = $('.pm', r).value, o = { m, a: money($('.pa', r).value), s: 'cobrado' }; if (m === 'Crédito automotriz') { o.fin = $('.pf', r).value; o.cr = $('.pc', r).value; o.s = o.cr === 'cursado' ? 'cobrado' : 'pendiente'; if (o.s === 'pendiente') o.v = addDays(TODAY, 7); o.fcp = Math.max(0, parseFloat(String($('.pfc', r).value).replace(',', '.')) || 0); o.fcm = Math.round(o.a * o.fcp / 100); o.fcs = 'pendiente'; } return o; });
+  const pagos = $$('#vf-pays .payw').map(r => { const m = $('.pm', r).value, o = { m, a: money($('.pa', r).value), s: 'cobrado' }; if (m === 'Crédito automotriz') { o.fin = $('.pf', r).value; o.cr = $('.pc', r).value; o.s = o.cr === 'cursado' ? 'cobrado' : 'pendiente'; if (o.s === 'pendiente') o.v = addDays(TODAY, 7); Object.assign(o, finComDe($('.pft', r).value, $('.pfc', r).value, o.a)); o.fcs = 'pendiente'; }
+    if (m === PARTE_PAGO) { o.pp = ppDatos(r); } return o; });
   const tot = sum(pagos, p => p.a), fcm = sum(pagos, p => p.fcm || 0);
   return { it, q, precio, ingreso, costo, ct, cv, com, pagos, tot, fcm, u: ingreso - costo - com + fcm };
 }
@@ -586,11 +667,14 @@ function liveVenta() {
   if (it0) $('#vf-pp').textContent = it0.precio ? `${W().key === 'prop' ? (it0.op === 'Arriendo' ? 'Arriendo publicado' : 'Precio publicado') : 'Precio publicado'}: ${fmt(it0.precio)}${q0 > 1 ? ' c/u' : ''}${money($('#vf-p').value) && money($('#vf-p').value) !== it0.precio * q0 ? ` · ${money($('#vf-p').value) < it0.precio * q0 ? 'descuento' : 'sobre precio'} de ${fmt(Math.abs(it0.precio * q0 - money($('#vf-p').value)))}` : ''}` : '';
   const c = ventaCalc(); if (!c) return; const ok = c.ingreso > 0 && c.tot === c.ingreso, falta = c.ingreso - c.tot;
   $$('#vf-pays .payw').forEach(r => {
+    const ppx = $('.ppx', r); if (ppx) ppx.hidden = $('.pm', r).value !== PARTE_PAGO;
     const cred = $('.pm', r).value === 'Crédito automotriz'; $('.payx', r).hidden = !cred; if (!cred) return;
     // al elegir (o cambiar) la financiera se propone su % de comisión; se puede cambiar
-    const f = $('.pf', r).value, inp = $('.pfc', r); if (r.dataset.fin !== f) { r.dataset.fin = f; inp.value = finCom(f) || ''; }
-    const pc = parseFloat(String(inp.value).replace(',', '.')) || 0, a = money($('.pa', r).value);
-    $('.pfm', r).innerHTML = pc ? `Te paga <b style="color:var(--good)">${fmt(Math.round(a * pc / 100))}</b>` : 'Sin comisión';
+    const f = $('.pf', r).value, inp = $('.pfc', r), t = $('.pft', r).value;
+    if (r.dataset.fin !== f) { r.dataset.fin = f; r.dataset.fct = 'pct'; $('.pft', r).value = 'pct'; inp.removeAttribute('data-money'); inp.inputMode = 'decimal'; inp.value = finCom(f) || ''; }
+    else if (r.dataset.fct !== t) { r.dataset.fct = t; inp.toggleAttribute('data-money', t === 'monto'); inp.inputMode = t === 'monto' ? 'numeric' : 'decimal'; inp.value = ''; }
+    const fc = finComDe(t, inp.value, money($('.pa', r).value));
+    $('.pfm', r).innerHTML = fc.fcm ? (t === 'monto' ? `Equivale al <b>${String(fc.fcp).replace('.', ',')}%</b> del crédito` : `Te paga <b style="color:var(--good)">${fmt(fc.fcm)}</b>`) : 'Sin comisión';
   });
   $('#vf-sum').innerHTML = isVend() ? `<div class="grid2" style="text-align:left"><div><span class="kicker" style="font-size:9px">Monto</span><b class="num" style="display:block;font-size:15px;margin-top:6px">${fmtM(c.ingreso)}</b></div><div><span class="kicker" style="font-size:9px">Tu comisión</span>${conAprobacion(W().key) ? (b => `<b class="num" style="display:block;font-size:15px;margin-top:6px">${b ? 'Base ' + comTxt(b.t, b.v) : 'Por definir'}</b><span style="font-size:11px;color:var(--fg3)">La jefatura puede ajustarla</span>`)(comBaseDe(W().key, $('#vf-v').value)) : `<b class="num" style="display:block;font-size:15px;margin-top:6px;color:var(--good)">${fmtM(c.com)}</b>`}</div></div>` : `<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;text-align:left"><div><span class="kicker" style="font-size:9px">Ingreso</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap">${fmtM(c.ingreso)}</b></div><div><span class="kicker" style="font-size:9px">Comisión</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap">${fmtM(c.com)}</b></div><div><span class="kicker" style="font-size:9px">Utilidad${c.fcm ? ' + financ.' : ''}</span><b class="num" style="display:block;font-size:15px;margin-top:6px;white-space:nowrap;color:${c.u >= 0 ? 'var(--good)' : 'var(--bad)'}">${fmtM(c.u)}</b></div></div>`;
   const b = $('#vf-ok'); b.className = 'cuadra ' + (ok ? 'ok' : 'no'); b.innerHTML = `<span>Pagos: ${fmt(c.tot)}</span><span style="display:flex;align-items:center;gap:6px">${ok ? icon('check', 14, 2.4) + 'Cuadra' : falta > 0 ? 'Falta ' + fmt(falta) : 'Sobra ' + fmt(-falta)}</span>`;
@@ -606,13 +690,15 @@ ACT.saveVenta = () => {
   if (isVend() && conAprobacion(w.key)) {
     extra.comBase = comBaseDe(w.key, $('#vf-v').value);
     VENTAS.push(V(id, w.key, it.id, TODAY, cliente, lead ? lead.fono : '', $('#vf-v').value, c.ingreso, c.precio, c.costo, c.ct, c.cv, c.pagos, { ...extra, aprob: 'pendiente', enviada: nowISO(), leadId: saleLead || null }));
-    it.estado = 'reservado'; it.pendVenta = id; saleLead = null;
+    it.estado = 'reservado'; it.pendVenta = id; saleLead = null; guardarVfComps(VENTAS[VENTAS.length - 1]);
     closeSheet(); while (pushes.length) popScreen(); renderAll(); go('ventas'); toast(`Enviada al administrador · ${fmtM(c.ingreso)}`, 'send');
     setTimeout(() => openVenta(id), 500); return;
   }
   VENTAS.push(V(id, w.key, it.id, TODAY, cliente, lead ? lead.fono : '', $('#vf-v').value, c.ingreso, c.precio, c.costo, c.ct, c.cv, c.pagos, extra));
+  const npp = ingresarPartePago(VENTAS[VENTAS.length - 1]); guardarVfComps(VENTAS[VENTAS.length - 1]);
   if (w.key === 'tienda') { it.stock -= c.q; it.estado = it.stock <= 0 ? 'agotado' : 'disponible'; it.ultimaVenta = TODAY; } else it.estado = it.op === 'Arriendo' ? 'arrendado' : 'vendido';
   if (saleLead) { const l = LEADS.find(x => x.id === saleLead); if (l) { l.etapa = 'ganado'; l.ts = nowISO(); l.log.push({ ts: tick(), tipo: 'etapa', txt: 'Venta cerrada' }); } saleLead = null; }
   closeSheet(); while (pushes.length) popScreen(); renderAll(); animateIn($('#scr-panel')); go('ventas'); toast(`${w.cierreLabel} registrada · ${fmtM(c.ingreso)}`);
+  if (npp) setTimeout(() => toast(npp > 1 ? `${npp} autos en parte de pago entraron al stock` : 'El auto en parte de pago entró al stock · ponle precio', 'car'), 1800);
   setTimeout(() => openVenta(id), 500);
 };
