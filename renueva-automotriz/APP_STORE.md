@@ -1,4 +1,4 @@
-# Publicar Renueva en el App Store
+# Publicar Gestix en el App Store
 
 Guía paso a paso y lista de requisitos que Apple revisa. Lo marcado ✅ ya está hecho en el código.
 
@@ -41,7 +41,7 @@ npm run ios:open   # abre Xcode
 ```
 
 En Xcode:
-1. Target **App** → *Signing & Capabilities* → elegir tu *Team* y dejar *Automatically manage signing*. Bundle ID: `cl.renueva.app`.
+1. Target **App** → *Signing & Capabilities* → elegir tu *Team* y dejar *Automatically manage signing*. Bundle ID: `cl.gestix.app`.
 2. *General* → Version `1.0.0`, Build `1`.
 3. Probar en un iPhone real: recordatorios, cámara, iniciar sesión, eliminar una cuenta de prueba.
 4. *Product → Archive* → *Distribute App* → *App Store Connect* → *Upload*.
@@ -50,7 +50,7 @@ Cada vez que cambie la web: `npm run ios` y volver a archivar subiendo el númer
 
 ## Ficha en App Store Connect
 
-- **Nombre**: Renueva · **Subtítulo**: Ventas, stock y caja para tu negocio
+- **Nombre**: Gestix · **Subtítulo**: Ventas, stock y caja para tu negocio
 - **Categoría**: Negocios (secundaria: Productividad)
 - **Idioma principal**: Español (Chile o México)
 - **URL de privacidad**: https://renueva-weld.vercel.app/privacidad.html
@@ -71,7 +71,7 @@ Debe coincidir con `PrivacyInfo.xcprivacy`.
 
 ### Notas para el revisor (copiar y pegar)
 
-> Renueva es un software de gestión para empresas (automotoras, corredoras de propiedades y tiendas). Las empresas contratan el servicio directamente con nosotros fuera de la app, y sus empleados (vendedores y usuarios de solo lectura) usan la app iOS con la cuenta que la empresa les asigna. La app no vende contenido digital ni muestra ofertas o enlaces de compra (Guideline 3.1.3(c), Enterprise Services).
+> Gestix es un software de gestión para empresas (automotoras, corredoras de propiedades y tiendas). Las empresas contratan el servicio directamente con nosotros fuera de la app, y sus empleados (vendedores y usuarios de solo lectura) usan la app iOS con la cuenta que la empresa les asigna. La app no vende contenido digital ni muestra ofertas o enlaces de compra (Guideline 3.1.3(c), Enterprise Services).
 >
 > Cuenta de prueba: correo `...` / contraseña `...` (administrador de una empresa demo con datos de ejemplo).
 >

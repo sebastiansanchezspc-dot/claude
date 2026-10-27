@@ -38,21 +38,21 @@ const deepClean = o => typeof o === 'string' ? clean(o) : Array.isArray(o) ? o.m
 /* ---------------- mundos ---------------- */
 const WORLDS = {
   auto: {
-    key: 'auto', name: 'Auto', brand: 'Renueva Auto', icon: 'car', accent: '#C8F03C', ink: '#141900',
+    key: 'auto', name: 'Auto', brand: 'Gestix Auto', icon: 'car', accent: '#C8F03C', ink: '#141900',
     desc: 'Stock, papeles y cierres de tu automotora', itemOne: 'Vehículo', itemMany: 'Vehículos',
     tabs: { stock: 'Stock', ventas: 'Ventas' }, idLabel: 'Patente', meta: 6000000, metodos: ['Efectivo', 'Transferencia', 'Crédito automotriz', 'Tarjeta de crédito', 'Cheque'],
     nombrePh: 'Ej: Toyota Corolla 2020', cierreLabel: 'Venta',
     campos: [['marca', 'Marca', 'text'], ['modelo', 'Modelo', 'text'], ['anio', 'Año', 'number'], ['km', 'Kilometraje', 'number'], ['color', 'Color', 'text'], ['tipo', 'Tipo', 'text'], ['transmision', 'Transmisión', 'text'], ['combustible', 'Combustible', 'text']],
   },
   prop: {
-    key: 'prop', name: 'Propiedades', brand: 'Renueva Propiedades', icon: 'building', accent: '#B7A6FF', ink: '#150F33',
+    key: 'prop', name: 'Propiedades', brand: 'Gestix Propiedades', icon: 'building', accent: '#B7A6FF', ink: '#150F33',
     desc: 'Cartera, visitas y honorarios de tu corretaje', itemOne: 'Propiedad', itemMany: 'Propiedades',
     tabs: { stock: 'Cartera', ventas: 'Operaciones' }, idLabel: 'Rol de avalúo', meta: 4000000, metodos: ['Transferencia', 'Vale vista', 'Cheque', 'Efectivo'],
     nombrePh: 'Ej: Depto 3D, Providencia', cierreLabel: 'Operación',
     campos: [['operacion', 'Operación', 'text'], ['tipo', 'Tipo de propiedad', 'text'], ['direccion', 'Dirección', 'text'], ['comuna', 'Comuna', 'text'], ['m2c', 'm² construidos', 'number'], ['m2t', 'm² terreno', 'number'], ['dorm', 'Dormitorios', 'number'], ['banos', 'Baños', 'number']],
   },
   tienda: {
-    key: 'tienda', name: 'Tienda', brand: 'Renueva Tienda', icon: 'bag', accent: '#FF8A6B', ink: '#2A0D05',
+    key: 'tienda', name: 'Tienda', brand: 'Gestix Tienda', icon: 'bag', accent: '#FF8A6B', ink: '#2A0D05',
     desc: 'Inventario, reposición y caja de tu comercio', itemOne: 'Producto', itemMany: 'Productos',
     tabs: { stock: 'Productos', ventas: 'Ventas' }, idLabel: 'SKU', meta: 5000000, metodos: ['Efectivo', 'Débito', 'Tarjeta de crédito', 'Transferencia'],
     nombrePh: 'Ej: Zapatillas Nike Air Max', cierreLabel: 'Venta',

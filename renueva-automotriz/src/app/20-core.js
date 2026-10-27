@@ -242,7 +242,7 @@ function openSheet(title, html, onReady) {
 // aviso dentro de la app: se va solo, se quita arrastrándolo hacia arriba y al tocarlo abre lo que avisa
 function notify(title, body, onTap) {
   const el = document.createElement('div'); el.className = 'notif'; el.setAttribute('role', 'status');
-  el.innerHTML = `<span class="nicon">${logo(22, 'var(--accent-ink)')}</span><span class="grow"><span class="top"><b>RENUEVA</b><i>${onTap ? 'toca para abrir' : 'ahora'}</i></span><p class="t">${clean(title)}</p><p class="b">${clean(body)}</p></span>`;
+  el.innerHTML = `<span class="nicon">${logo(22, 'var(--accent-ink)')}</span><span class="grow"><span class="top"><b>GESTIX</b><i>${onTap ? 'toca para abrir' : 'ahora'}</i></span><p class="t">${clean(title)}</p><p class="b">${clean(body)}</p></span>`;
   $('#shell').appendChild(el); rAF2(() => el.classList.add('in'));
   let gone = false, y0 = null, dy = 0, t0 = 0;
   const quitar = () => { if (gone) return; gone = true; el.style.transition = ''; el.style.transform = ''; el.classList.remove('in'); setTimeout(() => el.remove(), 600); };

@@ -34,7 +34,7 @@ export async function encrypt(sub: Sub, payload: Uint8Array, salt = crypto.getRa
   return cat(header, ct)
 }
 
-// firma VAPID: identifica a Renueva ante el servicio de notificaciones de Apple/Google/Mozilla
+// firma VAPID: identifica a Gestix ante el servicio de notificaciones de Apple/Google/Mozilla
 export async function vapidAuth(endpoint: string, v: Vapid) {
   const pub = b64u.dec(v.publicKey)
   const jwk = { kty: 'EC', crv: 'P-256', d: v.privateKey, x: b64u.enc(pub.slice(1, 33)), y: b64u.enc(pub.slice(33, 65)), ext: true }

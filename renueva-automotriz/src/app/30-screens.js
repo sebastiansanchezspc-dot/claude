@@ -8,7 +8,7 @@ function renderLobby() {
   const sample = { auto: plate('KLPR·90'), prop: rolTag('004-112'), tienda: skuTag('NK-AM-42') };
   const stat = { auto: () => `<b>${activos('auto').length}</b> vehículos`, prop: () => `<b>${activos('prop').length}</b> propiedades`, tienda: () => `<b>${activos('tienda').length}</b> productos` };
   $('#lobby').innerHTML = `
-    <div class="brandbar">${logo(34, 'var(--fg)')}<span class="wordmark">renueva</span></div>
+    <div class="brandbar">${logo(34, 'var(--fg)')}<span class="wordmark">gestix</span></div>
     <h1>¿Dónde trabajamos hoy?</h1>
     <p class="sub">Cada mundo es un espacio separado: su inventario, su caja y su equipo. Nada se mezcla.</p>
     <div class="worlds">${Object.values(WORLDS).map((w, i) => `
@@ -100,7 +100,7 @@ function sec(label, count = '', more = '') { return `<div class="sec"><span clas
 const TABS_ALL = () => [{ k: 'panel', l: 'Panel', i: 'gauge' }, { k: 'stock', l: W().tabs.stock, i: W().icon }, { k: 'ventas', l: W().tabs.ventas, i: 'dollar' }, { k: 'caja', l: 'Caja', i: 'calc' }, { k: 'equipo', l: 'Equipo', i: 'people' }];
 const TABS = () => isVend() ? TABS_ALL().filter(t => ['panel', 'stock', 'ventas'].includes(t.k)) : TABS_ALL();
 function renderDock() {
-  $('#dock').innerHTML = `<div class="dock-brand">${logo(26, 'var(--fg)')}renueva</div><span class="pill" id="pill"></span>` + TABS().map(t => `<button data-act="tab" data-tab="${t.k}" class="${state.tab === t.k ? 'active' : ''}" aria-label="${t.l}">${icon(t.i, 22)}<span>${t.l}</span></button>`).join('');
+  $('#dock').innerHTML = `<div class="dock-brand">${logo(26, 'var(--fg)')}gestix</div><span class="pill" id="pill"></span>` + TABS().map(t => `<button data-act="tab" data-tab="${t.k}" class="${state.tab === t.k ? 'active' : ''}" aria-label="${t.l}">${icon(t.i, 22)}<span>${t.l}</span></button>`).join('');
   movePill(true);
 }
 function movePill(instant) {

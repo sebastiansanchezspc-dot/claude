@@ -26,7 +26,7 @@ Deno.serve(async req => {
       for (const p of planes ?? []) for (const ciclo of ['mensual', 'anual']) {
         const planId = planIdFlow(p.k, ciclo)
         try {
-          await flow('POST', '/plans/create', { planId, name: `Renueva ${p.nombre} ${ciclo}`, currency: 'CLP', amount: ciclo === 'anual' ? p.precio_anual : p.precio_mensual, interval: ciclo === 'anual' ? 4 : 3, urlCallback: WEBHOOK_URL, days_until_due: 3, charges_retries_number: 3 })
+          await flow('POST', '/plans/create', { planId, name: `Gestix ${p.nombre} ${ciclo}`, currency: 'CLP', amount: ciclo === 'anual' ? p.precio_anual : p.precio_mensual, interval: ciclo === 'anual' ? 4 : 3, urlCallback: WEBHOOK_URL, days_until_due: 3, charges_retries_number: 3 })
           out.push(planId + ': creado')
         } catch (e) { out.push(planId + ': ' + (e as Error).message) }
       }

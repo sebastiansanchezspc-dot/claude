@@ -11,7 +11,7 @@
 		<string>es</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-        <string>Renueva</string>
+        <string>Gestix</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -31,9 +31,9 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Renueva usa la cámara solo cuando tú lo eliges, para sacar fotos de vehículos, propiedades, productos y comprobantes.</string>
+	<string>Gestix usa la cámara solo cuando tú lo eliges, para sacar fotos de vehículos, propiedades, productos y comprobantes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Renueva accede a tus fotos solo cuando tú eliges una, para agregarla a un vehículo, propiedad, producto o comprobante.</string>
+	<string>Gestix accede a tus fotos solo cuando tú eliges una, para agregarla a un vehículo, propiedad, producto o comprobante.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
