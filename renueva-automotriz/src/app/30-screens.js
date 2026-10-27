@@ -305,6 +305,7 @@ function rowItem(it, k = 0) {
     sub = `${skuTag(it.sku)}<span class="chip ${it.stock === 0 ? 'bad' : it.stock < it.minimo ? 'warn' : ''}">${it.stock} un.</span>`;
     right = `<span class="p">${fmt(it.precio)}</span>${daysSince(it.ultimaVenta) >= 45 && it.stock ? `<span class="days d3">${daysSince(it.ultimaVenta)}<small>S/VENTA</small></span>` : it.stock < it.minimo ? '<span class="chip bad">Reponer</span>' : '<span class="chip good">OK</span>'}`;
   }
+  if (it.aprob === 'pendiente') right = `<span class="p" style="color:var(--fg3)">${it.precioSug ? fmtM(it.precioSug) : 'Sin precio'}</span><span class="chip warn">Por aprobar</span>`;
   return `<button class="row" data-act="item" data-id="${it.id}" style="animation-delay:${Math.min(k, 8) * 0.045}s"><span class="thumb">${thumb}</span><span class="rm"><p class="rt">${it.nombre}</p><p class="rs">${sub}</p></span><span class="rr">${right}</span></button>`;
 }
 const FILTERS = {

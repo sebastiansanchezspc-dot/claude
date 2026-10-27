@@ -138,10 +138,15 @@ function avisoAprobacion(antes, v) {
   if (isVend() && antes === 'pendiente' && v.aprob === 'aprobada') notify('Venta aprobada', `${v.cliente} · tu comisión ${fmt(comision(v))}`);
   if (isVend() && antes === 'pendiente' && v.aprob === 'rechazada') notify('Venta rechazada', v.motivo || 'Revisa con el administrador');
 }
+function avisoItem(antes, it, nuevo) {
+  if (isAdmin() && it.aprob === 'pendiente' && antes !== 'pendiente') notify(`${WORLDS[it.w] ? WORLDS[it.w].itemOne : 'Ítem'} por aprobar`, `${it.creadoPor ? it.creadoPor.nombre : 'Un vendedor'} ingresó ${it.nombre}${it.precioSug ? ' · sugiere ' + fmtM(it.precioSug) : ''}`, () => openItem(it.id));
+  if (isVend() && antes === 'pendiente' && !it.aprob && !nuevo) notify('Precio listo', `${it.nombre} quedó a la venta en ${fmtM(it.precio)}`, () => openItem(it.id));
+}
 function applyRemote(col, id, data) {
   if (col === 'config') { if (data && id === 'cat') Object.keys(CAT).forEach(k => { if (data[k]) CAT[k] = deepClean(data[k]); }); if (data && id === 'prefs') PREFS.accent = data.accent || {}; rerender(); return; }
   const arr = COLS[col]; if (!arr) return; const i = arr.findIndex(x => String(x.id) === String(id));
   if (col === 'ventas' && data) avisoAprobacion(i >= 0 ? arr[i].aprob : null, deepClean(data));
+  if (col === 'items' && data) avisoItem(i >= 0 ? arr[i].aprob : null, deepClean(data), i < 0);
   if (!data) { if (i >= 0) arr.splice(i, 1); } else if (i >= 0) arr[i] = deepClean(data); else arr.push(deepClean(data));
   rerender();
 }
