@@ -40,5 +40,5 @@ export function setupNative(RV) {
       })
     } catch (e) { console.warn('recordatorios', e) }
   }
-  RV.systemNotify = () => false // con la app abierta se muestra el aviso propio de Renueva
+  RV.systemNotify = () => false // con la app abierta se muestra el aviso propio de Gestix
 }

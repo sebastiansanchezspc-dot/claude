@@ -68,8 +68,8 @@ async function pintarPush() {
   const txt = {
     activo: [`<span class="chip good">${icon('check', 12)}Activadas</span>`, 'Te llegarán los recordatorios aunque la app esté cerrada.', `<div class="grid2" style="margin-top:12px"><button class="btn ghost small" data-act="pushProbar">${icon('send')}Enviar prueba</button><button class="btn ghost small" data-act="pushOff">Desactivar</button></div>`],
     inactivo: ['', 'Recibe tus recordatorios como notificación del celular, aunque la app esté cerrada.', `<button class="btn primary" style="margin-top:12px;width:100%" data-act="pushOn">${icon('bell')}Activar notificaciones</button>`],
-    instalar: ['', 'En iPhone las notificaciones funcionan con la app instalada: toca Compartir → <b>Agregar a inicio</b>, abre Renueva desde el ícono y vuelve aquí.', ''],
-    bloqueado: [`<span class="chip bad">Bloqueadas</span>`, 'Las bloqueaste en este celular. Actívalas en Ajustes del iPhone → Notificaciones → Renueva y vuelve aquí.', ''],
+    instalar: ['', 'En iPhone las notificaciones funcionan con la app instalada: toca Compartir → <b>Agregar a inicio</b>, abre Gestix desde el ícono y vuelve aquí.', ''],
+    bloqueado: [`<span class="chip bad">Bloqueadas</span>`, 'Las bloqueaste en este celular. Actívalas en Ajustes del iPhone → Notificaciones → Gestix y vuelve aquí.', ''],
     nativo: [`<span class="chip good">${icon('check', 12)}App instalada</span>`, 'Los recordatorios llegan como notificación del iPhone.', ''],
     demo: ['', 'En la demo no se envían notificaciones. Crea tu cuenta para activarlas.', ''],
     no: ['', 'Este navegador no permite notificaciones push.', ''],
@@ -251,11 +251,11 @@ function fichaVendedor(email, nombre, rol, mundos) {
   saved(); if (state.world) { renderEquipo(); }
 }
 function shareInvite(email, link) {
-  const txt = `Te invito a usar Renueva con ${ORG.nombre}. Entra aquí y crea tu cuenta con este correo (${email}): ${link}`;
+  const txt = `Te invito a usar Gestix con ${ORG.nombre}. Entra aquí y crea tu cuenta con este correo (${email}): ${link}`;
   openSheet('Invitación lista', `<div style="display:flex;flex-direction:column;gap:14px"><p style="font-size:13.5px;color:var(--fg2)">Envíale este enlace a <b style="color:var(--fg)">${email}</b>. Al crear su cuenta con ese correo entra directo a tu empresa.</p>
     <div class="card" style="background:var(--s2);word-break:break-all;font:500 12px var(--mono)">${link}</div>
     <div class="grid2"><button class="btn ghost" data-act="copyInvite" data-l="${link}">${icon('copy')}Copiar</button><a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${icon('whatsapp')}WhatsApp</a></div>
-    <a class="btn ghost" href="mailto:${email}?subject=${encodeURIComponent('Invitación a Renueva')}&body=${encodeURIComponent(txt)}">${icon('send')}Enviar por correo</a></div>`);
+    <a class="btn ghost" href="mailto:${email}?subject=${encodeURIComponent('Invitación a Gestix')}&body=${encodeURIComponent(txt)}">${icon('send')}Enviar por correo</a></div>`);
 }
 ACT.reshareInv = d => { const u = USUARIOS.find(x => x.id === d.id); closeSheet(); setTimeout(() => shareInvite(u.email, location.origin + location.pathname + '?inv=' + u.token), 350); };
 ACT.copyInvite = d => { navigator.clipboard && navigator.clipboard.writeText(d.l).then(() => toast('Enlace copiado', 'copy'), () => toast('No se pudo copiar', 'warn')); };

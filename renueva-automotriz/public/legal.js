@@ -1,4 +1,4 @@
-// Datos del responsable de Renueva, usados por las páginas de privacidad, términos y soporte.
+// Datos del responsable de Gestix, usados por las páginas de privacidad, términos y soporte.
 // Completar antes de publicar en la App Store (Apple rechaza textos de relleno).
 window.LEGAL = {
   responsable: 'Sebastian Alejandro Sanchez Urbina', // nombre de la persona o razón social

@@ -1,4 +1,4 @@
-// Notificaciones push de Renueva.
+// Notificaciones push de Gestix.
 //   action "cron"   → (pg_cron, cada minuto, con x-cron-key) envía los recordatorios que vencieron
 //   action "clave"  → (usuario con sesión) devuelve la clave pública para suscribir el celular
 //   action "prueba" → (usuario con sesión) envía una notificación de prueba a sus celulares

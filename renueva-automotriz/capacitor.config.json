@@ -1,11 +1,11 @@
 {
-  "appId": "cl.renueva.app",
-  "appName": "Renueva",
+  "appId": "cl.gestix.app",
+  "appName": "Gestix",
   "webDir": "dist",
   "backgroundColor": "#0D0E10",
   "ios": {
     "contentInset": "never",
-    "scheme": "Renueva",
+    "scheme": "Gestix",
     "limitsNavigationsToAppBoundDomains": false
   },
   "plugins": {

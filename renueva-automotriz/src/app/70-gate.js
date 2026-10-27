@@ -1,11 +1,11 @@
 /* =====================================================================
    ENTRADA: iniciar sesión, crear cuenta, crear empresa, invitaciones,
-   estado de guardado y panel de la plataforma (dueño de Renueva)
+   estado de guardado y panel de la plataforma (dueño de Gestix)
    ===================================================================== */
 const gate = { view: 'login', busy: false, err: '', info: '', ctx: null, user: null };
 
 function gateShell(inner) {
-  return `<div class="brandbar">${logo(34, 'var(--fg)')}<span class="wordmark">renueva</span></div>${inner}
+  return `<div class="brandbar">${logo(34, 'var(--fg)')}<span class="wordmark">gestix</span></div>${inner}
     <div class="lobby-foot" style="margin-top:auto;padding-top:26px"><span><button type="button" data-act="legal" data-p="privacidad" style="all:unset;cursor:pointer">Privacidad</button> · <button type="button" data-act="legal" data-p="terminos" style="all:unset;cursor:pointer">Términos</button> · <button type="button" data-act="legal" data-p="soporte" style="all:unset;cursor:pointer">Soporte</button></span><a href="?demo" style="color:var(--accent);font-weight:700;text-decoration:none">Ver demo</a></div>`;
 }
 const gErr = () => gate.err ? `<div class="tip" style="margin:0">${icon('warn')}<span>${clean(gate.err)}</span></div>` : '';
@@ -21,7 +21,7 @@ function renderGate(view) {
   else if (v === 'login') h = `<h1>Hola de nuevo</h1><p class="sub">Entra para ver tu stock, tus ventas y tu caja.</p>
     <form class="gform">${gErr()}${gInfo()}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gField('g-p', 'Contraseña', 'password', '••••••••', 'autocomplete="current-password"')}
     ${gBtn('gLogin', 'Entrar')}<div style="display:flex;justify-content:space-between">${gLink('gToRegistro', 'Crear cuenta')}${gLink('gToRecuperar', 'Olvidé mi contraseña')}</div></form>`;
-  else if (v === 'registro') h = `<h1>${pendingInv() || enIOS() ? 'Únete a tu equipo' : 'Prueba Renueva 14 días'}</h1><p class="sub">${pendingInv() || enIOS() ? 'Crea tu cuenta con el mismo correo al que te llegó la invitación de tu empresa.' : 'Sin tarjeta. Todos los mundos y hasta 7 usuarios durante la prueba.'}</p>
+  else if (v === 'registro') h = `<h1>${pendingInv() || enIOS() ? 'Únete a tu equipo' : 'Prueba Gestix 14 días'}</h1><p class="sub">${pendingInv() || enIOS() ? 'Crea tu cuenta con el mismo correo al que te llegó la invitación de tu empresa.' : 'Sin tarjeta. Todos los mundos y hasta 7 usuarios durante la prueba.'}</p>
     <form class="gform">${gErr()}${gField('g-n', 'Tu nombre', 'text', 'Nombre y apellido', 'autocomplete="name"')}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gField('g-p', 'Contraseña', 'password', 'Mínimo 8 caracteres', 'autocomplete="new-password"')}
     ${gBtn('gRegistro', 'Crear cuenta')}<div>${gLink('gToLogin', 'Ya tengo cuenta')}</div>
     <p style="font-size:11.5px;color:var(--fg3)">Al crear tu cuenta aceptas los <button type="button" data-act="legal" data-p="terminos" style="all:unset;color:var(--accent);cursor:pointer">términos del servicio</button> y la <button type="button" data-act="legal" data-p="privacidad" style="all:unset;color:var(--accent);cursor:pointer">política de privacidad</button>.</p></form>`;
@@ -45,7 +45,7 @@ function renderGate(view) {
       ${gBtn('gCrearOrg', 'Crear empresa y empezar', 'check')}`}
       <div>${gLink('gSalir', 'Cerrar sesión')}</div></div>`;
   }
-  else if (v === 'setup') h = `<h1>Falta un paso</h1><p class="sub">La app ya está conectada a Supabase, pero la base de datos aún no tiene las tablas de Renueva.</p>
+  else if (v === 'setup') h = `<h1>Falta un paso</h1><p class="sub">La app ya está conectada a Supabase, pero la base de datos aún no tiene las tablas de Gestix.</p>
     <div class="gform"><div class="card" style="font-size:13px;color:var(--fg2);line-height:1.5">En Supabase abre <b style="color:var(--fg)">SQL Editor</b>, pega el contenido del archivo <span class="mono" style="font-size:11.5px">supabase/migrations/20261023000000_renueva.sql</span> y presiona <b style="color:var(--fg)">Run</b>. Luego recarga esta página.</div>
     <button type="button" class="btn primary" data-act="gReload">${icon('history')}Ya lo hice, recargar</button><div>${gLink('gSalir', 'Cerrar sesión')}</div></div>`;
   else if (v === 'error') h = `<h1>No pudimos conectar</h1><p class="sub">${clean(gate.err || 'Revisa tu conexión a internet.')}</p><div class="gform"><button type="button" class="btn primary" data-act="gReload">${icon('history')}Reintentar</button><div>${gLink('gSalir', 'Cerrar sesión')}</div></div>`;

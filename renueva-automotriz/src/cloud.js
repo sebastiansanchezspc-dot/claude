@@ -365,7 +365,7 @@ async function guardarSub(s) {
 async function pushActivar() {
   // el permiso se pide primero, directo del toque del usuario (iOS lo exige)
   const perm = await Notification.requestPermission()
-  if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Bloqueaste las notificaciones. Actívalas en Ajustes del iPhone → Notificaciones → Renueva.' : 'No se activaron las notificaciones')
+  if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Bloqueaste las notificaciones. Actívalas en Ajustes del iPhone → Notificaciones → Gestix.' : 'No se activaron las notificaciones')
   const { data, error } = await sb.functions.invoke('push', { body: { action: 'clave' } })
   if (error || !data || !data.publicKey) throw new Error('No pudimos activar las notificaciones. Intenta de nuevo.')
   const reg = await navigator.serviceWorker.ready
