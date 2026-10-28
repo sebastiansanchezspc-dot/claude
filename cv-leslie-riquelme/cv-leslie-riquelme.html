@@ -72,18 +72,6 @@
   }
   .header .role span { color: var(--muted); font-weight: 400; }
   .header .top { display: flex; justify-content: space-between; align-items: center; gap: 6mm; }
-  .monogram {                  /* iniciales con doble anillo */
-    flex: none; width: 21mm; height: 21mm; border-radius: 50%;
-    border: 0.8pt solid var(--accent);
-    display: grid; place-items: center; position: relative;
-    font-family: "Cormorant Garamond", Georgia, serif;
-    font-size: 21pt; font-weight: 500; color: var(--accent);
-    letter-spacing: .04em;
-  }
-  .monogram::before {
-    content: ""; position: absolute; inset: 1.3mm; border-radius: 50%;
-    border: 0.5pt solid var(--accent-soft);
-  }
 
   /* ---------- Franja de fortalezas ---------- */
   .strengths { padding: 5mm 16mm 0; }
@@ -239,7 +227,6 @@
         <h1>Leslie Riquelme</h1>
         <div class="role">Jefa de Operaciones Financieras <span>· Banca Empresas</span></div>
       </div>
-      <div class="monogram" aria-hidden="true">LR</div>
     </div>
     <!-- DATOS PERSONALES: reemplazar los textos entre corchetes -->
     <div class="contact">
