@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Leslie Riquelme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2b2a2b;
+    --muted: #66606a;
+    --accent: #6f5262;
+    --line: #ddd3d8;
+    --paper: #ffffff;
+  }
+  @page { size: A4; margin: 15mm 18mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: #eeeaec; }
+  body {
+    font-family: "Lato", "Helvetica Neue", Arial, sans-serif;
+    font-variant-ligatures: none;
+    color: var(--ink);
+    font-size: 9.8pt;
+    line-height: 1.5;
+    background: var(--paper);
+    width: 210mm;
+    min-height: 297mm;
+    margin: 10mm auto;
+    padding: 15mm 18mm;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, .08);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @media print {
+    html { background: #fff; }
+    body { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+  }
+
+  /* ---------- Encabezado ---------- */
+  header { text-align: center; padding-bottom: 5mm; border-bottom: 0.8pt solid var(--accent); }
+  h1 {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 600;
+    font-size: 30pt;
+    line-height: 1.05;
+    color: var(--accent);
+    letter-spacing: .02em;
+  }
+  .title {
+    margin-top: 1.5mm;
+    font-size: 9pt;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .contact { margin-top: 3mm; font-size: 9pt; color: var(--muted); }
+  .contact .sep { color: var(--line); margin: 0 2mm; }
+  .ph { color: var(--accent); font-style: italic; }   /* datos por completar */
+
+  /* ---------- Secciones ---------- */
+  section { margin-top: 6mm; }
+  h2 {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 600;
+    font-size: 13.5pt;
+    color: var(--accent);
+    letter-spacing: .03em;
+    padding-bottom: 1mm;
+    margin-bottom: 2.5mm;
+    border-bottom: 0.5pt solid var(--line);
+  }
+  p { text-align: justify; }
+
+  .skills { display: grid; grid-template-columns: 1fr 1fr; gap: .6mm 8mm; list-style: none; }
+  .skills li { padding-left: 4mm; position: relative; }
+  .skills li::before, .job li::before {
+    content: ""; position: absolute; left: .3mm; top: 2.1mm;
+    width: 1.3mm; height: 1.3mm; transform: rotate(45deg);
+    background: var(--accent); opacity: .55;
+  }
+
+  /* ---------- Experiencia ---------- */
+  .company { font-weight: 700; font-size: 10.5pt; margin-bottom: 2.5mm; }
+  .company span { font-weight: 400; color: var(--muted); }
+  .job { break-inside: avoid; }
+  .job + .job { margin-top: 4mm; }
+  .job .head { display: flex; justify-content: space-between; align-items: baseline; gap: 4mm; }
+  .job h3 { font-size: 10pt; font-weight: 700; color: var(--ink); }
+  .job .date { flex: none; font-size: 9pt; color: var(--muted); }
+  .job ul { list-style: none; margin-top: 1.2mm; }
+  .job li { position: relative; padding-left: 4mm; margin-top: .6mm; text-align: justify; }
+
+  /* ---------- Formación ---------- */
+  .edu { display: grid; grid-template-columns: 24mm 1fr; row-gap: 1.6mm; }
+  .edu .yr { color: var(--muted); }
+  .edu .t { font-weight: 700; }
+  .edu .t span { font-weight: 400; color: var(--muted); }
+
+  .line b { color: var(--ink); }
+  .line + .line { margin-top: 1mm; }
+
+  @media screen and (max-width: 700px) {
+    body { width: auto; margin: 0; padding: 20px 16px; }
+    .skills { grid-template-columns: 1fr; }
+    .job .head { flex-direction: column; gap: 0; }
+    .edu { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Leslie Riquelme</h1>
+  <div class="title">Jefa de Operaciones Financieras</div>
+  <!-- DATOS PERSONALES: reemplazar los textos entre corchetes -->
+  <div class="contact">
+    <span class="ph">[Teléfono]</span><span class="sep">|</span>
+    <span class="ph">[Correo]</span><span class="sep">|</span>
+    <span class="ph">[LinkedIn]</span><span class="sep">|</span>
+    <span class="ph">[Comuna]</span>, Santiago
+  </div>
+</header>
+
+<section>
+  <h2>Perfil Profesional</h2>
+  <p>
+    Ingeniera Comercial con más de 17 años de experiencia en operaciones financieras en Itaú Chile, de los
+    cuales 12 en cargos de supervisión y jefatura en Banca Empresas. Experiencia en créditos comerciales,
+    factoring, boletas de garantía, operaciones con garantía estatal y cartera vencida y castigada.
+    Orientada a la gestión de equipos, la mejora continua de procesos y la coordinación con las distintas
+    áreas para asegurar el cumplimiento de plazos y la calidad de las operaciones.
+  </p>
+</section>
+
+<section>
+  <h2>Competencias</h2>
+  <ul class="skills">
+    <li>Gestión y liderazgo de equipos</li>
+    <li>Mejora continua de procesos</li>
+    <li>Coordinación entre áreas</li>
+    <li>Control operacional y contable</li>
+    <li>Gestión de incidencias</li>
+    <li>Operaciones de Banca Empresas</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Experiencia Profesional</h2>
+  <div class="company">Itaú Chile <span>· Santiago · 2009 – actualidad</span></div>
+
+  <div class="job">
+    <div class="head">
+      <h3>Jefa de Operaciones Financieras – Créditos Comerciales</h3>
+      <span class="date">Ago 2023 – Actualidad</span>
+    </div>
+    <ul>
+      <li>Liderazgo de un equipo de 10 a 15 personas a cargo del curse de operaciones de Banca Empresas, asegurando el cumplimiento de los plazos establecidos.</li>
+      <li>Gestión de los procesos de créditos comerciales, boletas de garantía y cartera vencida y castigada.</li>
+      <li>Coordinación con las áreas comerciales, de riesgo, contabilidad y tecnología para la continuidad de las operaciones.</li>
+      <li>Control del funcionamiento de los sistemas, detección y escalamiento de incidencias y seguimiento de su corrección.</li>
+      <li>Análisis y control contable de las cuentas del área.</li>
+      <li>Implementación de mejoras en los procesos, incluyendo iniciativas apoyadas en inteligencia artificial (Microsoft Copilot).</li>
+    </ul>
+  </div>
+
+  <div class="job">
+    <div class="head">
+      <h3>Jefa de Operaciones Financieras – Factoring</h3>
+      <span class="date">Oct 2022 – Ago 2023</span>
+    </div>
+    <ul>
+      <li>Liderazgo del equipo de operaciones de factoring.</li>
+      <li>Gestión de los procesos de curse, visado, post venta y cobranza.</li>
+      <li>Análisis y control contable de las cuentas del área.</li>
+    </ul>
+  </div>
+
+  <div class="job">
+    <div class="head">
+      <h3>Supervisora de Producción Empresas</h3>
+      <span class="date">Nov 2014 – Sep 2022</span>
+    </div>
+    <ul>
+      <li>Supervisión del proceso de boletas de garantía y del curse de créditos de Banca Empresas.</li>
+      <li>Curse de operaciones con garantía estatal (FOGAPE, FOGAIN y SGR).</li>
+      <li>Análisis contable de las cuentas de los productos a cargo.</li>
+    </ul>
+  </div>
+
+  <div class="job">
+    <div class="head">
+      <h3>Analista de Operaciones</h3>
+      <span class="date">Abr 2009 – Nov 2014</span>
+    </div>
+    <ul>
+      <li>Curse de créditos de Banca Personas: renegociaciones, consumo y campañas.</li>
+      <li>Análisis contable de las cuentas del área.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Formación Académica</h2>
+  <div class="edu">
+    <div class="yr">2004 – 2010</div>
+    <div class="t">Ingeniería Comercial, Administración de Empresas <span>– Universidad Santo Tomás</span></div>
+    <div class="yr">2014</div>
+    <div class="t">Estudios de MBA en Negocios Internacionales <span>– Universidad Santo Tomás</span></div>
+    <div class="yr">2005 – 2008</div>
+    <div class="t">Minor en Psicología Social <span>– Universidad Santo Tomás</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Formación Complementaria</h2>
+  <div class="edu">
+    <div class="yr">2024</div>
+    <div class="t">Curso Fintech <span>– Pontificia Universidad Católica de Chile</span></div>
+    <div class="yr">2023</div>
+    <div class="t">Diplomado en Data Science <span>– Universidad del Desarrollo</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Sistemas y Habilidades</h2>
+  <p class="line"><b>Sistemas:</b> AS400, Altamira, IBS, Excel, Microsoft 365, Microsoft Copilot.</p>
+  <p class="line"><b>Habilidades:</b> Responsabilidad, proactividad, pensamiento crítico, trabajo en equipo y manejo bajo presión.</p>
+</section>
+
+</body>
+</html>
