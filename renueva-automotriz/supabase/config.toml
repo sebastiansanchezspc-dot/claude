@@ -349,3 +349,7 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # Flow llama a esta función sin sesión de usuario: verifica todo consultando a Flow con la firma propia.
 [functions.flow-webhook]
 verify_jwt = false
+
+# La base de datos llama a esta función sin sesión de usuario: se valida con la llave de pg_cron (x-cron-key).
+[functions.agente-ig]
+verify_jwt = false
