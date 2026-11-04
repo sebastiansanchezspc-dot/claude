@@ -25,4 +25,8 @@ function renuevaApp() {
   }
 }
 
-export default defineConfig({ plugins: [renuevaApp()] })
+// dos páginas: la app (index.html) y la ficha pública que abre el código QR (ficha.html)
+export default defineConfig({
+  plugins: [renuevaApp()],
+  build: { rollupOptions: { input: { main: join(process.cwd(), 'index.html'), ficha: join(process.cwd(), 'ficha.html') } } },
+})

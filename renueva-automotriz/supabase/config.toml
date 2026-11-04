@@ -349,3 +349,6 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # Flow llama a esta función sin sesión de usuario: verifica todo consultando a Flow con la firma propia.
 [functions.flow-webhook]
 verify_jwt = false
+
+[functions.ficha]
+verify_jwt = false

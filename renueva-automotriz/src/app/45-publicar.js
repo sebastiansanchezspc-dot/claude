@@ -3,11 +3,12 @@
    fotos del auto, el logo de la empresa y los datos del vendedor.
    Todo se dibuja en el celular (canvas): gratis y sin servicios externos.
    ===================================================================== */
+import qrcode from 'qrcode-generator';
 ICONS.download = '<path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/>';
 ICONS.share = '<path d="M12 15V4"/><path d="M8 7.5 12 3.5l4 4"/><path d="M7 10.5H6a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5h-1"/>';
 ICONS.image = '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>';
 
-const PUB_FMT = { post: [1080, 1350], story: [1080, 1920] };
+const PUB_FMT = { post: [1080, 1350], story: [1080, 1920], hoja: [1240, 1754] };   // hoja: A4 a 150 ppp
 const PUB_TPL_AUTO = [['vitrina', 'Vitrina'], ['ficha', 'Ficha'], ['oferta', 'Oferta'], ['galeria', 'Galería'], ['premium', 'Premium']];
 const PUB_TPL_PROP = [['portada', 'Portada'], ['catalogo', 'Catálogo'], ['mosaico', 'Mosaico'], ['cartel', 'Cartel'], ['residencial', 'Residencial']];
 const pubTpls = w => w === 'prop' ? PUB_TPL_PROP : PUB_TPL_AUTO;
@@ -327,9 +328,47 @@ Object.assign(PUB_DRAW, {
   },
 });
 
+/* ---------------- hoja para imprimir con código QR ---------------- */
+// enlace público del ítem (la página que abre el QR); en la demo, la app
+const pubLink = it => window.RV && RV.mode === 'cloud' && RV.fichaUrl && ORG.id ? RV.fichaUrl(it.id) : location.origin + '/';
+function pQR(c, text, x, y, s, color = '#111') {
+  const q = qrcode(0, 'M'); q.addData(text); q.make(); const n = q.getModuleCount(), m = s / n;
+  c.fillStyle = color; for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) c.fillRect(x + k * m, y + r * m, Math.ceil(m), Math.ceil(m));
+}
+function pubHoja(c, W, H, d) {
+  const m = 80, ink = '#15171A', soft = 'rgba(21,23,26,.55)', acc = pInk(d.accent) === '#101114' ? ink : d.accent;
+  c.fillStyle = '#FFFFFF'; c.fillRect(0, 0, W, H);
+  // cabecera
+  c.fillStyle = ink; c.fillRect(0, 0, W, 190);
+  pLogo(c, d, m, 47, 96); pText(c, d.org, m + 122, 112, 700, 44, 640, 'b', '#fff');
+  const est = d.w === 'prop' ? (d.op === 'Arriendo' ? 'SE ARRIENDA' : 'SE VENDE') : (d.tag || 'DISPONIBLE').toUpperCase();
+  c.font = PF(800, 34, 'b'); c.letterSpacing = '3px'; const ew = c.measureText(est).width + 64; c.letterSpacing = '0px';
+  pRR(c, W - m - ew, 63, ew, 64, 14); c.fillStyle = d.accent; c.fill(); pText(c, est, W - m - ew / 2, 107, 800, 34, ew, 'b', pInk(d.accent), { align: 'center', ls: 3 });
+  // título, foto y precio
+  let y = 300; pText(c, d.titulo + (d.anio ? ' ' + d.anio : ''), m, y, 800, 96, W - m * 2, 'd', ink, { min: 56 });
+  const sub = d.w === 'prop' ? [d.tipo, d.comuna].filter(Boolean).join(' · ') : d.specs.slice(0, 3).map(s => s[1]).join(' · ');
+  if (sub) pText(c, sub, m, y + 58, 500, 36, W - m * 2, 'b', soft);
+  y += 100; const ph = 560; c.save(); pRR(c, m, y, W - m * 2, ph, 30); c.clip(); pCover(c, d.fotos[0], m, y, W - m * 2, ph, 0.55, d); c.restore(); y += ph + 40;
+  if (d.precio) { pRR(c, m, y, W - m * 2, 150, 30); c.fillStyle = '#F2F0EA'; c.fill(); pText(c, d.w === 'prop' && d.op === 'Arriendo' ? 'ARRIENDO' : 'PRECIO', m + 44, y + 90, 600, 30, 300, 'm', soft, { ls: 4 }); pText(c, d.precio, W - m - 44, y + 108, 800, 96, W - m * 2 - 330, 'd', ink, { align: 'right' }); y += 190; }
+  // datos en dos columnas
+  const datos = d.w === 'prop' ? d.stats.map(([, v, l]) => [l, v]) : d.specs, qTop = H - 470;
+  datos.slice(0, y + 192 < qTop ? 4 : 2).forEach(([k, v], i) => { const cx = m + (i % 2) * ((W - m * 2) / 2), cy = y + Math.floor(i / 2) * 96;
+    pText(c, k.toUpperCase(), cx, cy + 30, 600, 24, (W - m * 2) / 2 - 30, 'm', soft, { ls: 3 }); pText(c, v, cx, cy + 74, 700, 40, (W - m * 2) / 2 - 30, 'b', ink); });
+  // QR y contacto
+  const qy = H - 430, qs = 330; c.fillStyle = '#E6E3DC'; c.fillRect(m, qy - 40, W - m * 2, 2);
+  pRR(c, m, qy, qs + 40, qs + 40, 26); c.fillStyle = '#fff'; c.fill(); c.strokeStyle = ink; c.lineWidth = 4; c.stroke();
+  pQR(c, d.link, m + 20, qy + 20, qs, ink);
+  const tx = m + qs + 90, tw = W - m - tx;
+  pText(c, 'Escanea con la cámara', tx, qy + 64, 800, 46, tw, 'd', ink);
+  pText(c, 'Ve todas las fotos y escríbenos', tx, qy + 114, 500, 32, tw, 'b', soft);
+  if (d.fono) { pWa(c, tx, qy + 178, 46, acc === ink ? '#1FA855' : acc); pText(c, d.fono, tx + 62, qy + 218, 800, 52, tw - 62, 'd', ink); }
+  if (d.vend) pText(c, d.vend, tx, qy + (d.fono ? 274 : 200), 600, 32, tw, 'b', soft);
+  pText(c, d.link.replace(/^https?:\/\//, '').split('?')[0].replace(/\/$/, ''), tx, qy + qs + 26, 500, 22, tw, 'm', soft);
+}
+
 /* ---------------- datos de la publicación ---------------- */
 function pubDatos(it) {
-  const s = it.specs || {}, ok = v => v != null && v !== '—' && v !== '', num = n => Number(n).toLocaleString('es-CL');
+  const s = it.specs || {}, ok = v => v != null && v !== '—' && v !== '' && v !== '-' && !(typeof v === 'number' && isNaN(v)), num = n => Number(n).toLocaleString('es-CL');
   let titulo = it.nombre, anio = '', specs = [];
   if (it.w === 'auto') {
     titulo = [s.marca, s.modelo].filter(ok).join(' ') || it.nombre; anio = ok(s.anio) ? String(s.anio) : '';
@@ -357,7 +396,8 @@ async function pubRender(canvas, it, o) {
   const [fotos, logo] = await Promise.all([Promise.all(orden.slice(0, 3).map(i => pubImg(fotoSrc(it.fotos[i])))), pubImg(PREFS.logo ? fotoSrc(PREFS.logo) : '')]);
   const base = pubDatos(it);
   const d = { ...base, precio: o.precio ? base.precio : '', fotos: fotos.filter(Boolean), logo, org: orgNombre(), vend: o.vend, fono: o.fono, tag: o.tag, accent: o.color, w: it.w };
-  c.clearRect(0, 0, W, H); c.save(); PUB_DRAW[o.tpl](c, W, H, d); c.restore();
+  d.link = pubLink(it); d.op = base.op; d.stats = base.stats;
+  c.clearRect(0, 0, W, H); c.save(); (o.fmt === 'hoja' ? pubHoja : PUB_DRAW[o.tpl])(c, W, H, d); c.restore();
   return canvas;
 }
 
@@ -376,8 +416,9 @@ function pubHtml(it) {
   const fotos = it.fotos.map((f, i) => `<button class="pubfoto ${i === pub.foto ? 'on' : ''}" data-act="pubFoto" data-i="${i}" aria-label="Usar foto ${i + 1}"><img src="${fotoSrc(f)}" alt=""></button>`).join('');
   return `<div class="px" style="padding-top:6px;display:flex;flex-direction:column;gap:16px">
     <div class="pubprev ${pub.fmt}"><canvas id="pub-c" width="1080" height="1350" aria-label="Vista previa de la publicación"></canvas><span class="pubload" id="pub-l">${icon('image', 22)}</span></div>
-    ${seg('seg-pub', [['post', 'Post 4:5'], ['story', 'Historia 9:16']], pub.fmt, 'pubFmt')}
-    <div><p class="kicker" style="margin-bottom:10px">Diseño</p><div class="pubtpls">${pubTpls(it.w).map(([k, t]) => `<button class="pubtpl ${k === pub.tpl ? 'on' : ''}" data-act="pubTpl" data-k="${k}"><canvas width="216" height="270" data-mini="${k}"></canvas><span>${t}</span></button>`).join('')}</div></div>
+    ${seg('seg-pub', [['post', 'Post'], ['story', 'Historia'], ['hoja', 'Hoja con QR']], pub.fmt, 'pubFmt')}
+    <div id="pub-link" class="card publink"><span class="grow"><b>Página ${it.w === 'prop' ? 'de la propiedad' : it.w === 'auto' ? 'del auto' : 'del producto'}</b><small>${window.RV && RV.mode === 'cloud' ? 'Fotos, precio, WhatsApp y formulario de contacto. Es la que abre el QR.' : 'En la demo el QR lleva a Gestix; con tu cuenta lleva a la página de este ítem.'}</small></span><button class="ibtn" data-act="pubCopiar" aria-label="Copiar enlace">${icon('copy', 17)}</button><a class="ibtn" href="${pubLink(it)}" target="_blank" rel="noopener" aria-label="Abrir página">${icon('arrowR', 17)}</a></div>
+    <div id="pub-dis" ${pub.fmt === 'hoja' ? 'hidden' : ''}><p class="kicker" style="margin-bottom:10px">Diseño</p><div class="pubtpls">${pubTpls(it.w).map(([k, t]) => `<button class="pubtpl ${k === pub.tpl ? 'on' : ''}" data-act="pubTpl" data-k="${k}"><canvas width="216" height="270" data-mini="${k}"></canvas><span>${t}</span></button>`).join('')}</div></div>
     ${it.fotos.length ? `<div><p class="kicker" style="margin-bottom:10px">Foto principal</p><div class="pubfotos">${fotos}</div></div>` : `<div class="tip">${icon('camera')}<span>Este ${WORLDS[it.w].itemOne.toLowerCase()} aún no tiene fotos. Agrégalas en su ficha para que la publicación luzca.</span></div>`}
     <div><p class="kicker" style="margin-bottom:10px">Etiqueta</p><div class="optrow">${['', ...PUB_TAGS[it.w]].map(t => `<button class="opt ${t === pub.tag ? 'on' : ''}" data-act="pubTag" data-t="${clean(t)}">${t || 'Sin etiqueta'}</button>`).join('')}</div></div>
     <div><p class="kicker" style="margin-bottom:10px">Color</p><div class="pubcolors">${PUB_COLORS.map(c => `<button data-act="pubColor" data-c="${c}" class="${c === pub.color ? 'on' : ''}" style="--c:${c}" aria-label="Color ${c}"></button>`).join('')}</div></div>
@@ -403,7 +444,8 @@ async function pubMiniaturas() {
 }
 const pubRedibujar = (minis) => { pubGuardarPrefs(); pubDibujar(); if (minis) pubMiniaturas(); };
 ACT.publicar = d => openPublicar(d.id);
-ACT.pubFmt = d => { pub.fmt = d.k; $$('#seg-pub button').forEach(b => b.classList.toggle('active', b.dataset.k === d.k)); moveSeg('seg-pub'); $('.pubprev').className = 'pubprev ' + d.k; pubDibujar(); };
+ACT.pubFmt = d => { pub.fmt = d.k; $$('#seg-pub button').forEach(b => b.classList.toggle('active', b.dataset.k === d.k)); moveSeg('seg-pub'); $('.pubprev').className = 'pubprev ' + d.k; $('#pub-dis').hidden = d.k === 'hoja'; pubDibujar(); };
+ACT.pubCopiar = async () => { const u = pubLink(getItem(pub.id)); try { await navigator.clipboard.writeText(u); toast('Enlace copiado', 'copy'); } catch (e) { prompt('Copia el enlace:', u); } };
 ACT.pubTpl = d => { pub.tpl = d.k; $$('.pubtpl').forEach(b => b.classList.toggle('on', b.dataset.k === d.k)); pubRedibujar(); };
 ACT.pubFoto = d => { pub.foto = +d.i; $$('.pubfoto').forEach((b, i) => b.classList.toggle('on', i === pub.foto)); pubRedibujar(true); };
 ACT.pubTag = d => { pub.tag = d.t; $$('[data-act=pubTag]').forEach(b => b.classList.toggle('on', b.dataset.t === d.t)); pubRedibujar(true); };
@@ -416,7 +458,7 @@ async function pubArchivo() {
   const it = getItem(pub.id), c = document.createElement('canvas'); await pubFonts(); await pubRender(c, it, pub);
   const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.92));
   const slug = (it.nombre || 'publicacion').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  return new File([blob], `${slug}-${pub.fmt === 'story' ? 'historia' : 'post'}.jpg`, { type: 'image/jpeg' });
+  return new File([blob], `${slug}-${{ story: 'historia', hoja: 'hoja-qr' }[pub.fmt] || 'post'}.jpg`, { type: 'image/jpeg' });
 }
 ACT.pubEnviar = async () => {
   try {

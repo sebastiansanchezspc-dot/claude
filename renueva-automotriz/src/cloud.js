@@ -255,6 +255,8 @@ async function loadMembers() {
   return list
 }
 const inviteLink = token => `${webUrl()}?inv=${token}`
+// enlace público de un auto/propiedad (lo abre el código QR)
+const fichaUrl = id => `${NATIVE ? APP_URL : location.origin}/v?o=${orgId}&i=${encodeURIComponent(id)}`
 async function invite({ email, nombre, rol, mundos }) {
   const { data, error } = await sb.rpc('invitar', { p_email: email, p_nombre: nombre, p_rol: rol, p_mundos: mundos }); if (error) fail(error)
   await loadMembers(); return inviteLink(data)
@@ -406,7 +408,7 @@ export const RV = {
   mode, status: 'ok', pagos: [], lastError: null,
   bind: r => { refs = r },
   init, enter, signIn, signUp, resetPassword, updatePassword, logout, createOrg, acceptInvite, context, pendingInvite,
-  dirty, flush, reload, upload, fileUrl,
+  dirty, flush, reload, upload, fileUrl, fichaUrl,
   loadMembers, invite, updateMember, removeMember,
   choosePlan, cancelPlan, activarMundo, refreshContext, renameOrg, dailySync, deleteAccount,
   platformOrgs, platformSet, billingSetup: () => billing('setup-plans'),
