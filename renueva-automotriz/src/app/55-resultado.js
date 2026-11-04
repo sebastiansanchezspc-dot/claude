@@ -18,6 +18,7 @@ function openResultado() {
     <div><div class="sec" style="margin:0 0 10px"><span class="kicker">Gastos · ${gs.length}</span><span class="num" style="font-size:14px;color:var(--bad)">−${fmtM(st.gastos)}</span></div>
       <div class="card tight">${gs.length ? [...fijos, ...varios].map(g => fila(CAT_ICON[g.cat] || 'receipt', clean(g.concepto), `${g.cat || 'Gasto'} · ${g.fijo ? `fijo, cada mes desde ${fechaCorta(g.fecha)}` : fechaCorta(g.fecha)}`, g.monto, 'gasto', g.id, true)).join('') : `<div class="empty">${icon('receipt', 28)}<p>Sin gastos en ${mesDe(mk).toLowerCase()}.</p></div>`}</div>
       ${gs.length ? `<button class="btn ghost small" data-act="gastos" style="width:100%;margin-top:10px">${icon('receipt', 15)}Ver y editar gastos</button>` : ''}</div>
+    <button class="btn primary" data-act="cierre">${icon('doc')}Cierre del mes completo (caja y stock)</button>
     <p style="font-size:12px;color:var(--fg3);line-height:1.5">${auto ? 'La utilidad de cada venta es el precio menos el costo de compra y reacondicionamiento, menos la comisión del vendedor, más la comisión que paga la financiera.' : 'El margen de cada venta descuenta el costo y la comisión del vendedor.'} Los gastos fijos se cuentan todos los meses desde que se registraron; si alguno ya no corre, desmárcalo como fijo o bórralo.</p>
   </div>`;
   pushScreen('Resultado del mes', html);
