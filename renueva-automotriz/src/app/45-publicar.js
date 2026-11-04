@@ -8,8 +8,10 @@ ICONS.share = '<path d="M12 15V4"/><path d="M8 7.5 12 3.5l4 4"/><path d="M7 10.5
 ICONS.image = '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>';
 
 const PUB_FMT = { post: [1080, 1350], story: [1080, 1920] };
-const PUB_TPL = [['vitrina', 'Vitrina'], ['ficha', 'Ficha'], ['oferta', 'Oferta'], ['galeria', 'Galería'], ['premium', 'Premium']];
-const PUB_COLORS = ['#C8F03C', '#FF6B35', '#2F80ED', '#E63946', '#F2C14E', '#FFFFFF'];
+const PUB_TPL_AUTO = [['vitrina', 'Vitrina'], ['ficha', 'Ficha'], ['oferta', 'Oferta'], ['galeria', 'Galería'], ['premium', 'Premium']];
+const PUB_TPL_PROP = [['portada', 'Portada'], ['catalogo', 'Catálogo'], ['mosaico', 'Mosaico'], ['cartel', 'Cartel'], ['residencial', 'Residencial']];
+const pubTpls = w => w === 'prop' ? PUB_TPL_PROP : PUB_TPL_AUTO;
+const PUB_COLORS = ['#C8F03C', '#FF6B35', '#2F80ED', '#E63946', '#F2C14E', '#1F6F5C', '#B7A6FF', '#FFFFFF'];
 const PUB_TAGS = {
   auto: ['Disponible', 'Recién llegado', 'Oferta', 'Financiamiento', 'Único dueño', 'Precio conversable'],
   prop: ['Disponible', 'Nueva', 'Oportunidad', 'Exclusiva', 'Precio conversable'],
@@ -73,6 +75,27 @@ const pIni = s => String(s || '').split(' ').filter(Boolean).slice(0, 2).map(x =
 function pWa(c, x, y, s, color) {
   c.save(); c.translate(x, y); c.scale(s / 24, s / 24); c.strokeStyle = color; c.lineWidth = 1.9; c.lineJoin = 'round'; c.lineCap = 'round';
   (ICONS.whatsapp.match(/d="([^"]+)"/g) || []).forEach(m => c.stroke(new Path2D(m.slice(3, -1)))); c.restore();
+}
+// íconos de línea (24×24) para dormitorios, baños, superficie y ubicación
+const PIC = {
+  dorm: 'M3 18v-6.5A1.5 1.5 0 0 1 4.5 10h15a1.5 1.5 0 0 1 1.5 1.5V18M3 15h18M3 18v2M21 18v2M6 10V7.5A1.5 1.5 0 0 1 7.5 6h3A1.5 1.5 0 0 1 12 7.5V10',
+  banos: 'M4 12h16v2.5a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 14.5V12ZM6.5 12V6a2 2 0 0 1 3.6-1.2M8 19l-1 2M16 19l1 2',
+  m2: 'M4 9V4h5M20 15v5h-5M4 4l6.5 6.5M20 20l-6.5-6.5M15 4h5v5M9 20H4v-5',
+  pin: 'M12 21s-7-6.2-7-11.2a7 7 0 0 1 14 0C19 14.8 12 21 12 21ZM12 12.3a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
+  auto: 'M5 16.5V12l2-4.5h10l2 4.5v4.5M5 16.5h14M5 16.5V18M19 16.5V18M8 13.5h.01M16 13.5h.01',
+};
+function pIcon(c, k, x, y, s, color, lw = 1.7) { c.save(); c.translate(x, y); c.scale(s / 24, s / 24); c.strokeStyle = color; c.lineWidth = lw; c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke(new Path2D(PIC[k])); c.restore(); }
+// fila de datos con ícono: [ícono, valor, etiqueta]
+function pStats(c, d, x, y, w, color, color2, size = 44, opt = {}) {
+  const st = d.stats.slice(0, opt.max || 3); if (!st.length) return 0; const cw = w / st.length;
+  st.forEach(([ic, v, l], i) => { const cx = x + i * cw;
+    if (i && opt.sep) { c.fillStyle = opt.sep; c.fillRect(cx, y - 6, 2, size * 2.2); }
+    const px = cx + (i ? (opt.sep ? 28 : 0) : 0);
+    pIcon(c, ic, px, y, size * .9, opt.icon || color2, 1.8);
+    pText(c, v, px + size * 1.15, y + size * .74, 700, size * .82, cw - size * 1.3 - 30, 'b', color);
+    if (opt.labels) pText(c, l.toUpperCase(), px, y + size * 1.9, 500, size * .42, cw - 30, 'm', color2, { ls: 2 });
+  });
+  return size * (opt.labels ? 2.1 : 1.1);
 }
 // logo de la empresa (o sus iniciales) dentro de un cuadro redondeado
 function pLogo(c, d, x, y, s) {
@@ -212,6 +235,98 @@ const PUB_DRAW = {
   },
 };
 
+/* ---------------- plantillas para propiedades ---------------- */
+const pOp = d => d.op === 'Arriendo' ? 'EN ARRIENDO' : 'EN VENTA';
+const pLugar = d => [d.tipo, d.comuna].filter(Boolean).join(' · ');
+Object.assign(PUB_DRAW, {
+  // foto completa con la operación arriba y los datos con íconos abajo
+  portada(c, W, H, d) {
+    const st = H > 1500, m = 64, top = st ? 120 : m;
+    pCover(c, d.fotos[0], 0, 0, W, H, 0.5, d);
+    pShade(c, 0, 0, W, 300, 'rgba(0,0,0,.5)', 'rgba(0,0,0,0)');
+    pShade(c, 0, H * (st ? .38 : .3), W, H * (st ? .62 : .7), 'rgba(6,8,10,0)', 'rgba(6,8,10,.95)');
+    pBrand(c, d, m, top, 86, false);
+    const opT = pOp(d); c.font = PF(800, 30, 'b'); c.letterSpacing = '4px'; const ow = c.measureText(opT).width + 56; c.letterSpacing = '0px';
+    pRR(c, W - m - ow, top + 10, ow, 66, 12); c.fillStyle = d.accent; c.fill(); pText(c, opT, W - m - ow / 2, top + 54, 800, 30, ow, 'b', pInk(d.accent), { align: 'center', ls: 4 });
+    const sy = H - (st ? 250 : 150); pSeller(c, d, m, sy, W - m * 2, 104, true);
+    let y = sy - 30; c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(m, y, W - m * 2, 2); y -= 34;
+    if (d.precio) { const f = pFit(c, d.precio, 800, 112, W - m * 2, 'd'); pText(c, d.precio, m, y, 800, f.s, W - m * 2, 'd', d.accent); y -= pCap(f.s) + 40; }
+    if (d.stats.length) { y -= 44; pStats(c, d, m, y, W - m * 2, '#fff', 'rgba(255,255,255,.75)', 46); y -= 36; }
+    const tt = pTitleUp(c, d.titulo, m, y, 800, 96, W - m * 2, '#fff', { min: 56 });
+    if (pLugar(d)) { pIcon(c, 'pin', m, tt - 66, 34, d.accent, 2); pText(c, pLugar(d).toUpperCase(), m + 46, tt - 38, 600, 28, W - m * 2 - 46, 'm', 'rgba(255,255,255,.85)', { ls: 3 }); }
+  },
+  // catálogo claro: foto con bordes redondos, lugar en color y datos en columnas
+  catalogo(c, W, H, d) {
+    const st = H > 1500, m = 60, ink = '#1D1F22', top = st ? 180 : 130, acc = pInk(d.accent) === '#101114' ? '#1F6F5C' : d.accent;
+    c.fillStyle = '#FFFFFF'; c.fillRect(0, 0, W, H);
+    pBrand(c, d, m, st ? 70 : 34, 76, false, 600);
+    pText(c, pOp(d), W - m, (st ? 70 : 34) + 50, 700, 26, 400, 'm', acc, { align: 'right', ls: 5 });
+    const sy = H - (st ? 210 : 130); pSeller(c, d, m, sy, W - m * 2, 100, false);
+    let y = sy - 36; c.fillStyle = '#E8E6E1'; c.fillRect(m, y, W - m * 2, 2); y -= 34;
+    if (d.precio) { pText(c, d.precio, m, y, 800, 84, W - m * 2, 'd', ink); y -= pCap(84) + 40; }
+    if (d.stats.length) { y -= 96; pStats(c, d, m, y, W - m * 2, ink, 'rgba(29,31,34,.5)', 44, { labels: true, sep: '#E8E6E1', icon: acc }); y -= 34; }
+    const tt = pTitleUp(c, d.titulo, m, y, 800, 76, W - m * 2, ink, { min: 46 });
+    if (pLugar(d)) pText(c, pLugar(d).toUpperCase(), m, tt - 26, 600, 26, W - m * 2, 'm', acc, { ls: 4 });
+    const ph = tt - 80 - top; c.save(); pRR(c, m, top, W - m * 2, ph, 34); c.clip(); pCover(c, d.fotos[0], m, top, W - m * 2, ph, 0.5, d); c.restore();
+    pTag(c, d, m + 26, top + 26, 62);
+  },
+  // varias fotos en mosaico: una grande y tres chicas
+  mosaico(c, W, H, d) {
+    const st = H > 1500, m = 40, g = 12, f = d.fotos, top = st ? 190 : 140, bg = '#13201C';
+    c.fillStyle = bg; c.fillRect(0, 0, W, H);
+    pBrand(c, d, m + 8, st ? 80 : 36, 80, true); pTag(c, d, W - m - 8, st ? 86 : 42, 66, 'right');
+    const sy = H - (st ? 200 : 126); pSeller(c, d, m + 8, sy, W - m * 2 - 16, 96, true);
+    let y = sy - 40;
+    if (d.stats.length) { y -= 40; pStats(c, d, m + 8, y, W - m * 2 - 16, '#fff', 'rgba(255,255,255,.7)', 40); y -= 30; }
+    if (d.precio) { pText(c, d.precio, m + 8, y, 800, 72, W - m * 2 - 16, 'd', d.accent); y -= pCap(72) + 24; }
+    const tt = pTitleUp(c, d.titulo, m + 8, y, 800, 58, W - m * 2 - 16, '#fff', { lines: 1, min: 36 });
+    if (pLugar(d)) pText(c, (pOp(d) + ' · ' + pLugar(d)).toUpperCase(), m + 8, tt - 22, 600, 24, W - m * 2 - 16, 'm', 'rgba(255,255,255,.7)', { ls: 3 });
+    const avail = tt - 64 - top, bigH = Math.round(avail * .6), smH = avail - bigH - g, sw = (W - m * 2 - g * 2) / 3;
+    c.save(); pRR(c, m, top, W - m * 2, bigH, 30); c.clip(); pCover(c, f[0], m, top, W - m * 2, bigH, 0.5, d); c.restore();
+    [f[1] || f[0], f[2] || f[1] || f[0], f[3] || f[2] || f[0]].forEach((im, i) => { const x = m + i * (sw + g), yy = top + bigH + g; c.save(); pRR(c, x, yy, sw, smH, 24); c.clip(); pCover(c, im, x, yy, sw, smH, [0.5, 0.3, 0.7][i], d); c.restore(); });
+  },
+  // estilo letrero: SE VENDE / SE ARRIENDA en grande y el teléfono destacado
+  cartel(c, W, H, d) {
+    const st = H > 1500, m = 56, ink = pInk(d.accent), bh = st ? 380 : 300;
+    c.fillStyle = '#F7F5F0'; c.fillRect(0, 0, W, H);
+    c.fillStyle = d.accent; c.fillRect(0, 0, W, bh);
+    pBrand(c, d, m, st ? 70 : 40, 74, ink === '#FFFFFF', 640);
+    pText(c, d.op === 'Arriendo' ? 'SE ARRIENDA' : 'SE VENDE', m - 4, bh - (st ? 60 : 44), 800, st ? 150 : 132, W - m * 2, 'd', ink, { ls: 1 });
+    const sy = H - (st ? 260 : 170), ink2 = '#16181B';
+    // teléfono grande, como en un letrero
+    pRR(c, m, sy, W - m * 2, st ? 150 : 130, 30); c.fillStyle = ink2; c.fill();
+    pWa(c, m + 40, sy + (st ? 50 : 40), 50, d.accent === '#FFFFFF' ? '#25D366' : d.accent);
+    pText(c, d.fono || 'Escríbenos', m + 112, sy + (st ? 94 : 84), 800, 60, W - m * 2 - 330, 'd', '#fff');
+    pText(c, (d.vend || '').toUpperCase(), W - m - 40, sy + (st ? 90 : 80), 600, 26, 260, 'm', 'rgba(255,255,255,.6)', { align: 'right', ls: 2 });
+    let y = sy - 40;
+    if (d.precio) { pText(c, d.precio, m, y, 800, 84, W - m * 2, 'd', ink2); y -= pCap(84) + 30; }
+    if (d.stats.length) { y -= 44; pStats(c, d, m, y, W - m * 2, ink2, 'rgba(22,24,27,.55)', 42); y -= 34; }
+    const tt = pTitleUp(c, d.titulo + (d.comuna && !d.titulo.includes(d.comuna) ? ', ' + d.comuna : ''), m, y, 800, 64, W - m * 2, ink2, { min: 40 });
+    const pt = bh + 34, ph = tt - 50 - pt;
+    c.save(); pRR(c, m, pt, W - m * 2, ph, 26); c.clip(); pCover(c, d.fotos[0], m, pt, W - m * 2, ph, 0.5, d); c.restore();
+    pTag(c, d, W - m - 24, pt + 24, 60, 'right');
+  },
+  // residencial elegante: tonos cálidos y foto en forma de arco
+  residencial(c, W, H, d) {
+    const st = H > 1500, m = 80, ink = '#2B241D', soft = '#8A7B69', acc = pInk(d.accent) === '#101114' ? '#A8794B' : d.accent;
+    c.fillStyle = '#EFE8DD'; c.fillRect(0, 0, W, H);
+    const lg = 70, lt = st ? 100 : 46; pLogo(c, d, W / 2 - lg / 2, lt, lg);
+    pText(c, d.org.toUpperCase(), W / 2, lt + lg + 40, 500, 22, W - 200, 'm', soft, { align: 'center', ls: 6 });
+    let y = H - (st ? 140 : 70);
+    pText(c, (d.vend || '') + (d.fono ? '  ·  ' + d.fono : ''), W / 2, y, 600, 32, W - m * 2, 'b', ink, { align: 'center' }); y -= 54;
+    c.fillStyle = soft; c.fillRect(W / 2 - 40, y, 80, 2); y -= 40;
+    if (d.precio) { pText(c, d.precio, W / 2, y, 700, 70, W - m * 2, 'd', acc, { align: 'center' }); y -= pCap(70) + 30; }
+    if (d.stats.length) { pText(c, d.stats.slice(0, 3).map(s => s[1] + ' ' + (s[0] === 'dorm' ? 'dorm.' : s[0] === 'banos' ? 'baños' : '')).join('   ·   ').replace(/\s+·/g, ' ·').trim(), W / 2, y, 500, 30, W - m * 2, 'b', soft, { align: 'center' }); y -= 30 + 30; }
+    const tt = pTitleUp(c, d.titulo, W / 2, y, 700, 70, W - m * 2, ink, { align: 'center', min: 42 });
+    pText(c, (pOp(d) + (d.comuna ? ' · ' + d.comuna : '')).toUpperCase(), W / 2, tt - 26, 500, 22, W - m * 2, 'm', acc, { align: 'center', ls: 6 });
+    const pt = lt + lg + 80, ph = tt - 70 - pt, pw = W - m * 2, r = pw / 2;
+    c.save(); c.beginPath(); c.moveTo(m, pt + r); c.arc(W / 2, pt + r, r, Math.PI, 0); c.lineTo(m + pw, pt + ph); c.lineTo(m, pt + ph); c.closePath(); c.clip();
+    pCover(c, d.fotos[0], m, pt, pw, ph, 0.5, d); c.restore();
+    c.strokeStyle = pAlpha(acc, .55); c.lineWidth = 2; c.beginPath(); c.moveTo(m - 16, pt + r); c.arc(W / 2, pt + r, r + 16, Math.PI, 0); c.lineTo(m + pw + 16, pt + ph + 16); c.lineTo(m - 16, pt + ph + 16); c.closePath(); c.stroke();
+    if (d.tag) { c.font = PF(700, 24, 'm'); c.letterSpacing = '4px'; const tw = c.measureText(d.tag.toUpperCase()).width + 64; c.letterSpacing = '0px'; pRR(c, W / 2 - tw / 2, pt + ph - 86, tw, 58, 29); c.fillStyle = 'rgba(239,232,221,.94)'; c.fill(); pText(c, d.tag.toUpperCase(), W / 2, pt + ph - 48, 600, 22, tw, 'm', ink, { align: 'center', ls: 4 }); }
+  },
+});
+
 /* ---------------- datos de la publicación ---------------- */
 function pubDatos(it) {
   const s = it.specs || {}, ok = v => v != null && v !== '—' && v !== '', num = n => Number(n).toLocaleString('es-CL');
@@ -224,7 +339,10 @@ function pubDatos(it) {
   else specs = [['Marca', s.marca], ['Categoría', s.categoria], ['Variante', s.variante]];
   specs = specs.filter(([, v]) => ok(v)).map(([k, v]) => [k, String(v)]);
   if (it.w === 'auto') specs = specs.filter(([k]) => k !== 'Año');
-  return { titulo, anio, specs: specs.slice(0, 4), precio: it.precio ? fmt(it.precio) + (it.w === 'prop' && it.op === 'Arriendo' ? ' /mes' : '') : '' };
+  const stats = it.w === 'prop' ? [ok(s.dorm) && ['dorm', String(s.dorm), 'Dormitorios'], ok(s.banos) && ['banos', String(s.banos), 'Baños'], ok(s.m2c) && ['m2', num(s.m2c) + ' m²', 'Construidos'], ok(s.m2t) && ['m2', num(s.m2t) + ' m²', 'Terreno']].filter(Boolean) : [];
+  const op = it.w === 'prop' ? (it.op === 'Arriendo' || s.operacion === 'Arriendo' ? 'Arriendo' : 'Venta') : '';
+  return { titulo, anio, specs: specs.slice(0, 4), stats, op, comuna: ok(s.comuna) ? String(s.comuna) : '', tipo: ok(s.tipo) ? String(s.tipo) : '',
+    precio: it.precio ? fmt(it.precio) + (op === 'Arriendo' ? ' /mes' : '') : '' };
 }
 function pubTextoPost(it) {
   const d = pubDatos(it), w = it.w, e = { auto: '🚗', prop: '🏡', tienda: '🛍️' }[w];
@@ -245,10 +363,11 @@ async function pubRender(canvas, it, o) {
 
 /* ---------------- pantalla del editor ---------------- */
 function pubPrefs() { try { return JSON.parse(localStorage.getItem('gestix_pub') || '{}'); } catch (e) { return {}; } }
-function pubGuardarPrefs() { try { localStorage.setItem('gestix_pub', JSON.stringify({ vend: pub.vend, fono: pub.fono, tpl: pub.tpl, color: pub.color })); } catch (e) { } }
+function pubGuardarPrefs() { try { localStorage.setItem('gestix_pub', JSON.stringify({ ...pubPrefs(), vend: pub.vend, fono: pub.fono, ['tpl_' + getItem(pub.id).w]: pub.tpl, color: pub.color })); } catch (e) { } }
 function openPublicar(id) {
   const it = getItem(id); if (!it) return; const w = WORLDS[it.w], pr = pubPrefs(), yo = miEquipo(it.w);
-  pub = { id, fmt: 'post', tpl: pr.tpl || 'vitrina', foto: 0, precio: !!it.precio, tag: PUB_TAGS[it.w][0], color: pr.color || (PREFS.accent[it.w] || w.accent),
+  const tpls = pubTpls(it.w), tplPref = pr['tpl_' + it.w];
+  pub = { id, fmt: 'post', tpl: tpls.some(t => t[0] === tplPref) ? tplPref : tpls[0][0], foto: 0, precio: !!it.precio, tag: PUB_TAGS[it.w][0], color: pr.color || (PREFS.accent[it.w] || w.accent),
     vend: pr.vend || (yo && yo.nombre) || ME.nombre || '', fono: pr.fono || (yo && yo.fono) || '' };
   const el = pushScreen('Publicación', pubHtml(it), { cta: `<button class="btn ghost" data-act="pubBajar">${icon('download')}Descargar</button><button class="btn primary" data-act="pubEnviar">${icon('share')}Enviar</button>` });
   el.dataset.pub = id; pubDibujar(); pubMiniaturas();
@@ -258,7 +377,7 @@ function pubHtml(it) {
   return `<div class="px" style="padding-top:6px;display:flex;flex-direction:column;gap:16px">
     <div class="pubprev ${pub.fmt}"><canvas id="pub-c" width="1080" height="1350" aria-label="Vista previa de la publicación"></canvas><span class="pubload" id="pub-l">${icon('image', 22)}</span></div>
     ${seg('seg-pub', [['post', 'Post 4:5'], ['story', 'Historia 9:16']], pub.fmt, 'pubFmt')}
-    <div><p class="kicker" style="margin-bottom:10px">Diseño</p><div class="pubtpls">${PUB_TPL.map(([k, t]) => `<button class="pubtpl ${k === pub.tpl ? 'on' : ''}" data-act="pubTpl" data-k="${k}"><canvas width="216" height="270" data-mini="${k}"></canvas><span>${t}</span></button>`).join('')}</div></div>
+    <div><p class="kicker" style="margin-bottom:10px">Diseño</p><div class="pubtpls">${pubTpls(it.w).map(([k, t]) => `<button class="pubtpl ${k === pub.tpl ? 'on' : ''}" data-act="pubTpl" data-k="${k}"><canvas width="216" height="270" data-mini="${k}"></canvas><span>${t}</span></button>`).join('')}</div></div>
     ${it.fotos.length ? `<div><p class="kicker" style="margin-bottom:10px">Foto principal</p><div class="pubfotos">${fotos}</div></div>` : `<div class="tip">${icon('camera')}<span>Este ${WORLDS[it.w].itemOne.toLowerCase()} aún no tiene fotos. Agrégalas en su ficha para que la publicación luzca.</span></div>`}
     <div><p class="kicker" style="margin-bottom:10px">Etiqueta</p><div class="optrow">${['', ...PUB_TAGS[it.w]].map(t => `<button class="opt ${t === pub.tag ? 'on' : ''}" data-act="pubTag" data-t="${clean(t)}">${t || 'Sin etiqueta'}</button>`).join('')}</div></div>
     <div><p class="kicker" style="margin-bottom:10px">Color</p><div class="pubcolors">${PUB_COLORS.map(c => `<button data-act="pubColor" data-c="${c}" class="${c === pub.color ? 'on' : ''}" style="--c:${c}" aria-label="Color ${c}"></button>`).join('')}</div></div>
@@ -277,7 +396,7 @@ function pubDibujar() {
 // miniaturas de cada diseño con este mismo auto
 async function pubMiniaturas() {
   const it = getItem(pub.id); await pubFonts();
-  for (const [k] of PUB_TPL) {
+  for (const [k] of pubTpls(it.w)) {
     const off = document.createElement('canvas'); await pubRender(off, it, { ...pub, tpl: k, fmt: 'post' });
     const m = $(`canvas[data-mini="${k}"]`); if (m) m.getContext('2d').drawImage(off, 0, 0, m.width, m.height);
   }
