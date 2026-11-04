@@ -338,25 +338,26 @@ function pQR(c, text, x, y, s, color = '#111') {
 function pubHoja(c, W, H, d) {
   const m = 80, ink = '#15171A', soft = 'rgba(21,23,26,.55)', acc = pInk(d.accent) === '#101114' ? ink : d.accent;
   c.fillStyle = '#FFFFFF'; c.fillRect(0, 0, W, H);
-  // cabecera
-  c.fillStyle = ink; c.fillRect(0, 0, W, 190);
-  pLogo(c, d, m, 47, 96); pText(c, d.org, m + 122, 112, 700, 44, 640, 'b', '#fff');
+  // cabecera del color elegido (el blanco usa grafito para que no se pierda en la hoja)
+  const band = d.accent === '#FFFFFF' ? ink : d.accent, onBand = pInk(band);
+  c.fillStyle = band; c.fillRect(0, 0, W, 190);
+  pLogo(c, d.logo ? d : { ...d, accent: onBand === '#FFFFFF' ? '#FFFFFF' : ink }, m, 47, 96); pText(c, d.org, m + 122, 112, 700, 44, 640, 'b', onBand);
   const est = d.w === 'prop' ? (d.op === 'Arriendo' ? 'SE ARRIENDA' : 'SE VENDE') : (d.tag || 'DISPONIBLE').toUpperCase();
   c.font = PF(800, 34, 'b'); c.letterSpacing = '3px'; const ew = c.measureText(est).width + 64; c.letterSpacing = '0px';
-  pRR(c, W - m - ew, 63, ew, 64, 14); c.fillStyle = d.accent; c.fill(); pText(c, est, W - m - ew / 2, 107, 800, 34, ew, 'b', pInk(d.accent), { align: 'center', ls: 3 });
+  pRR(c, W - m - ew, 63, ew, 64, 14); c.fillStyle = onBand; c.fill(); pText(c, est, W - m - ew / 2, 107, 800, 34, ew, 'b', band, { align: 'center', ls: 3 });
   // título, foto y precio
   let y = 300; pText(c, d.titulo + (d.anio ? ' ' + d.anio : ''), m, y, 800, 96, W - m * 2, 'd', ink, { min: 56 });
   const sub = d.w === 'prop' ? [d.tipo, d.comuna].filter(Boolean).join(' · ') : d.specs.slice(0, 3).map(s => s[1]).join(' · ');
   if (sub) pText(c, sub, m, y + 58, 500, 36, W - m * 2, 'b', soft);
   y += 100; const ph = 560; c.save(); pRR(c, m, y, W - m * 2, ph, 30); c.clip(); pCover(c, d.fotos[0], m, y, W - m * 2, ph, 0.55, d); c.restore(); y += ph + 40;
-  if (d.precio) { pRR(c, m, y, W - m * 2, 150, 30); c.fillStyle = '#F2F0EA'; c.fill(); pText(c, d.w === 'prop' && d.op === 'Arriendo' ? 'ARRIENDO' : 'PRECIO', m + 44, y + 90, 600, 30, 300, 'm', soft, { ls: 4 }); pText(c, d.precio, W - m - 44, y + 108, 800, 96, W - m * 2 - 330, 'd', ink, { align: 'right' }); y += 190; }
+  if (d.precio) { pRR(c, m, y, W - m * 2, 150, 30); c.fillStyle = '#F2F0EA'; c.fill(); c.save(); c.globalAlpha = 0.16; c.fillStyle = band; c.fill(); c.restore(); c.fillStyle = band; c.fillRect(m, y + 30, 8, 90); pText(c, d.w === 'prop' && d.op === 'Arriendo' ? 'ARRIENDO' : 'PRECIO', m + 44, y + 90, 600, 30, 300, 'm', soft, { ls: 4 }); pText(c, d.precio, W - m - 44, y + 108, 800, 96, W - m * 2 - 330, 'd', ink, { align: 'right' }); y += 190; }
   // datos en dos columnas
   const datos = d.w === 'prop' ? d.stats.map(([, v, l]) => [l, v]) : d.specs, qTop = H - 470;
   datos.slice(0, y + 192 < qTop ? 4 : 2).forEach(([k, v], i) => { const cx = m + (i % 2) * ((W - m * 2) / 2), cy = y + Math.floor(i / 2) * 96;
     pText(c, k.toUpperCase(), cx, cy + 30, 600, 24, (W - m * 2) / 2 - 30, 'm', soft, { ls: 3 }); pText(c, v, cx, cy + 74, 700, 40, (W - m * 2) / 2 - 30, 'b', ink); });
   // QR y contacto
   const qy = H - 430, qs = 330; c.fillStyle = '#E6E3DC'; c.fillRect(m, qy - 40, W - m * 2, 2);
-  pRR(c, m, qy, qs + 40, qs + 40, 26); c.fillStyle = '#fff'; c.fill(); c.strokeStyle = ink; c.lineWidth = 4; c.stroke();
+  pRR(c, m, qy, qs + 40, qs + 40, 26); c.fillStyle = '#fff'; c.fill(); c.strokeStyle = acc; c.lineWidth = 6; c.stroke();
   pQR(c, d.link, m + 20, qy + 20, qs, ink);
   const tx = m + qs + 90, tw = W - m - tx;
   pText(c, 'Escanea con la cámara', tx, qy + 64, 800, 46, tw, 'd', ink);

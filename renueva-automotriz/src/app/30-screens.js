@@ -332,6 +332,7 @@ function renderStock() {
   $('#scr-stock').innerHTML = hdr(w.tabs.stock, `${itemsOf(w.key).length} ${w.itemMany.toLowerCase()} · ${w.name}`, `<button class="ibtn solid" data-act="nuevoItem" aria-label="Ingresar ${w.itemOne.toLowerCase()}">${icon('plus', 20, 2.2)}</button>`) + `
   <div class="body px">
     ${stockResumen(w)}
+    ${clCard(w.key)}
     <div class="search">${icon('search')}<input id="q" placeholder="Buscar ${w.itemMany.toLowerCase()}, ${w.idLabel.toLowerCase()}…" value="${state.q}" data-live="liveQ" autocomplete="off"></div>
     <div class="seg" id="seg-f">${fl.map(([k, t]) => `<button data-act="fFilter" data-k="${k}" class="${state.fFilter === k ? 'active' : ''}">${t}</button>`).join('')}<span class="ind"></span></div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">

@@ -25,8 +25,8 @@ function renuevaApp() {
   }
 }
 
-// dos páginas: la app (index.html) y la ficha pública que abre el código QR (ficha.html)
+// tres páginas: la app (index.html), la ficha pública que abre el código QR (ficha.html) y el catálogo con todo el stock (catalogo.html)
 export default defineConfig({
   plugins: [renuevaApp()],
-  build: { rollupOptions: { input: { main: join(process.cwd(), 'index.html'), ficha: join(process.cwd(), 'ficha.html') } } },
+  build: { rollupOptions: { input: { main: join(process.cwd(), 'index.html'), ficha: join(process.cwd(), 'ficha.html'), catalogo: join(process.cwd(), 'catalogo.html') } } },
 })

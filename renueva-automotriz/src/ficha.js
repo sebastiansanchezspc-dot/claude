@@ -30,7 +30,7 @@ async function cargar() {
   pintar(d)
 }
 
-function pintar({ org, item: it, vend }) {
+function pintar({ org, item: it, vend, cat }) {
   const s = it.specs || {}, titulo = it.w === 'auto' && ok(s.marca) ? [s.marca, s.modelo].filter(ok).join(' ') : it.nombre
   const sub = it.w === 'auto' ? [s.anio, ok(s.km) && Number(s.km).toLocaleString('es-CL') + ' km'].filter(ok).join(' · ') : it.w === 'prop' ? [s.tipo, s.comuna].filter(ok).join(' · ') : s.categoria || ''
   const precio = it.precio ? fmt(it.precio) + (it.op === 'Arriendo' ? ' /mes' : '') : 'Consultar precio'
@@ -63,6 +63,7 @@ function pintar({ org, item: it, vend }) {
         <button class="btn primary" type="submit">Enviar consulta</button>
       </form>
     </section>
+    ${cat && /^[a-z0-9-]+$/.test(cat) ? `<a class="vercat" href="/c/${cat}">Ver ${it.w === 'prop' ? 'todas las propiedades' : it.w === 'auto' ? 'todos los autos' : 'todo el catálogo'} de ${esc(org.nombre)}</a>` : ''}
     <footer class="pie">${esc(org.nombre)} · publicado con <b>gestix</b></footer>`
   // puntos de la galería
   const g = $('#fotos'), pts = document.querySelectorAll('#pts i')
