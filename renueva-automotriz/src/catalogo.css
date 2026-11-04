@@ -318,3 +318,59 @@ main.wrap{padding-bottom:20px}
 .hbtn[hidden]{display:none}
 .carrusel{scroll-padding-inline:max(18px,calc((100vw - 1240px)/2 + 18px))}
 .sim-c b{color:#fff;text-decoration:underline;text-decoration-color:var(--acc);text-decoration-thickness:4px;text-underline-offset:6px}
+
+/* ===== sello Gestix: grafito, superficies y el color de cada mundo, igual que la app ===== */
+:root{--bg:#0D0E10;--card:#15171A;--s2:#1C1F23;--s3:#262A30;--ink:#F5F2EB;--soft:#BAB7AE;--faint:#85837D;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);--acc:#C8F03C;--acc-ink:#141900;--acc-txt:#C8F03C;color-scheme:dark}
+html,body{background:var(--bg)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(900px 520px at 85% -10%,color-mix(in srgb,var(--acc) 14%,transparent),transparent 60%),radial-gradient(700px 500px at -10% 30%,color-mix(in srgb,var(--acc) 6%,transparent),transparent 60%)}
+#app{position:relative;z-index:1}
+:focus-visible{outline-color:var(--acc)}
+.top{background:rgba(13,14,16,.78)} .top.sombra{border-bottom-color:var(--line);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.marca .logo{background:#fff} .ini{background:var(--acc)!important;color:var(--acc-ink)}
+.marca b::after{content:"";display:inline-block;width:7px;height:7px;border-radius:99px;background:var(--acc);margin-left:8px;vertical-align:middle;box-shadow:0 0 12px var(--acc)}
+.kick{color:var(--acc-txt)}
+.hero h1{color:var(--ink);font-variation-settings:"wdth" 82}
+.blob{opacity:.22} .blob.b2{opacity:.1}
+.ops{background:var(--s2);border:1px solid var(--line)} .ops button{color:var(--soft)} .ops button[aria-selected=true]{background:var(--acc);color:var(--acc-ink);box-shadow:none}
+.buscar{background:var(--card);border-color:var(--line2);color:var(--faint)} .buscar:focus-within{border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 18%,transparent)}
+.barra{background:linear-gradient(var(--bg) 78%,rgba(13,14,16,0))}
+.fbtn{background:var(--acc);color:var(--acc-ink)} .fbtn .n{background:var(--acc-ink);color:var(--acc)}
+.chip{background:var(--card);border-color:var(--line2);color:var(--ink)} .chip small{color:var(--faint)}
+.chip.on{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)} .chip.on small{color:var(--acc-ink);opacity:.7}
+.orden select{background:var(--card);border-color:var(--line2);color:var(--ink)}
+.card{background:var(--card);box-shadow:0 0 0 1px var(--line)}
+.ph,.gal,.nv,.fr-f{background:var(--s2)}
+.ph::after{background:linear-gradient(transparent,rgba(5,6,7,.75))}
+.sinfoto{background:repeating-linear-gradient(135deg,var(--s2) 0 14px,var(--card) 14px 28px);color:var(--faint)}
+.tag.res,.estado.res{background:rgba(255,201,60,.16);color:#FFC93C}
+.estado{background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc-txt)}
+.bd h3 em{color:var(--faint)}
+.busco{background:var(--card);border:1px solid var(--line2);color:var(--ink)} .busco p{color:var(--soft)}
+.busco .btn.dark{background:var(--acc);color:var(--acc-ink)}
+.btn.dark{background:var(--acc);color:var(--acc-ink)}
+.btn.ghost{background:var(--s2);border-color:var(--line2);color:var(--ink)}
+.ib{background:var(--s2);border-color:var(--line2);color:var(--ink)}
+.capa .fondo{background:rgba(0,0,0,.6)}
+.panel{background:var(--bg);border-top:1px solid var(--line2)}
+.dhd .ib{background:rgba(21,23,26,.85);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.flecha{background:rgba(21,23,26,.85)!important;color:var(--ink)}
+.mini button.on{outline-color:var(--acc)}
+.datos div,.contacto,.entrar,.favr,.ppago,.asesor{background:var(--card);border-color:var(--line)}
+.asesor{box-shadow:0 18px 50px rgba(0,0,0,.35)} .av2{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--acc)} .punto{border-color:var(--card)}
+.as-t small{color:var(--acc-txt)}
+.cifra{background:rgba(21,23,26,.7);border-color:var(--line2);color:var(--ink)}
+.precio{color:var(--ink)} .notas{color:var(--soft)}
+.form input,.form textarea{background:var(--card);border-color:var(--line2);color:var(--ink)} .form input:focus,.form textarea:focus{border-color:var(--acc)}
+.check input{accent-color:var(--acc)} .form .check span{color:var(--ink)}
+.listo{color:var(--acc-txt)}
+.aviso{background:var(--acc);color:var(--acc-ink)}
+.fav{background:rgba(21,23,26,.85);color:var(--ink)}
+.hbtn.fv,.hbtn.sh{background:var(--s2);border-color:var(--line2);color:var(--ink)}
+.sim{background:var(--s2);border:1px solid var(--line2)} .sim-c b{color:var(--acc-txt);text-decoration:none}
+.sim-pl button.on{background:var(--acc);color:var(--acc-ink)}
+.dbar{background:linear-gradient(rgba(13,14,16,0),var(--bg) 30%)}
+.pie-m{color:var(--ink)} .pie b{color:var(--acc-txt)}
+.vacio{border-color:var(--line2)}
+.cargando .skel i{background:linear-gradient(90deg,#15171A 30%,#1C1F23 50%,#15171A 70%) 0 0/300% 100%}
+.card.dis .ph,.gal.dis{background:#0A0B0C}
+.pp-i{color:var(--acc-ink)}

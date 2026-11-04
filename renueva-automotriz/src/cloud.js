@@ -142,6 +142,18 @@ async function flush() {
     snapshot.forEach((_, k) => { if (!cur.has(k) && !(k.startsWith('config/') && !refs.isAdmin())) del.push(k) })
     // una regla de la base de datos (P0001) rechaza solo ese registro: el resto se guarda igual
     const rechazos = []
+    // la configuración (color, logo, catálogo) se mezcla con la de la nube: solo se sube lo que cambió en este equipo
+    // (así un celular abierto desde antes no pisa el color que se eligió en otro)
+    for (const r of up) {
+      if (r.col !== 'config') continue
+      const { data: rem } = await sb.from('docs').select('data').eq('org_id', orgId).eq('col', 'config').eq('id', r.id).maybeSingle()
+      if (!rem || !rem.data) continue
+      let base = {}; try { const prev = snapshot.get('config/' + r.id); base = prev ? JSON.parse(prev.split('\u0001')[0]) : {} } catch (e) { base = {} }
+      const mezcla = { ...rem.data }
+      Object.keys(r.data).forEach(k => { if (JSON.stringify(r.data[k]) !== JSON.stringify(base[k])) mezcla[k] = r.data[k] })
+      Object.keys(mezcla).forEach(k => { r.data[k] = mezcla[k] })
+      r.j = sig(r)
+    }
     const subir = rows => sb.from('docs').upsert(rows.map(r => ({ org_id: orgId, col: r.col, id: r.id, mundo: r.mundo, data: r.data, dueno: r.dueno || null, updated_at: new Date().toISOString() })), { onConflict: 'org_id,col,id' }).then(x => x.error)
     for (let i = 0; i < up.length; i += 200) {
       const chunk = up.slice(i, i + 200)

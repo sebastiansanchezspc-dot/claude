@@ -135,7 +135,7 @@ function prHtml(it) {
     <div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="kicker">Cliente y precio</span>
       <label class="field"><span>Nombre del cliente</span><input id="pr-cl" maxlength="40" placeholder="Nombre y apellido" data-change="prDatos" value="${clean(prop.cliente)}"></label>
       <div class="grid2"><label class="field"><span>${arr ? 'Arriendo mensual' : 'Precio ofrecido'}</span><input id="pr-p" data-money inputmode="numeric" value="${fmt(prop.precio)}" data-change="prDatos"></label>
-      <label class="field"><span>Vigencia</span><select id="pr-v" data-change="prDatos">${[3, 7, 15, 30].map(n => `<option value="${n}" ${n === prop.vig ? 'selected' : ''}>${n} días</option>`).join('')}</select></label></div>
+      <label class="field"><span>Vigencia</span><select id="pr-v" data-change="prDatos">${[1, 3, 7, 15, 30].map(n => `<option value="${n}" ${n === prop.vig ? 'selected' : ''}>${n === 1 ? '1 día' : n + ' días'}</option>`).join('')}</select></label></div>
       <p class="prdesc" style="font-size:12px;color:var(--fg3);margin-top:-4px" ${it.precio && prop.precio < it.precio ? '' : 'hidden'}>Descuento de ${fmt(Math.max(0, (it.precio || 0) - prop.precio))} sobre el precio publicado.</p></div>
     <div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="kicker">${arr ? 'Para entrar necesita' : 'Forma de pago'}</span>
       <div class="prpagos">${prop.pagos.map((p, i) => prPagoRow(it, p, i)).join('')}</div>
