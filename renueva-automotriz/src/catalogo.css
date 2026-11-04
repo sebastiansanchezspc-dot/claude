@@ -215,3 +215,9 @@ main.wrap{padding-bottom:20px}
 .check input{width:22px;height:22px;accent-color:var(--ink);flex:none}
 .form .check span{font:500 15px var(--b);letter-spacing:0;text-transform:none;color:var(--ink);margin:0}
 .legal{font-size:12px;color:var(--faint);text-align:center}
+/* fotos con el diseño de la empresa (plantilla 4:5): se ven completas */
+.card.dis .ph{aspect-ratio:4/5;background:#121417}
+.card.dis .ph::after{display:none}
+.gal.dis{aspect-ratio:4/5;background:#121417}
+.gal.dis img{object-fit:contain}
+@media (min-width:980px){.gal.dis{aspect-ratio:4/3}}

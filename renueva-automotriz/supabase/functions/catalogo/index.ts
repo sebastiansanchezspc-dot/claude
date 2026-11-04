@@ -11,7 +11,7 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const json = (b: unknown, s = 200, cache = false) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': cache ? 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' : 'no-store' } })
 const SLUG = /^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/
 const ID = /^[a-z0-9]{2,40}$/i
-const NO_DISP = ['vendido', 'arrendado', 'agotado', 'taller']
+const NO_DISP = ['vendido', 'arrendado', 'agotado']
 // campos que se pueden publicar, por mundo
 const PUB: Record<string, string[]> = {
   auto: ['marca', 'modelo', 'version', 'anio', 'km', 'color', 'tipo', 'transmision', 'combustible', 'puertas', 'motor'],
@@ -36,10 +36,14 @@ async function catalogo(slug: string) {
   const { data: esc } = await db.rpc('org_escribible', { p_org: org.id })
   if (esc === false) return null // prueba vencida o sin pago: el catálogo se pausa
   const { data: pr } = await db.from('docs').select('data').eq('org_id', org.id).eq('col', 'config').eq('id', 'prefs').maybeSingle()
-  return { org, w: c.mundo as string, prefs: pr?.data ?? {} }
+  const prefs = pr?.data ?? {}
+  return { org, w: c.mundo as string, prefs, cfg: (prefs.cat?.[c.mundo] ?? {}) as Record<string, any> }
 }
 
-const disponible = (it: Item, w: string) => it && it.w === w && it.aprob !== 'pendiente' && it.web !== false && !NO_DISP.includes(it.estado) && !(w === 'tienda' && !(Number(it.stock) > 0))
+// qué estados se publican lo decide la empresa: reservados (sí por defecto) y en taller o preparación (no por defecto)
+const disponible = (it: Item, w: string, cfg: any = {}) => it && it.w === w && it.aprob !== 'pendiente' && it.web !== false && !NO_DISP.includes(it.estado)
+  && !(it.estado === 'reservado' && cfg.res === false) && !(it.estado === 'taller' && cfg.taller !== true) && !(w === 'tienda' && !(Number(it.stock) > 0))
+const estadoPub = (e: string) => e === 'reservado' ? 'reservado' : e === 'taller' ? 'taller' : 'disponible'
 
 async function equipo(o: string, w: string) {
   const { data } = await db.from('docs').select('id,data').eq('org_id', o).eq('col', 'equipo')
@@ -61,7 +65,7 @@ async function firmar(org: string, paths: string[]) {
 function publico(it: Item, w: string) {
   const s = it.specs ?? {}, specs: Record<string, unknown> = {}
   ;(PUB[w] ?? []).forEach(k => { const v = s[k]; if (v != null && v !== '' && v !== '—' && v !== '-' && typeof v !== 'object') specs[k] = typeof v === 'number' ? v : limpio(v, 60) })
-  return { id: String(it.id), w, nombre: limpio(it.nombre, 80), precio: num(it.precio), op: it.op === 'Arriendo' || it.op === 'Venta' ? it.op : null, estado: it.estado === 'reservado' ? 'reservado' : 'disponible', specs, ingreso: typeof it.ingreso === 'string' ? it.ingreso.slice(0, 10) : null }
+  return { id: String(it.id), w, nombre: limpio(it.nombre, 80), precio: num(it.precio), op: it.op === 'Arriendo' || it.op === 'Venta' ? it.op : null, estado: estadoPub(it.estado), specs, ingreso: typeof it.ingreso === 'string' ? it.ingreso.slice(0, 10) : null }
 }
 
 Deno.serve(async req => {
@@ -73,7 +77,9 @@ Deno.serve(async req => {
       const u = new URL(req.url), slug = u.searchParams.get('s') ?? '', v = u.searchParams.get('v') ?? '', i = u.searchParams.get('i') ?? ''
       const c = await catalogo(slug)
       if (!c) return json({ error: NO_ENCONTRADO }, 404)
-      const { org, w, prefs } = c
+      const { org, w, prefs, cfg } = c
+      // diseño de las fotos: imagen con la plantilla elegida (generada en la app) como portada
+      const dis = typeof cfg.tpl === 'string' && cfg.tpl !== '' ? (it: Item) => (typeof it.catImg === 'string' ? it.catImg : null) : () => null
       const eq = await equipo(org.id, w), delLink = ID.test(v) ? eq.find(x => x.id === v) : null
       const contacto = (x?: Vend | null) => x ? { nombre: limpio(x.nombre, 40), fono: limpio(x.fono, 24) } : null
       const general = delLink || eq.find(x => x.fono) || null
@@ -84,22 +90,24 @@ Deno.serve(async req => {
         if (!ID.test(i)) return json({ error: 'No encontrado' }, 404)
         const { data: row } = await db.from('docs').select('data').eq('org_id', org.id).eq('col', 'items').eq('id', i).maybeSingle()
         const it = row?.data
-        if (!disponible(it, w)) return json({ error: 'Esta publicación ya no está disponible' }, 404)
-        const fotos = (it.fotos ?? []).slice(0, 14), urls = await firmar(org.id, fotos)
+        if (!disponible(it, w, cfg)) return json({ error: 'Esta publicación ya no está disponible' }, 404)
+        const fotos = [...(dis(it) ? [dis(it)] : []), ...(it.fotos ?? [])].slice(0, 15), urls = await firmar(org.id, fotos)
         const vend = delLink || eq.find(x => x.nombre === it.gestor) || general
         return json({ item: { ...publico(it, w), fotos: fotos.map((f: string) => urls[f]).filter(Boolean), notas: limpio(it.notasPub ?? '', 600) }, vend: contacto(vend) }, 200, true)
       }
 
       const { data: rows } = await db.from('docs').select('data').eq('org_id', org.id).eq('col', 'items').eq('mundo', w).limit(1000)
-      const items = (rows ?? []).map(r => r.data as Item).filter(it => disponible(it, w))
+      const items = (rows ?? []).map(r => r.data as Item).filter(it => disponible(it, w, cfg))
         .sort((a, b) => String(b.ingreso ?? '').localeCompare(String(a.ingreso ?? ''))).slice(0, 400)
       const logo = typeof prefs.logo === 'string' ? prefs.logo : null
-      const urls = await firmar(org.id, [...items.map(it => (it.fotos ?? [])[0]), ...(logo ? [logo] : [])].filter(Boolean))
-      const acc = typeof prefs.accent?.[w] === 'string' && /^#[0-9a-f]{6}$/i.test(prefs.accent[w]) ? prefs.accent[w] : null
+      const portada = (it: Item) => dis(it) || (it.fotos ?? [])[0]
+      const urls = await firmar(org.id, [...items.map(portada), ...(logo ? [logo] : [])].filter(Boolean))
+      const hex = (x: unknown) => typeof x === 'string' && /^#[0-9a-f]{6}$/i.test(x) ? x : null
+      const acc = hex(cfg.color) || hex(prefs.accent?.[w])
       return json({
         org: { nombre: limpio(org.nombre, 80), logo: logo ? urls[logo] ?? null : null, accent: acc },
-        w, contacto: contacto(general), fin,
-        items: items.map(it => ({ ...publico(it, w), foto: urls[(it.fotos ?? [])[0]] ?? null, nf: (it.fotos ?? []).length })),
+        w, contacto: contacto(general), fin, diseno: !!(cfg.tpl && items.some(it => dis(it))),
+        items: items.map(it => ({ ...publico(it, w), foto: urls[portada(it)] ?? null, dis: !!(dis(it) && urls[dis(it) as string]), nf: (it.fotos ?? []).length })),
       }, 200, true)
     }
 
@@ -116,7 +124,7 @@ Deno.serve(async req => {
         if (!ID.test(String(b.i))) return json({ error: 'No encontrado' }, 404)
         const { data: row } = await db.from('docs').select('data').eq('org_id', org.id).eq('col', 'items').eq('id', String(b.i)).maybeSingle()
         it = row?.data ?? null
-        if (!disponible(it as Item, w)) return json({ error: 'Esta publicación ya no está disponible' }, 404)
+        if (!disponible(it as Item, w, c.cfg)) return json({ error: 'Esta publicación ya no está disponible' }, 404)
       }
       // límites silenciosos: no se le enseña al bot dónde está el tope
       if (!(await permitir('cp:' + ip, 5, '1 hour')) || !(await permitir('co:' + org.id, 150, '1 day')) || (it && !(await permitir('ci:' + org.id + ':' + it.id, 30, '1 day')))) return json({ ok: true })

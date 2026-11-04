@@ -121,8 +121,9 @@ function pTag(c, d, x, y, h, align = 'left') {
 // fila del vendedor: iniciales, nombre, teléfono y botón "Escríbeme"
 function pSeller(c, d, x, y, w, h, dark) {
   const fg = dark ? '#FFFFFF' : '#121417', fg2 = dark ? 'rgba(255,255,255,.7)' : 'rgba(18,20,23,.62)', a = h * .82;
-  c.beginPath(); c.arc(x + a / 2, y + h / 2, a / 2, 0, Math.PI * 2); c.fillStyle = d.accent; c.fill();
-  pText(c, pIni(d.vend), x + a / 2, y + h / 2 + a * .15, 800, a * .38, a * .8, 'd', pInk(d.accent), { align: 'center' });
+  if (d.empresa) pLogo(c, d, x, y + (h - a) / 2, a); // datos de la empresa: va su logo
+  else { c.beginPath(); c.arc(x + a / 2, y + h / 2, a / 2, 0, Math.PI * 2); c.fillStyle = d.accent; c.fill();
+    pText(c, pIni(d.vend), x + a / 2, y + h / 2 + a * .15, 800, a * .38, a * .8, 'd', pInk(d.accent), { align: 'center' }); }
   const cta = 'Escríbeme'; c.font = PF(700, h * .3, 'b'); const cw = c.measureText(cta).width + h * .9 + h * .42;
   const tx = x + a + h * .3, maxT = w - a - cw - h * .6;
   pText(c, d.vend || 'Tu vendedor', tx, y + h * .44, 700, h * .34, maxT, 'b', fg);
@@ -396,7 +397,7 @@ async function pubRender(canvas, it, o) {
   const orden = it.fotos.length ? [o.foto, ...it.fotos.map((_, i) => i).filter(i => i !== o.foto)] : [];
   const [fotos, logo] = await Promise.all([Promise.all(orden.slice(0, 3).map(i => pubImg(fotoSrc(it.fotos[i])))), pubImg(PREFS.logo ? fotoSrc(PREFS.logo) : '')]);
   const base = pubDatos(it);
-  const d = { ...base, precio: o.precio ? base.precio : '', fotos: fotos.filter(Boolean), logo, org: orgNombre(), vend: o.vend, fono: o.fono, tag: o.tag, accent: o.color, w: it.w };
+  const d = { ...base, precio: o.precio ? base.precio : '', fotos: fotos.filter(Boolean), logo, org: orgNombre(), vend: o.vend, fono: o.fono, tag: o.tag, accent: o.color, w: it.w, empresa: !!o.empresa };
   d.link = pubLink(it); d.op = base.op; d.stats = base.stats;
   c.clearRect(0, 0, W, H); c.save(); (o.fmt === 'hoja' ? pubHoja : PUB_DRAW[o.tpl])(c, W, H, d); c.restore();
   return canvas;
@@ -404,7 +405,7 @@ async function pubRender(canvas, it, o) {
 
 /* ---------------- pantalla del editor ---------------- */
 function pubPrefs() { try { return JSON.parse(localStorage.getItem('gestix_pub') || '{}'); } catch (e) { return {}; } }
-function pubGuardarPrefs() { try { localStorage.setItem('gestix_pub', JSON.stringify({ ...pubPrefs(), vend: pub.vend, fono: pub.fono, ['tpl_' + getItem(pub.id).w]: pub.tpl, color: pub.color })); } catch (e) { } }
+function pubGuardarPrefs() { try { localStorage.setItem('gestix_pub', JSON.stringify({ ...pubPrefs(), ...(pub.empresa ? { fonoEmp: pub.fono } : { vend: pub.vend, fono: pub.fono }), ['tpl_' + getItem(pub.id).w]: pub.tpl, color: pub.color })); } catch (e) { } }
 function openPublicar(id) {
   const it = getItem(id); if (!it) return; const w = WORLDS[it.w], pr = pubPrefs(), yo = miEquipo(it.w);
   const tpls = pubTpls(it.w), tplPref = pr['tpl_' + it.w];
@@ -424,6 +425,7 @@ function pubHtml(it) {
     <div><p class="kicker" style="margin-bottom:10px">Etiqueta</p><div class="optrow">${['', ...PUB_TAGS[it.w]].map(t => `<button class="opt ${t === pub.tag ? 'on' : ''}" data-act="pubTag" data-t="${clean(t)}">${t || 'Sin etiqueta'}</button>`).join('')}</div></div>
     <div><p class="kicker" style="margin-bottom:10px">Color</p><div class="pubcolors">${PUB_COLORS.map(c => `<button data-act="pubColor" data-c="${c}" class="${c === pub.color ? 'on' : ''}" style="--c:${c}" aria-label="Color ${c}"></button>`).join('')}</div></div>
     <div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="kicker">Datos de contacto</span>
+      <div class="seg2">${[['yo', 'Mis datos'], ['empresa', 'Datos de la empresa']].map(([k, t]) => `<button class="opt ${(pub.empresa ? 'empresa' : 'yo') === k ? 'on' : ''}" data-act="pubQuien" data-k="${k}">${t}</button>`).join('')}</div>
       <div class="grid2"><label class="field"><span>Nombre</span><input id="pub-v" value="${clean(pub.vend)}" maxlength="40" data-change="pubDatos" autocomplete="name"></label><label class="field"><span>WhatsApp</span><input id="pub-f" value="${clean(pub.fono)}" maxlength="20" inputmode="tel" placeholder="+56 9 …" data-change="pubDatos" autocomplete="tel"></label></div>
       ${it.precio ? `<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;color:var(--fg2)">Mostrar precio</span><button class="toggle ${pub.precio ? 'on' : ''}" data-act="pubPrecio" aria-label="Mostrar precio"></button></div>` : ''}</div>
     <button class="btn ghost small" data-act="pubTexto">${icon('copy', 15)}Copiar texto para la publicación</button>
@@ -450,6 +452,14 @@ ACT.pubCopiar = async () => { const u = pubLink(getItem(pub.id)); try { await na
 ACT.pubTpl = d => { pub.tpl = d.k; $$('.pubtpl').forEach(b => b.classList.toggle('on', b.dataset.k === d.k)); pubRedibujar(); };
 ACT.pubFoto = d => { pub.foto = +d.i; $$('.pubfoto').forEach((b, i) => b.classList.toggle('on', i === pub.foto)); pubRedibujar(true); };
 ACT.pubTag = d => { pub.tag = d.t; $$('[data-act=pubTag]').forEach(b => b.classList.toggle('on', b.dataset.t === d.t)); pubRedibujar(true); };
+// la pieza puede ir con los datos del vendedor o solo con los de la empresa (logo, nombre y WhatsApp de la empresa)
+ACT.pubQuien = d => {
+  const it = getItem(pub.id), yo = miEquipo(it.w), pr = pubPrefs(); pub.empresa = d.k === 'empresa';
+  if (pub.empresa) { pub.vend = orgNombre(); pub.fono = (clCfg(it.w).fono || pr.fonoEmp || ''); }
+  else { pub.vend = pr.vend || (yo && yo.nombre) || ME.nombre || ''; pub.fono = pr.fono || (yo && yo.fono) || ''; }
+  $$('[data-act=pubQuien]').forEach(b => b.classList.toggle('on', b.dataset.k === d.k)); const v = $('#pub-v'), f = $('#pub-f'); if (v) v.value = pub.vend; if (f) f.value = pub.fono;
+  pubRedibujar(true);
+};
 ACT.pubColor = d => { pub.color = d.c; $$('.pubcolors button').forEach(b => b.classList.toggle('on', b.dataset.c === d.c)); pubRedibujar(true); };
 ACT.pubPrecio = (d, el) => { pub.precio = !pub.precio; el.classList.toggle('on', pub.precio); pubRedibujar(true); };
 ACT.pubDatos = () => { pub.vend = ($('#pub-v').value || '').trim().replace(/[<>"'`]/g, '').slice(0, 40); pub.fono = ($('#pub-f').value || '').trim().replace(/[^\d+ ()-]/g, '').slice(0, 20); pubRedibujar(true); };

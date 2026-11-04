@@ -272,12 +272,13 @@ function pushScreen(title, html, { cta = '', right = '', onReady } = {}) {
   el.innerHTML = `<div class="pbg"></div><div class="pnav"><button class="back" data-act="back">${icon('chevL', 18, 2.2)}Atrás</button><span class="ptitle">${title}</span><div style="min-width:84px;display:flex;justify-content:flex-end;gap:8px">${right}</div></div><div class="pbody${cta ? ' hascta' : ''}">${html}</div>${cta ? `<div class="cta-bar">${cta}</div>` : ''}`;
   layer.appendChild(el); const prev = pushes[pushes.length - 1]; if (prev) prev.classList.add('under'); pushes.push(el);
   $('#dock').classList.add('hide');
-  // gesto: arrastrar desde el borde izquierdo para volver
-  let x0 = null, dx = 0;
-  el.addEventListener('pointerdown', e => { const r = el.getBoundingClientRect(); if (e.clientX - r.left < 26 && el === pushes[pushes.length - 1]) { x0 = e.clientX; el.style.transition = 'none'; } });
-  el.addEventListener('pointermove', e => { if (x0 === null) return; dx = Math.max(0, e.clientX - x0); el.style.transform = `translateX(${dx}px)`; });
-  const up = () => { if (x0 === null) return; x0 = null; el.style.transition = ''; el.style.transform = ''; if (dx > 110) popScreen(); dx = 0; };
-  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  // gesto: deslizar desde el borde izquierdo para volver (franja propia para que el navegador no lo tome como scroll)
+  el.insertAdjacentHTML('beforeend', '<div class="edge" aria-hidden="true"></div>');
+  const edge = el.lastElementChild; let x0 = null, dx = 0, t0 = 0;
+  edge.addEventListener('pointerdown', e => { if (el !== pushes[pushes.length - 1]) return; x0 = e.clientX; t0 = performance.now(); dx = 0; edge.setPointerCapture(e.pointerId); el.style.transition = 'none'; });
+  edge.addEventListener('pointermove', e => { if (x0 === null) return; dx = Math.max(0, e.clientX - x0); el.style.transform = `translateX(${dx}px)`; });
+  const up = () => { if (x0 === null) return; const v = dx / Math.max(1, performance.now() - t0); x0 = null; el.style.transition = ''; el.style.transform = ''; if (dx > el.offsetWidth * 0.3 || (dx > 40 && v > 0.5)) popScreen(); dx = 0; };
+  edge.addEventListener('pointerup', up); edge.addEventListener('pointercancel', up);
   rAF2(() => { el.classList.add('in'); animateIn(el); onReady && onReady(el); });
   return el;
 }
@@ -349,3 +350,10 @@ async function achicarImagen(file, max, tipo, q = 0.85) {
 // en la nube la foto sube al almacenamiento y se guarda su ruta; en demo queda en memoria
 const storeImage = async dataUrl => (window.RV && RV.upload) ? RV.upload(dataUrl) : dataUrl;
 const fotoSrc = f => !f ? '' : /^(data:|https?:|blob:)/.test(f) ? f : ((window.RV && RV.fileUrl && RV.fileUrl(f)) || '');
+
+// Escape cierra lo que esté arriba (hoja o pantalla), como en cualquier app de computador
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.target.closest('input,textarea,select')) return;
+  if ($('#sb')) { closeSheet(); return; }
+  if (pushes.length) popScreen();
+});
