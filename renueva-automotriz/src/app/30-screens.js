@@ -160,8 +160,8 @@ function heroHtml(w) {
     const hoy = ventasOf('tienda').filter(v => v.fecha === TODAY);
     s3 = [esMesActual() ? ['Ventas hoy', fmtM(sum(hoy, v => v.ingreso))] : ['Vendido', fmtM(st.ingreso)], ['Margen', `${st.ingreso ? Math.round(st.bruta / st.ingreso * 100) : 0}%`], ['Ticket prom.', fmtM(st.n ? st.ingreso / st.n : 0)]];
   }
-  return `<div class="hero reveal">
-    <div class="hero-top"><div class="grow"><span class="kicker">Utilidad neta · ${mesDe(MK())}</span>
+  return `<div class="hero reveal${isVend() ? '' : ' pressable'}" ${isVend() ? '' : 'data-act="resultado" role="button" tabindex="0" aria-label="Ver el detalle de la utilidad"'}>
+    <div class="hero-top"><div class="grow"><span class="kicker">Utilidad neta · ${mesDe(MK())}${isVend() ? '' : ` <span class="hero-ver">Ver detalle ${icon('chevR', 12, 2.4)}</span>`}</span>
       <span class="big">${odo(st.neta)}</span>
       <span class="delta ${dl < 0 ? 'neg' : ''}"><span class="l1">${icon(dl < 0 ? 'arrowDn' : 'arrowUp', 13, 2.4)}${fmtM(Math.abs(dl))}<span>vs ${mesDe(MKP()).toLowerCase()}</span></span>${be > 0 && be < series.length - 1 ? `<span class="l2">Equilibrio el ${be + 1} ${mesDe(MK()).slice(0, 3).toLowerCase()}</span>` : ''}</span></div>
       ${ring(p, 'META')}</div>
