@@ -145,12 +145,12 @@ function avisoItem(antes, it, nuevo) {
   if (isVend() && antes === 'pendiente' && !it.aprob && !nuevo) notify('Precio listo', `${it.nombre} quedó a la venta en ${fmtM(it.precio)}`, () => openItem(it.id));
 }
 function applyRemote(col, id, data) {
-  if (col === 'config') { if (data && id === 'cat') Object.keys(CAT).forEach(k => { if (data[k]) CAT[k] = deepClean(data[k]); }); if (data && id === 'prefs') { PREFS.accent = data.accent || {}; PREFS.logo = data.logo || null; } rerender(); return; }
+  if (col === 'config') { if (data && id === 'cat') Object.keys(CAT).forEach(k => { if (data[k]) CAT[k] = deepClean(data[k]); }); if (data && id === 'prefs') { PREFS.accent = data.accent || {}; PREFS.logo = data.logo || null; PREFS.cat = data.cat || {}; } rerender(); return; }
   const arr = COLS[col]; if (!arr) return; const i = arr.findIndex(x => String(x.id) === String(id));
   if (col === 'ventas' && data) avisoAprobacion(i >= 0 ? arr[i].aprob : null, deepClean(data));
   if (col === 'items' && data) avisoItem(i >= 0 ? arr[i].aprob : null, deepClean(data), i < 0);
   // consulta que llega desde la página pública del auto o propiedad
-  if (col === 'leads' && data && i < 0 && data.origen === 'Página web') { const it = getItem(data.itemId); notify('Nueva consulta desde tu página', `${clean(data.nombre)}${it ? ' · ' + shortName(it.nombre) : ''}`, () => { closeSheet(); setTimeout(() => openLead(data.id), 300); }); }
+  if (col === 'leads' && data && i < 0 && ['Página web', 'Catálogo web'].includes(data.origen)) { const it = getItem(data.itemId); notify(data.origen === 'Catálogo web' ? 'Nueva consulta desde tu catálogo' : 'Nueva consulta desde tu página', `${clean(data.nombre)}${it ? ' · ' + shortName(it.nombre) : ''}`, () => { closeSheet(); setTimeout(() => openLead(data.id), 300); }); }
   if (!data) { if (i >= 0) arr.splice(i, 1); } else if (i >= 0) arr[i] = deepClean(data); else arr.push(deepClean(data));
   rerender();
 }

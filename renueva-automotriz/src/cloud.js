@@ -257,6 +257,23 @@ async function loadMembers() {
 const inviteLink = token => `${webUrl()}?inv=${token}`
 // enlace público de un auto/propiedad (lo abre el código QR)
 const fichaUrl = id => `${NATIVE ? APP_URL : location.origin}/v?o=${orgId}&i=${encodeURIComponent(id)}`
+// catálogo en línea: /c/<slug>; con v= las consultas llegan al vendedor que compartió el enlace
+const catUrl = (slug, v) => `${NATIVE ? APP_URL : location.origin}/c/${slug}${v ? '?v=' + encodeURIComponent(v) : ''}`
+const slugDe = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'catalogo'
+const sufijo = () => Math.random().toString(36).slice(2, 6).replace(/[^a-z0-9]/g, 'x').padEnd(4, 'x')
+async function catalogos() { const { data, error } = await sb.from('catalogos').select('slug,mundo,activo').eq('org_id', orgId); if (error) fail(error); return data || [] }
+// crea el catálogo del mundo (o le cambia el enlace si ya existía): nombre de la empresa + 4 letras al azar
+async function catalogoNuevo(w, nombre) {
+  for (let k = 0; k < 4; k++) {
+    const slug = `${slugDe(nombre)}-${sufijo()}`
+    const { data: ya } = await sb.from('catalogos').select('slug').eq('org_id', orgId).eq('mundo', w).maybeSingle()
+    const { error } = ya ? await sb.from('catalogos').update({ slug, activo: true }).eq('slug', ya.slug) : await sb.from('catalogos').insert({ slug, org_id: orgId, mundo: w, activo: true })
+    if (!error) return slug
+    if (error.code !== '23505') fail(error)
+  }
+  throw new Error('No se pudo crear el enlace. Inténtalo de nuevo.')
+}
+async function catalogoActivo(slug, activo) { const { error } = await sb.from('catalogos').update({ activo }).eq('slug', slug); if (error) fail(error) }
 async function invite({ email, nombre, rol, mundos }) {
   const { data, error } = await sb.rpc('invitar', { p_email: email, p_nombre: nombre, p_rol: rol, p_mundos: mundos }); if (error) fail(error)
   await loadMembers(); return inviteLink(data)
@@ -408,7 +425,7 @@ export const RV = {
   mode, status: 'ok', pagos: [], lastError: null,
   bind: r => { refs = r },
   init, enter, signIn, signUp, resetPassword, updatePassword, logout, createOrg, acceptInvite, context, pendingInvite,
-  dirty, flush, reload, upload, fileUrl, fichaUrl,
+  dirty, flush, reload, upload, fileUrl, fichaUrl, catUrl, catalogos, catalogoNuevo, catalogoActivo,
   loadMembers, invite, updateMember, removeMember,
   choosePlan, cancelPlan, activarMundo, refreshContext, renameOrg, dailySync, deleteAccount,
   platformOrgs, platformSet, billingSetup: () => billing('setup-plans'),
