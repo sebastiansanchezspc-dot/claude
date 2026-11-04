@@ -12,7 +12,7 @@ const clNube = () => !!(window.RV && RV.catalogoNuevo && RV.mode === 'cloud');
 const clItems = w => STOCK.filter(it => it.w === w && it.aprob !== 'pendiente' && it.web !== false && !CL_FUERA.includes(it.estado) && clMuestra(it, clCfg(w)) && !(w === 'tienda' && !(it.stock > 0)));
 // si quien comparte está en el equipo, las consultas de su enlace le llegan a él
 function clLink(w) {
-  const yo = miEquipo(w), v = yo && yo.id ? yo.id : '';
+  const yo = miEquipo(w), v = yo && yo.id ? yo.id : isAdmin() ? (clCfg(w).quien === 'adm' ? 'adm' : 'emp') : '';
   const slug = clCfg(w).slug || 'demo';
   return window.RV && RV.catUrl ? RV.catUrl(slug, v) : `${location.origin}/c/${slug}${v ? '?v=' + v : ''}`;
 }
@@ -46,7 +46,7 @@ function clHtml(w) {
     <p style="font-size:14px;color:var(--fg2);line-height:1.5">Un enlace con todo tu stock disponible: fotos, precios, filtros y contacto directo por WhatsApp. ${w === 'auto' ? 'Ideal para responder "¿qué autos tienen?" en un segundo.' : w === 'prop' ? 'Ideal para responder "¿qué tienen en arriendo?" en un segundo.' : ''} Se actualiza solo: lo ${w === 'prop' ? 'arrendado o vendido' : 'vendido'} desaparece.</p>
     ${on ? `<div class="card publink"><span class="thumb">${icon('link', 20)}</span><span class="grow" style="min-width:0"><b>Enlace de tu catálogo</b><small class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${clean(clLink(w).replace(/^https?:\/\//, ''))}</small></span><button class="ibtn" data-act="clAbrir" aria-label="Abrir catálogo">${icon('arrowR')}</button></div>
       <div class="grid2"><button class="btn ghost small" data-act="clAfiche">${icon('download', 15)}Afiche con QR</button><button class="btn ghost small" data-act="clWa">${icon('chat', 15)}Enviar por WhatsApp</button></div>
-      ${yo ? `<div class="tip good">${icon('user')}<span>Las consultas que lleguen por <b>tu</b> enlace quedan asignadas a ti.</span></div>` : ''}` : !isAdmin() ? `<div class="tip">${icon('lock')}<span>El administrador todavía no activa el catálogo.</span></div>` : ''}
+      ${yo ? `<div class="tip good">${icon('user')}<span>Tu enlace es tuyo: muestra tu nombre y tu WhatsApp en todo el catálogo y las consultas te llegan a ti.</span></div>` : ''}` : !isAdmin() ? `<div class="tip">${icon('lock')}<span>El administrador todavía no activa el catálogo.</span></div>` : ''}
     ${sinFoto ? `<div class="tip">${icon('camera')}<span>${sinFoto} ${sinFoto === 1 ? 'publicación no tiene' : 'publicaciones no tienen'} fotos. Con fotos reciben muchas más consultas.</span></div>` : ''}
     ${isAdmin() ? `<div class="card" style="display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;justify-content:space-between;align-items:center"><span><b style="font-weight:600">Catálogo activo</b><small style="display:block;font-size:12px;color:var(--fg3);margin-top:2px">Si lo pausas, el enlace deja de mostrar el stock</small></span><button class="toggle ${on ? 'on' : ''}" data-act="clToggleOn" aria-label="Catálogo activo"></button></div>
@@ -55,6 +55,12 @@ function clHtml(w) {
       ${cu.on ? `<div class="grid2"><label class="field"><span>Pie (%)</span><input id="cc-pie" inputmode="numeric" value="${cu.pie ?? 30}" data-change="clCuotaDatos"></label><label class="field"><span>Tasa mensual (%)</span><input id="cc-t" inputmode="decimal" value="${String(cu.tasa ?? 1.6).replace('.', ',')}" data-change="clCuotaDatos"></label></div>
       <div><p class="kicker" style="margin-bottom:8px">Plazo</p><div class="optrow">${[24, 36, 48, 60].map(n => `<button class="opt ${n === (cu.plazo || 48) ? 'on' : ''}" data-act="clPlazo" data-n="${n}">${n} meses</button>`).join('')}</div></div>
       <p style="font-size:12px;color:var(--fg3)">Se muestra como referencial, sujeta a evaluación de la financiera.</p>` : ''}` : ''}
+      <div style="height:1px;background:var(--line)"></div>
+      <span class="kicker">Contacto cuando compartes tú</span>
+      <div class="seg2">${[['emp', 'La empresa'], ['adm', 'Mis datos']].map(([k, t]) => `<button class="opt ${(cfg.quien === 'adm' ? 'adm' : 'emp') === k ? 'on' : ''}" data-act="clQuien" data-k="${k}">${t}</button>`).join('')}</div>
+      ${cfg.quien === 'adm' ? `<div class="grid2"><label class="field"><span>Tu nombre</span><input id="cl-an" maxlength="40" value="${clean(cfg.admNombre || ME.nombre || '')}" data-change="clAdm"></label><label class="field"><span>Tu WhatsApp</span><input id="cl-af" maxlength="20" inputmode="tel" placeholder="+56 9 …" value="${clean(cfg.admFono || '')}" data-change="clAdm"></label></div>` : ''}
+      <label class="field"><span>WhatsApp de la empresa</span><input id="cl-fono" maxlength="20" inputmode="tel" placeholder="+56 9 …" value="${clean(cfg.fono || '')}" data-change="clFono"></label>
+      <p style="font-size:12px;color:var(--fg3);margin-top:-4px">Cada vendedor comparte su propio enlace: ahí aparecen sus datos y las consultas le llegan a él.</p>
       <div style="height:1px;background:var(--line)"></div>
       <span class="kicker">Qué mostrar</span>
       <div style="display:flex;justify-content:space-between;align-items:center"><span><b style="font-weight:600">${w === 'prop' ? 'En promesa o reservadas' : 'Reservados'}</b><small style="display:block;font-size:12px;color:var(--fg3);margin-top:2px">Se ven con la etiqueta "Reservado"</small></span><button class="toggle ${cfg.res !== false ? 'on' : ''}" data-act="clEstado" data-k="res" aria-label="Mostrar reservados"></button></div>
@@ -67,7 +73,6 @@ function clHtml(w) {
       <p style="font-size:12.5px;color:var(--fg3);margin-top:-6px">La portada de cada ${WORLDS[w].itemOne.toLowerCase()} sale con tu plantilla, tu logo y los datos de la empresa. Las demás fotos se ven normales.</p>
       <div class="optrow">${[['', 'Foto limpia'], ...pubTpls(w)].map(([k, t]) => `<button class="opt ${k === (cfg.tpl || '') ? 'on' : ''}" data-act="clTpl" data-k="${k}">${t}</button>`).join('')}</div>
       ${cfg.tpl ? `<div class="clmini"><canvas id="cl-mini" width="432" height="540" aria-label="Vista previa del diseño"></canvas><div style="display:flex;flex-direction:column;gap:10px;flex:1;min-width:0">
-        <label class="field"><span>WhatsApp de la empresa</span><input id="cl-fono" maxlength="20" inputmode="tel" placeholder="+56 9 …" value="${clean(cfg.fono || '')}" data-change="clFono"></label>
         <p id="cl-prog" style="font-size:12.5px;color:var(--fg3)">${clProgreso(w)}</p>
         <button class="btn ghost small" data-act="clRehacer">${icon('image', 15)}Actualizar diseños</button></div></div>` : ''}
       ${cfg.slug ? `<div style="height:1px;background:var(--line)"></div><button class="btn ghost small" data-act="clNuevoEnlace">${icon('link', 15)}Cambiar el enlace</button><p style="font-size:12px;color:var(--fg3);margin-top:-4px">El enlace y los QR anteriores dejan de funcionar. Úsalo si se compartió donde no querías.</p>` : ''}
@@ -188,3 +193,7 @@ async function clDisenos(w) {
     }
   } catch (e) { console.error(e); } finally { clGen = false; const pg = $('#cl-prog'); if (pg) pg.textContent = clProgreso(w); }
 }
+
+ACT.clQuien = d => { const w = state.world; clSet(w, { quien: d.k, ...(d.k === 'adm' && !clCfg(w).admNombre ? { admNombre: ME.nombre } : {}) }); clRefrescar(); };
+ACT.clAdm = () => { const w = state.world; clSet(w, { admNombre: (($('#cl-an') || {}).value || '').trim().replace(/[<>"'`]/g, '').slice(0, 40), admFono: (($('#cl-af') || {}).value || '').trim().replace(/[^\d+ ()-]/g, '').slice(0, 20) }); };
+['clQuien', 'clAdm'].forEach(a => ADMIN_ACTS.add(a));

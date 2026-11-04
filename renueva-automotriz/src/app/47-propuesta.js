@@ -182,7 +182,7 @@ ACT.prCred = () => { prLeer(); prop.fin.on = !prop.fin.on; prRefrescar(); };
 ACT.prEnt = (d, el) => { prLeer(); prop.fin.ent = el.value; if (el.value === 'Crédito directo' && prop.fin.tasa === 1.6) prop.fin.tasa = 2.2; prRefrescar(); };
 ACT.prPlazo = d => { prLeer(); prop.fin.plazo = +d.n; prRefrescar(); };
 ACT.prColor = d => { prop.color = d.c; $$('.prdoc ~ div .pubcolors button, .pubcolors button').forEach(b => b.classList.toggle('on', b.dataset.c === d.c)); try { localStorage.setItem('gestix_pub', JSON.stringify({ ...pubPrefs(), color: d.c })); } catch (e) { } prDibujar(); };
-ACT.prPagoAdd = () => { prLeer(); const it = getItem(prop.id), usados = prop.pagos.map(p => p.m), m = prMedios(it).find(x => !usados.includes(x)) || prMedios(it)[0]; prop.pagos.push({ m, a: 0 }); prRefrescar(); const ins = $$('.prpago-a'); if (ins.length) setTimeout(() => ins[ins.length - 1].focus(), 80); };
+ACT.prPagoAdd = () => { prLeer(); const it = getItem(prop.id), usados = prop.pagos.map(p => p.m), m = prMedios(it).find(x => !usados.includes(x)) || prMedios(it)[0]; prop.pagos.push({ m, a: 0 }); prRefrescar(); const filas = $$('.prpago'); if (filas.length) filas[filas.length - 1].classList.add('nuevo'); const ins = $$('.prpago-a'); if (ins.length) setTimeout(() => ins[ins.length - 1].focus(), 80); };
 ACT.prPagoRm = d => { prLeer(); prop.pagos.splice(+d.i, 1); prRefrescar(); };
 ACT.prPagoMedio = (d, el) => { prLeer(); const p = prop.pagos[+d.i]; if (p) { p.m = el.value; if (p.m !== PARTE_PAGO) delete p.d; } prRefrescar(); };
 function prTexto(it) {
