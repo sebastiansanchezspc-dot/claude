@@ -580,3 +580,6 @@
 /* ---------------- propuesta al cliente ---------------- */
 .pubcta.alt{background:var(--s1);border-color:var(--line);} .pubcta.alt .pi{background:var(--s2);color:var(--accent);}
 .prres{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px;border-radius:16px;background:var(--s2);} .prres span{font-size:13px;color:var(--fg2);} .prres b{font:700 24px var(--display);color:var(--accent);}
+
+.pubprev.hoja canvas{width:100%;}
+.publink{display:flex;align-items:center;gap:10px;padding:14px 14px 14px 16px;} .publink b{display:block;font:700 14.5px/1.2 var(--body);} .publink small{display:block;font-size:12px;color:var(--fg3);margin-top:3px;line-height:1.35;}

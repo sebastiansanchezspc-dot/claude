@@ -18,7 +18,8 @@
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4",
-    "@supabase/supabase-js": "^2.45.4"
+    "@supabase/supabase-js": "^2.45.4",
+    "qrcode-generator": "^1.4.4"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.3",
