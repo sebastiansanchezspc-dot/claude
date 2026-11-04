@@ -306,8 +306,15 @@ const saved = () => {
   if (window.RV && RV.syncReminders) { clearTimeout(saved._t); saved._t = setTimeout(() => RV.syncReminders(REMS.filter(r => puedeMundo(r.w))), 1500); }
 };
 function runAct(name, el, e) {
+  if (el.dataset.ocupado) return; // un botón que está trabajando no se puede tocar dos veces (evita actas o envíos duplicados)
   const fn = ACT[name]; if (!fn || !allowAct(name)) { if (fn && el.tagName === 'A') e.preventDefault(); return; }
-  try { const r = fn(el.dataset, el, e); if (r && r.then) r.then(saved, err => { console.error(err); saved(); }); } finally { saved(); }
+  try {
+    const r = fn(el.dataset, el, e);
+    if (r && r.then) {
+      const btn = el.tagName === 'BUTTON' && e && e.type === 'click' ? el : null; if (btn) { btn.dataset.ocupado = '1'; btn.classList.add('cargando'); }
+      r.then(saved, err => { console.error(err); saved(); }).finally(() => { if (btn) { delete btn.dataset.ocupado; btn.classList.remove('cargando'); } });
+    }
+  } finally { saved(); }
 }
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;

@@ -80,9 +80,12 @@ Deno.serve(async req => {
       const { org, w, prefs, cfg } = c
       // diseño de las fotos: imagen con la plantilla elegida (generada en la app) como portada
       const dis = typeof cfg.tpl === 'string' && cfg.tpl !== '' ? (it: Item) => (typeof it.catImg === 'string' ? it.catImg : null) : () => null
-      const eq = await equipo(org.id, w), delLink = ID.test(v) ? eq.find(x => x.id === v) : null
-      const contacto = (x?: Vend | null) => x ? { nombre: limpio(x.nombre, 40), fono: limpio(x.fono, 24) } : null
-      const general = delLink || eq.find(x => x.fono) || null
+      // el contacto de toda la página es quien compartió el enlace: un vendedor (v=<id>), el dueño (v=adm) o la empresa
+      const eq = await equipo(org.id, w), delLink = ID.test(v) && v !== 'emp' && v !== 'adm' ? eq.find(x => x.id === v) : null
+      const contacto = (x?: { nombre?: string, fono?: string } | null) => x && x.fono ? { nombre: limpio(x.nombre, 40), fono: limpio(x.fono, 24) } : null
+      const empresa = { nombre: org.nombre, fono: cfg.fono }, dueno = { nombre: cfg.admNombre || org.nombre, fono: cfg.admFono || cfg.fono }
+      const general = contacto(delLink) || (v === 'adm' ? contacto(dueno) : null) || contacto(empresa) || contacto(eq.find(x => x.fono)) || null
+      const quien = delLink ? 'vendedor' : v === 'adm' && cfg.admFono ? 'dueno' : 'empresa'
       const cu = prefs.cat?.[w]?.cuota
       const fin = w === 'auto' && cu && cu.on ? { pie: num(cu.pie) ?? 30, tasa: num(cu.tasa) ?? 1.6, plazo: num(cu.plazo) ?? 48 } : null
 
@@ -92,8 +95,7 @@ Deno.serve(async req => {
         const it = row?.data
         if (!disponible(it, w, cfg)) return json({ error: 'Esta publicación ya no está disponible' }, 404)
         const fotos = [...(dis(it) ? [dis(it)] : []), ...(it.fotos ?? [])].slice(0, 15), urls = await firmar(org.id, fotos)
-        const vend = delLink || eq.find(x => x.nombre === it.gestor) || general
-        return json({ item: { ...publico(it, w), fotos: fotos.map((f: string) => urls[f]).filter(Boolean), notas: limpio(it.notasPub ?? '', 600) }, vend: contacto(vend) }, 200, true)
+        return json({ item: { ...publico(it, w), fotos: fotos.map((f: string) => urls[f]).filter(Boolean), notas: limpio(it.notasPub ?? '', 600) }, vend: general }, 200, true)
       }
 
       const { data: rows } = await db.from('docs').select('data').eq('org_id', org.id).eq('col', 'items').eq('mundo', w).limit(1000)
@@ -106,7 +108,7 @@ Deno.serve(async req => {
       const acc = hex(cfg.color) || hex(prefs.accent?.[w])
       return json({
         org: { nombre: limpio(org.nombre, 80), logo: logo ? urls[logo] ?? null : null, accent: acc },
-        w, contacto: contacto(general), fin, diseno: !!(cfg.tpl && items.some(it => dis(it))),
+        w, contacto: general, quien, fin, pp: w === 'auto' && cfg.pp !== false, diseno: !!(cfg.tpl && items.some(it => dis(it))),
         items: items.map(it => ({ ...publico(it, w), foto: urls[portada(it)] ?? null, dis: !!(dis(it) && urls[dis(it) as string]), nf: (it.fotos ?? []).length })),
       }, 200, true)
     }
@@ -131,8 +133,8 @@ Deno.serve(async req => {
       const desde = new Date(Date.now() - 864e5).toISOString()
       const { count } = await db.from('docs').select('id', { count: 'exact', head: true }).eq('org_id', org.id).eq('col', 'leads').gte('updated_at', desde).eq('data->>fono', fono)
       if ((count ?? 0) >= 3) return json({ ok: true })
-      const eq = await equipo(org.id, w), v = ID.test(String(b.v ?? '')) ? eq.find(x => x.id === b.v) : null
-      const vend = v || (it ? eq.find(x => x.nombre === it!.gestor) : null) || eq[0] || null
+      // la consulta queda para quien compartió el enlace (si fue el dueño o la empresa, la ve el administrador)
+      const eq = await equipo(org.id, w), vend = ID.test(String(b.v ?? '')) ? eq.find(x => x.id === b.v) ?? null : null
       const now = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 16) // hora de Chile aproximada (UTC−3)
       const id = 'l' + crypto.randomUUID().replace(/-/g, '').slice(0, 20)
       const txt = it ? `Consulta desde el catálogo por ${limpio(it.nombre, 80)}` : 'Consulta general desde el catálogo'
