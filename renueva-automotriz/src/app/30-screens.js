@@ -455,6 +455,7 @@ function renderCaja() {
     ${w.key === 'auto' ? finComHtml() + finCajaHtml(c) : ''}
     ${c.rows.length ? sec('Por cobrar', fmtM(c.pend)) + `<div class="card tight">${c.rows.map(({ v, p }, k) => `<button class="row" data-act="venta" data-id="${v.id}"><span class="thumb">${icon(METODO_ICON[p.m] || 'receipt', 20)}</span><span class="rm"><p class="rt">${p.m} · ${v.cliente}</p><p class="rs">Vence ${fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmtM(p.a)}</span></span></button>`).join('')}</div>` : ''}
     ${sec('Gastos', '')}
+    ${isVend() ? '' : `<button class="card pressable catcta" data-act="cierre"><span class="thumb">${icon('doc', 20)}</span><span class="grow"><b>Cierre de ${mesDe(MK()).toLowerCase()}</b><small>Utilidad, flujo de caja y capital en stock · envíalo en PDF</small></span>${icon('chevR', 16)}</button>`}
     <button class="card pressable" data-act="gastos" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%"><span class="thumb">${icon('receipt', 22)}</span><span class="grow"><p class="rt">Gastos de ${mesDe(MK()).toLowerCase()}</p><p class="rs">${gastosMes(w.key).length} registros · ${gastosMes(w.key).filter(g => g.fijo).length} fijos</p></span><span class="num" style="font-size:19px">${fmtM(gs)}</span>${icon('chevR', 16)}</button>
   </div>`;
   moveSeg('seg-c');
