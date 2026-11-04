@@ -65,6 +65,8 @@ const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.
 function animar(root = document) {
   $$('.rv:not(.vis), .card:not(.vis)', root).forEach(el => io && !QUIETO ? io.observe(el) : el.classList.add('vis'))
   $$('img:not(.ok)', root).forEach(im => { if (im.complete && im.naturalWidth) im.classList.add('ok'); else { im.addEventListener('load', () => im.classList.add('ok'), { once: true }); im.addEventListener('error', () => im.classList.add('ok', 'mal'), { once: true }) } })
+  // seguro: ninguna foto queda invisible aunque se pierda el aviso de carga
+  setTimeout(() => $$('img:not(.ok)', root).forEach(im => im.classList.add('ok')), 2500)
 }
 function contar(el, n, txt) {
   if (!el) return; if (QUIETO || n < 2) { el.textContent = txt(n); return }
@@ -304,7 +306,7 @@ async function abrir(id, desdeRuta) {
     const r = await fetch(`${API}?s=${encodeURIComponent(S)}&i=${encodeURIComponent(id)}${V ? '&v=' + encodeURIComponent(V) : ''}`), d = await r.json(); if (!r.ok) throw new Error(d.error)
     cacheDet.set(id, d)
     const pn = $('.panel', c)
-    if (!c.hidden && pn && pn.dataset.id === id) { const sc = $('.pbody', c).scrollTop; pn.innerHTML = detalleHtml(it, d); $('.pbody', c).scrollTop = sc; $$('[data-cerrar]', pn).forEach(b => b.addEventListener('click', () => cerrar())); activarDetalle(c, it, d) }
+    if (!c.hidden && pn && pn.dataset.id === id) { const sc = $('.pbody', c).scrollTop; pn.innerHTML = detalleHtml(it, d); $('.pbody', c).scrollTop = sc; $$('[data-cerrar]', pn).forEach(b => b.addEventListener('click', () => cerrar())); activarDetalle(c, it, d); animar(pn) }
   } catch (e) { const g = $('#gal', c); if (g && !it.foto) g.innerHTML = '<div class="sinfoto"><span>No pudimos cargar las fotos</span></div>' }
 }
 function detalleHtml(it, d) {
