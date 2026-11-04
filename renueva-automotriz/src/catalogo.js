@@ -436,7 +436,7 @@ function colores(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return
   const n = parseInt(m[1], 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255, lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
   const R = document.documentElement.style
-  R.setProperty('--acc', '#' + m[1]); R.setProperty('--acc-ink', lum > 0.55 ? '#16181B' : '#FFFFFF'); R.setProperty('--acc-txt', lum > 0.55 ? '#16181B' : '#' + m[1])
+  R.setProperty('--acc', '#' + m[1]); R.setProperty('--acc-ink', lum > 0.55 ? '#141900' : '#FFFFFF'); R.setProperty('--acc-txt', lum > 0.32 ? '#' + m[1] : '#F5F2EB')
 }
 
 async function cargar() {
@@ -444,7 +444,7 @@ async function cargar() {
   try { const r = await fetch(`${API}?s=${encodeURIComponent(S)}${V ? '&v=' + encodeURIComponent(V) : ''}`); D = await r.json(); if (!r.ok) throw new Error(D.error || 'error') }
   catch (e) { D = null; return error(e && e.message && !/fetch|network/i.test(e.message) ? e.message : 'No pudimos cargar el catálogo') }
   W = TXT[D.w] ? D.w : 'auto'; T = TXT[W]
-  colores(D.org.accent); pintar()
+  colores(D.org.accent || { auto: '#C8F03C', prop: '#B7A6FF', tienda: '#FF8A6B' }[W]); pintar()
 }
 function error(t) { $('#app').className = 'vacio'; $('#app').innerHTML = `<div class="nada"><h1>${esc(t)}</h1><p>Puede que el enlace no esté completo o que la empresa haya pausado su catálogo. Escríbele a quien te lo envió.</p></div>` }
 cargar()

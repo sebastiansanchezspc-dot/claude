@@ -39,6 +39,7 @@ function openAjustes() {
       <button class="navrow" data-act="legal" data-p="soporte"><span class="ni">${icon('chat')}</span><span class="grow"><b style="font:600 14.5px var(--body)">Ayuda y soporte</b></span>${icon('chevR')}</button>
     </div>
     <button class="btn danger" data-act="logout">${icon('power')}Cerrar sesión</button>
+    ${isAdmin() ? `<button class="btn ghost small" data-act="limpiarDatos" style="width:100%;color:var(--warn)">${icon('history', 15)}Borrar los datos de la empresa</button>` : ''}
     <button class="btn ghost small" data-act="borrarCuenta" style="width:100%;color:var(--bad)">${icon('trash', 15)}Eliminar mi cuenta</button></div>`);
 }
 function planChip() {
@@ -302,3 +303,38 @@ ACT.borrarCuentaOk = async (d, el) => {
     state.world = null; renderGate('login');
   } catch (e) { el.disabled = false; el.innerHTML = 'Reintentar'; toast(e.message || 'No se pudo eliminar la cuenta', 'warn'); }
 };
+
+/* ---------------- borrar los datos de la empresa (la cuenta, el plan y los usuarios siguen) ----------------
+   Sirve para partir de cero, por ejemplo después de probar con datos de ejemplo. Pide escribir el nombre
+   de la empresa y luego una segunda confirmación con el número exacto de registros que se borran. */
+const LIMPIAR = [['items', 'Stock'], ['ventas', 'Ventas y comisiones'], ['gastos', 'Caja y gastos'], ['leads', 'Clientes, consultas y recordatorios'], ['equipo', 'Equipo de vendedores']];
+let limp = null;
+const limpCuenta = () => { const ws = limp.mundo === 'todos' ? Object.keys(WORLDS) : [limp.mundo]; let n = 0;
+  limp.cols.forEach(c => { (c === 'leads' ? [LEADS, REMS, CONTACTOS] : [COLS[c]]).forEach(arr => { n += arr.filter(x => x.w ? ws.includes(x.w) : limp.mundo === 'todos').length; }); }); return n; };
+function limpHtml() {
+  const n = limpCuenta();
+  return `<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="tip" style="margin:0">${icon('warn')}<span>Se borran los registros que elijas. Tu cuenta, el plan, los usuarios, el logo y los colores <b>no</b> se tocan. Esto no se puede deshacer.</span></div>
+    <div><p class="kicker" style="margin-bottom:8px">De qué mundo</p><div class="optrow">${[['todos', 'Todos'], ...Object.values(WORLDS).filter(w => ENABLED[w.key]).map(w => [w.key, w.name])].map(([k, t]) => `<button class="opt ${limp.mundo === k ? 'on' : ''}" data-act="limpMundo" data-k="${k}">${t}</button>`).join('')}</div></div>
+    <div class="card tight">${LIMPIAR.map(([k, t]) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px"><span style="font-size:14.5px">${t}</span><button class="toggle ${limp.cols.includes(k) ? 'on' : ''}" data-act="limpCol" data-k="${k}" aria-label="${t}"></button></div>`).join('')}</div>
+    <p style="font-size:13px;color:var(--fg2)">Se borrarán <b id="limp-n">${n}</b> registros.</p>
+    <label class="field"><span>Para confirmar, escribe el nombre de tu empresa: <b>${clean(orgNombre())}</b></span><input id="limp-c" autocomplete="off" data-live="limpLive"></label>
+    <button class="btn danger" id="limp-ok" data-act="limpiarOk" disabled>${icon('trash')}Borrar datos</button>
+    <button class="btn ghost" data-act="closeSheet">Cancelar</button></div>`;
+}
+const limpNorm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+ACT.limpiarDatos = () => { limp = { mundo: 'todos', cols: ['items', 'ventas', 'gastos', 'leads'] }; openSheet('Borrar los datos de la empresa', limpHtml()); };
+const limpRe = () => { const v = ($('#limp-c') || {}).value || ''; $('#sb .sbody').innerHTML = limpHtml(); const i = $('#limp-c'); if (i) { i.value = v; ACT.limpLive(); } };
+ACT.limpMundo = d => { limp.mundo = d.k; limpRe(); };
+ACT.limpCol = d => { limp.cols = limp.cols.includes(d.k) ? limp.cols.filter(x => x !== d.k) : [...limp.cols, d.k]; limpRe(); };
+ACT.limpLive = () => { const b = $('#limp-ok'); if (b) b.disabled = !limp.cols.length || limpNorm($('#limp-c').value) !== limpNorm(orgNombre()); };
+ACT.limpiarOk = async () => {
+  if (limpNorm(($('#limp-c') || {}).value) !== limpNorm(orgNombre()) || !limp.cols.length) return;
+  const n = limpCuenta(), ws = limp.mundo === 'todos' ? Object.keys(WORLDS) : [limp.mundo];
+  // segunda validación: confirmación con el número exacto
+  if (!confirm(`Última confirmación: se borrarán ${n} registros de ${limp.mundo === 'todos' ? 'todos los mundos' : WORLDS[limp.mundo].name}. ¿Seguro?`)) return;
+  limp.cols.forEach(c => { (c === 'leads' ? [LEADS, REMS, CONTACTOS] : [COLS[c]]).forEach(arr => { const queda = arr.filter(x => x.w ? !ws.includes(x.w) : limp.mundo !== 'todos'); arr.length = 0; queda.forEach(x => arr.push(x)); }); });
+  saved(); if (window.RV && RV.flush) { try { await RV.flush(); } catch (e) { } }
+  closeSheet(); while (pushes.length) popScreen(); rerender(); toast(`Listo: se borraron ${n} registros`, 'check');
+};
+ADMIN_ACTS.add('limpiarDatos'); ADMIN_ACTS.add('limpiarOk'); ADMIN_ACTS.add('limpMundo'); ADMIN_ACTS.add('limpCol');
