@@ -85,7 +85,7 @@ Deno.serve(async req => {
       const contacto = (x?: { nombre?: string, fono?: string } | null) => x && x.fono ? { nombre: limpio(x.nombre, 40), fono: limpio(x.fono, 24) } : null
       const empresa = { nombre: org.nombre, fono: cfg.fono }, dueno = { nombre: cfg.admNombre || org.nombre, fono: cfg.admFono || cfg.fono }
       const general = contacto(delLink) || (v === 'adm' ? contacto(dueno) : null) || contacto(empresa) || contacto(eq.find(x => x.fono)) || null
-      const quien = delLink ? 'vendedor' : v === 'adm' && cfg.admFono ? 'dueno' : 'empresa'
+      const quien = delLink ? 'vendedor' : v === 'adm' && cfg.admFono ? 'dueno' : contacto(empresa) || !general ? 'empresa' : 'vendedor'
       const cu = prefs.cat?.[w]?.cuota
       const fin = w === 'auto' && cu && cu.on ? { pie: num(cu.pie) ?? 30, tasa: num(cu.tasa) ?? 1.6, plazo: num(cu.plazo) ?? 48 } : null
 
