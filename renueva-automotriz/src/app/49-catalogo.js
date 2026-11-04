@@ -3,11 +3,13 @@
    precios, filtros y contacto directo) para compartir con clientes.
    Se actualiza solo: lo vendido o arrendado desaparece.
    ===================================================================== */
-const CL_FUERA = ['vendido', 'arrendado', 'agotado', 'taller'];
+const CL_FUERA = ['vendido', 'arrendado', 'agotado'];
 const clCfg = w => (PREFS.cat && PREFS.cat[w]) || {};
+// qué estados se muestran: reservados (sí por defecto) y en taller o preparación (no por defecto)
+const clMuestra = (it, cfg) => !(it.estado === 'reservado' && cfg.res === false) && !(it.estado === 'taller' && cfg.taller !== true);
 const clOn = w => !!(clCfg(w).on && clCfg(w).slug);
-const clNube = () => !!(window.RV && RV.catalogoNuevo);
-const clItems = w => STOCK.filter(it => it.w === w && it.aprob !== 'pendiente' && it.web !== false && !CL_FUERA.includes(it.estado) && !(w === 'tienda' && !(it.stock > 0)));
+const clNube = () => !!(window.RV && RV.catalogoNuevo && RV.mode === 'cloud');
+const clItems = w => STOCK.filter(it => it.w === w && it.aprob !== 'pendiente' && it.web !== false && !CL_FUERA.includes(it.estado) && clMuestra(it, clCfg(w)) && !(w === 'tienda' && !(it.stock > 0)));
 // si quien comparte está en el equipo, las consultas de su enlace le llegan a él
 function clLink(w) {
   const yo = miEquipo(w), v = yo && yo.id ? yo.id : '';
@@ -20,12 +22,13 @@ const clTexto = w => `¡Hola! Te comparto el catálogo de ${orgNombre()} con ${w
 function clCard(w) {
   const n = clItems(w).length, on = clOn(w);
   if (!on && !isAdmin()) return '';
+  if (on && clCfg(w).tpl && canWrite()) setTimeout(() => clDisenos(w), 2500); // mantiene al día las portadas con diseño
   return `<button class="card pressable catcta" data-act="catLinea"><span class="thumb">${icon('link', 20)}</span><span class="grow"><b>${on ? 'Tu catálogo en línea' : 'Crea tu catálogo en línea'}</b><small>${on ? `${n} ${n === 1 ? WORLDS[w].itemOne.toLowerCase() : WORLDS[w].itemMany.toLowerCase()} publicados · compártelo por WhatsApp` : 'Todo tu stock en un enlace para tus clientes'}</small></span>${on ? `<span class="chip good">Activo</span>` : icon('chevR', 16)}</button>`;
 }
 
 function openCatLinea() {
   const w = state.world;
-  pushScreen('Catálogo en línea', clHtml(w), { cta: clCta(w) });
+  pushScreen('Catálogo en línea', clHtml(w), { cta: clCta(w) }); clMiniDiseno(); clDisenos(w);
   // el estado real está en la nube (por si se cambió desde otro equipo)
   if (clNube() && isAdmin()) RV.catalogos().then(rs => { const r = rs.find(x => x.mundo === w); const c = clCfg(w); if (r && (r.slug !== c.slug || r.activo !== !!c.on)) { clSet(w, { slug: r.slug, on: r.activo }); clRefrescar(); rerender(); } }).catch(() => { });
 }
@@ -52,6 +55,21 @@ function clHtml(w) {
       ${cu.on ? `<div class="grid2"><label class="field"><span>Pie (%)</span><input id="cc-pie" inputmode="numeric" value="${cu.pie ?? 30}" data-change="clCuotaDatos"></label><label class="field"><span>Tasa mensual (%)</span><input id="cc-t" inputmode="decimal" value="${String(cu.tasa ?? 1.6).replace('.', ',')}" data-change="clCuotaDatos"></label></div>
       <div><p class="kicker" style="margin-bottom:8px">Plazo</p><div class="optrow">${[24, 36, 48, 60].map(n => `<button class="opt ${n === (cu.plazo || 48) ? 'on' : ''}" data-act="clPlazo" data-n="${n}">${n} meses</button>`).join('')}</div></div>
       <p style="font-size:12px;color:var(--fg3)">Se muestra como referencial, sujeta a evaluación de la financiera.</p>` : ''}` : ''}
+      <div style="height:1px;background:var(--line)"></div>
+      <span class="kicker">Qué mostrar</span>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span><b style="font-weight:600">${w === 'prop' ? 'En promesa o reservadas' : 'Reservados'}</b><small style="display:block;font-size:12px;color:var(--fg3);margin-top:2px">Se ven con la etiqueta "Reservado"</small></span><button class="toggle ${cfg.res !== false ? 'on' : ''}" data-act="clEstado" data-k="res" aria-label="Mostrar reservados"></button></div>
+      ${w === 'tienda' ? '' : `<div style="display:flex;justify-content:space-between;align-items:center"><span><b style="font-weight:600">${w === 'prop' ? 'En preparación' : 'En taller o preparación'}</b><small style="display:block;font-size:12px;color:var(--fg3);margin-top:2px">Se ven como "Próximamente" para que te consulten antes</small></span><button class="toggle ${cfg.taller === true ? 'on' : ''}" data-act="clEstado" data-k="taller" aria-label="Mostrar en preparación"></button></div>`}
+      <div style="height:1px;background:var(--line)"></div>
+      <span class="kicker">Color del catálogo</span>
+      <div class="pubcolors">${PUB_COLORS.map(c => `<button data-act="clColor" data-c="${c}" class="${c === (cfg.color || PREFS.accent[w] || WORLDS[w].accent) ? 'on' : ''}" style="--c:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
+      <div style="height:1px;background:var(--line)"></div>
+      <span class="kicker">Diseño de las fotos</span>
+      <p style="font-size:12.5px;color:var(--fg3);margin-top:-6px">La portada de cada ${WORLDS[w].itemOne.toLowerCase()} sale con tu plantilla, tu logo y los datos de la empresa. Las demás fotos se ven normales.</p>
+      <div class="optrow">${[['', 'Foto limpia'], ...pubTpls(w)].map(([k, t]) => `<button class="opt ${k === (cfg.tpl || '') ? 'on' : ''}" data-act="clTpl" data-k="${k}">${t}</button>`).join('')}</div>
+      ${cfg.tpl ? `<div class="clmini"><canvas id="cl-mini" width="432" height="540" aria-label="Vista previa del diseño"></canvas><div style="display:flex;flex-direction:column;gap:10px;flex:1;min-width:0">
+        <label class="field"><span>WhatsApp de la empresa</span><input id="cl-fono" maxlength="20" inputmode="tel" placeholder="+56 9 …" value="${clean(cfg.fono || '')}" data-change="clFono"></label>
+        <p id="cl-prog" style="font-size:12.5px;color:var(--fg3)">${clProgreso(w)}</p>
+        <button class="btn ghost small" data-act="clRehacer">${icon('image', 15)}Actualizar diseños</button></div></div>` : ''}
       ${cfg.slug ? `<div style="height:1px;background:var(--line)"></div><button class="btn ghost small" data-act="clNuevoEnlace">${icon('link', 15)}Cambiar el enlace</button><p style="font-size:12px;color:var(--fg3);margin-top:-4px">El enlace y los QR anteriores dejan de funcionar. Úsalo si se compartió donde no querías.</p>` : ''}
     </div>` : ''}
     <p style="font-size:12px;color:var(--fg3);text-align:center">Nunca se muestran costos, la dirección exacta ni datos internos.</p>
@@ -135,3 +153,38 @@ ADMIN_ACTS.add('clActivar'); ADMIN_ACTS.add('clNuevoEnlace'); ADMIN_ACTS.add('cl
 // cada ítem se puede sacar del catálogo (por ejemplo, un auto en consignación que el dueño no quiere publicar)
 ACT.togWeb = d => { const it = getItem(d.id); if (!it) return; it.web = it.web === false ? true : false; saved(); refreshItem(it.id); toast(it.web === false ? 'Ya no aparece en tu catálogo' : 'Visible en tu catálogo', it.web === false ? 'lock' : 'check'); };
 WRITE_ACTS.add('togWeb');
+
+/* ---------------- opciones del catálogo: estados, color y diseño ---------------- */
+ACT.clEstado = d => { const w = state.world, cfg = clCfg(w); clSet(w, { [d.k]: d.k === 'res' ? cfg.res === false : cfg.taller !== true }); clRefrescar(); clMiniDiseno(); clDisenos(w); };
+ACT.clColor = d => { const w = state.world; clSet(w, { color: d.c }); $$('[data-act=clColor]').forEach(b => b.classList.toggle('on', b.dataset.c === d.c)); clMiniDiseno(); clDisenos(w); };
+ACT.clTpl = d => { const w = state.world; clSet(w, { tpl: d.k }); clRefrescar(); clMiniDiseno(); clDisenos(w); };
+ACT.clFono = (d, el) => { const w = state.world; clSet(w, { fono: el.value.trim().replace(/[^\d+ ()-]/g, '').slice(0, 20) }); clMiniDiseno(); clDisenos(w); };
+ACT.clRehacer = () => { const w = state.world; STOCK.forEach(it => { if (it.w === w) delete it.catSig; }); clDisenos(w); };
+['clEstado', 'clColor', 'clTpl', 'clFono', 'clRehacer'].forEach(a => ADMIN_ACTS.add(a));
+
+// opciones con que se dibuja la portada de un ítem en el catálogo (siempre con los datos de la empresa)
+const clOpts = (it, w) => { const cfg = clCfg(w); return { fmt: 'post', tpl: cfg.tpl, foto: 0, precio: !!it.precio, tag: it.estado === 'reservado' ? 'Reservado' : it.estado === 'taller' ? 'Próximamente' : PUB_TAGS[w][0], color: cfg.color || PREFS.accent[w] || WORLDS[w].accent, vend: orgNombre(), fono: cfg.fono || '', empresa: true }; };
+// firma: si cambia algo que se ve en la imagen, se vuelve a generar
+const clFirma = (it, w) => { const s = JSON.stringify([clOpts(it, w), PREFS.logo || '', (it.fotos || [])[0] || '', it.precio, it.nombre, it.estado, it.specs, it.op]); let h = 0; for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) | 0; return (h >>> 0).toString(36); };
+const clPend = w => clItems(w).filter(it => (it.fotos || []).length && !(it.catImg && it.catSig === clFirma(it, w)));
+function clProgreso(w) { const con = clItems(w).filter(it => (it.fotos || []).length).length, p = clPend(w).length; return !con ? 'Agrega fotos a tu stock para generar los diseños.' : p ? `Preparando diseños: ${con - p} de ${con} listos…` : `Los ${con} diseños están listos y se actualizan solos cuando cambias precio o fotos.`; }
+async function clMiniDiseno() {
+  const w = state.world, cfg = clCfg(w), cv = $('#cl-mini'); if (!cv || !cfg.tpl) return;
+  const it = clItems(w).find(x => (x.fotos || []).length) || clItems(w)[0]; if (!it) return;
+  await pubFonts(); const off = document.createElement('canvas'); await pubRender(off, it, clOpts(it, w));
+  const c2 = $('#cl-mini'); if (c2) c2.getContext('2d').drawImage(off, 0, 0, c2.width, c2.height);
+}
+// genera (una por una, en segundo plano) las portadas que faltan o quedaron viejas
+let clGen = false;
+async function clDisenos(w) {
+  if (clGen || !canWrite() || !clCfg(w).tpl || !clOn(w)) return; clGen = true;
+  try {
+    await pubFonts();
+    for (const it of clPend(w)) {
+      if (!clCfg(w).tpl) break;
+      const firma = clFirma(it, w), c = document.createElement('canvas'); await pubRender(c, it, clOpts(it, w));
+      it.catImg = await storeImage(c.toDataURL('image/jpeg', 0.86)); it.catSig = firma; saved();
+      const pg = $('#cl-prog'); if (pg) pg.textContent = clProgreso(w);
+    }
+  } catch (e) { console.error(e); } finally { clGen = false; const pg = $('#cl-prog'); if (pg) pg.textContent = clProgreso(w); }
+}

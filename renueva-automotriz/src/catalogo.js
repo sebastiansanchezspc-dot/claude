@@ -115,12 +115,12 @@ const activos = () => Object.values(st.f).reduce((n, v) => n + (v instanceof Set
 
 /* ---------------- pantalla principal ---------------- */
 function tarjeta(it, k = 0) {
-  const c = cuota(it), s = sp(it), yr = anio(it), tag = it.estado === 'reservado' ? ['res', 'Reservado'] : nuevo(it) ? ['new', 'Recién llegado'] : null
+  const c = cuota(it), s = sp(it), yr = anio(it), tag = it.dis ? null : it.estado === 'reservado' ? ['res', 'Reservado'] : it.estado === 'taller' ? ['res', 'Próximamente'] : nuevo(it) ? ['new', 'Recién llegado'] : null
   const props = it.w === 'prop' ? [ok(s.dorm) && Number(s.dorm) > 0 && [ico('bed', 15), s.dorm + 'D'], ok(s.banos) && [ico('bath', 15), s.banos + 'B'], ok(s.m2c) && [ico('area', 15), s.m2c + ' m²']].filter(Boolean) : []
-  return `<a class="card" href="#i=${encodeURIComponent(it.id)}" data-id="${esc(it.id)}" style="--k:${Math.min(k, 12)}">
+  return `<a class="card${it.dis ? ' dis' : ''}" href="#i=${encodeURIComponent(it.id)}" data-id="${esc(it.id)}" style="--k:${Math.min(k, 12)}">
     <div class="ph">${it.foto ? `<img src="${esc(it.foto)}" alt="${esc(titulo(it))}" loading="${k < 4 ? 'eager' : 'lazy'}" decoding="async">` : `<div class="sinfoto">${marcaIni(30)}<span>Fotos pronto</span></div>`}
       ${tag ? `<span class="tag ${tag[0]}">${tag[1]}</span>` : ''}${it.nf > 1 ? `<span class="nf">${ico('cam', 13)}${it.nf}</span>` : ''}
-      <span class="pr">${esc(precioTxt(it))}</span></div>
+      ${it.dis ? '' : `<span class="pr">${esc(precioTxt(it))}</span>`}</div>
     <div class="bd">
       <h3><span>${esc(titulo(it))}</span>${yr ? `<em>${esc(yr)}</em>` : ''}</h3>
       ${props.length ? `<p class="ic">${props.map(([i, t]) => `<span>${i}${esc(t)}</span>`).join('')}</p>` : ''}
@@ -252,11 +252,11 @@ function detalleHtml(it, d) {
   const otros = D.items.filter(x => x.id !== it.id && x.op === it.op && (sp(x).tipo === s.tipo || (it.w === 'auto' && sp(x).marca === s.marca))).slice(0, 4)
   return `<div class="dhd"><button class="ib cerrar" data-cerrar aria-label="Volver al catálogo">${ico('l', 20)}</button><span class="dt">${esc(titulo(it))}</span><button class="ib" id="compartir" aria-label="Compartir">${ico('share', 18)}</button></div>
     <div class="pbody"><div class="dgrid">
-      <div class="galw"><div class="gal" id="gal">${fotos.length ? fotos.map((u, k) => `<img src="${esc(u)}" alt="Foto ${k + 1} de ${esc(tt)}" ${k > 1 ? 'loading="lazy"' : ''}>`).join('') : `<div class="sinfoto">${marcaIni(40)}<span>${d ? 'Fotos pronto' : ''}</span></div>`}</div>
+      <div class="galw"><div class="gal${it.dis ? ' dis' : ''}" id="gal">${fotos.length ? fotos.map((u, k) => `<img src="${esc(u)}" alt="Foto ${k + 1} de ${esc(tt)}" ${k > 1 ? 'loading="lazy"' : ''}>`).join('') : `<div class="sinfoto">${marcaIni(40)}<span>${d ? 'Fotos pronto' : ''}</span></div>`}</div>
         ${fotos.length > 1 ? `<span class="cont" id="cont">1 / ${fotos.length}</span><button class="flecha l" id="gl" aria-label="Foto anterior">${ico('l', 20)}</button><button class="flecha r" id="gr" aria-label="Foto siguiente">${ico('r', 20)}</button>` : ''}
         ${fotos.length > 1 ? `<div class="mini" id="mini">${fotos.map((u, k) => `<button data-k="${k}" class="${k ? '' : 'on'}" aria-label="Ver foto ${k + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}</div>
       <div class="dinfo">
-        <span class="estado ${it.estado === 'reservado' ? 'res' : ''}">${it.estado === 'reservado' ? 'Reservado' : it.w === 'prop' ? (it.op === 'Arriendo' ? 'En arriendo' : 'En venta') : 'Disponible'}</span>
+        <span class="estado ${it.estado !== 'disponible' ? 'res' : ''}">${it.estado === 'reservado' ? 'Reservado' : it.estado === 'taller' ? 'En preparación · pronto disponible' : it.w === 'prop' ? (it.op === 'Arriendo' ? 'En arriendo' : 'En venta') : 'Disponible'}</span>
         <h2>${esc(titulo(it))}${yr ? ` <em>${esc(yr)}</em>` : ''}</h2>
         <p class="sub">${esc(lineas(it).join(' · '))}</p>
         <p class="precio">${esc(precioTxt(it))}</p>
