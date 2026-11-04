@@ -564,3 +564,19 @@
 .pubcolors{display:flex;gap:12px;flex-wrap:wrap;}
 .pubcolors button{width:40px;height:40px;border-radius:99px;background:var(--c);border:3px solid var(--s1);box-shadow:0 0 0 1.5px var(--line);cursor:pointer;transition:transform .2s var(--spring);}
 .pubcolors button.on{box-shadow:0 0 0 2.5px var(--fg);transform:scale(1.06);}
+
+/* ---------------- estudio de mercado ---------------- */
+.mkcta{display:flex;align-items:center;gap:14px;text-align:left;width:100%;} .mkcta b{display:block;font:700 15px/1.2 var(--body);} .mkcta small{display:block;font-size:12.5px;color:var(--fg3);margin-top:3px;}
+.mksites{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.mksite{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;border-radius:99px;background:var(--s2);border:1px solid var(--line);color:var(--fg);font:600 13px var(--body);text-decoration:none;}
+.mklist{display:flex;flex-direction:column;margin-top:10px;} .mkrow{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);}
+.mkrow b{display:block;font:700 15px var(--display);} .mkrow small{display:block;font-size:12px;color:var(--fg3);margin-top:2px;}
+.mkbar{position:relative;height:12px;border-radius:99px;background:var(--s2);margin-top:22px;}
+.mkbar .rng{position:absolute;top:0;bottom:0;border-radius:99px;background:color-mix(in srgb,var(--accent) 35%,transparent);}
+.mkbar .med{position:absolute;top:-4px;width:3px;height:20px;margin-left:-1.5px;border-radius:2px;background:var(--accent);}
+.mkbar .tu{position:absolute;top:-6px;width:24px;height:24px;margin-left:-12px;border-radius:99px;background:var(--fg);border:3px solid var(--s1);}
+.mkbar .tu b{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font:700 11px var(--body);color:var(--fg);white-space:nowrap;}
+
+/* ---------------- propuesta al cliente ---------------- */
+.pubcta.alt{background:var(--s1);border-color:var(--line);} .pubcta.alt .pi{background:var(--s2);color:var(--accent);}
+.prres{display:flex;justify-content:space-between;align-items:baseline;padding:14px 16px;border-radius:16px;background:var(--s2);} .prres span{font-size:13px;color:var(--fg2);} .prres b{font:700 24px var(--display);color:var(--accent);}
