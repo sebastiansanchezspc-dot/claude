@@ -29,6 +29,7 @@ function itemHtml(it) {
     <div class="px" style="padding-top:18px;display:flex;flex-direction:column;gap:14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div class="grow"><h2 style="font:700 26px/1.05 var(--display);font-variation-settings:'wdth' 82,'opsz' 60;letter-spacing:-.02em;text-wrap:balance">${it.nombre}</h2><div style="margin-top:12px">${idChip(it, true)}</div></div><span class="chip ${estChip[0]}">${estChip[1]}</span></div>
       ${it.aprob === 'pendiente' ? precioCard(it) : kp}
+      ${it.aprob !== 'pendiente' && !cerrado ? `<button class="pubcta" data-act="publicar" data-id="${it.id}"><span class="pi">${icon('sparkle', 20)}</span><span class="grow"><b>Crear publicación</b><small>Post e historia para redes, con tus fotos</small></span>${icon('chevR', 16)}</button>` : ''}
       ${seg('seg-i', itemTabs(it), tab, 'itemTab', `data-id="${it.id}"`)}
       <div id="itab" class="tabs-body">${itemTabHtml(it, tab)}</div>
     </div>`;
