@@ -81,7 +81,7 @@ const sp = it => it.specs || {}
 function titulo(it) { const s = sp(it); return it.w === 'auto' && ok(s.marca) ? [s.marca, s.modelo].filter(ok).join(' ') : it.nombre }
 function lineas(it) {
   const s = sp(it)
-  if (it.w === 'auto') return [ok(s.km) && miles(s.km) + ' km', s.transmision, s.combustible].filter(ok)
+  if (it.w === 'auto') return [ok(s.km) && miles(s.km) + ' km', s.transmision, s.combustible].filter(x => x && ok(x))
   if (it.w === 'prop') return [s.tipo, s.comuna].filter(ok)
   return [s.marca, s.categoria].filter(ok)
 }
@@ -396,7 +396,8 @@ function abrirForm(it, vend, modo) {
     <form class="pbody form" id="form" novalidate>
       ${pp ? `<p class="sub">Cuéntanos qué auto tienes y te enviamos una tasación para dejarlo en parte de pago.</p>
       <div class="dos3"><label><span>Marca y modelo</span><input name="ppm" maxlength="40" placeholder="Ej: Suzuki Swift" required></label><label><span>Año</span><input name="ppa" inputmode="numeric" maxlength="4" placeholder="2018"></label></div>
-      <label><span>Kilometraje</span><input name="ppk" inputmode="numeric" maxlength="9" placeholder="Ej: 85.000"></label>` : ''}
+      <label><span>Kilometraje</span><input name="ppk" inputmode="numeric" maxlength="9" placeholder="Ej: 85.000"></label>
+      <div class="ppf"><span class="ppf-t">Fotos de tu auto <em>(opcional, hasta 6)</em></span><div class="ppf-g" id="ppfg"><label class="ppf-add">${ico('cam', 22)}<b>Agregar</b><input type="file" accept="image/*" multiple hidden id="ppfi"></label></div></div>` : ''}
       ${pp ? '' : it ? `<p class="sub">Déjanos tus datos y ${vend ? esc(vend.nombre.split(' ')[0]) : 'un ejecutivo'} te contacta por ${esc(titulo(it))}${anio(it) ? ' ' + esc(anio(it)) : ''}.</p>` : `<p class="sub">Cuéntanos qué necesitas y te avisamos apenas tengamos algo para ti.</p>`}
       <label><span>Nombre</span><input name="nombre" autocomplete="name" maxlength="60" required></label>
       <label><span>Teléfono</span><input name="fono" autocomplete="tel" inputmode="tel" maxlength="24" placeholder="+56 9 …" required></label>
@@ -408,14 +409,19 @@ function abrirForm(it, vend, modo) {
       <p class="legal">Al enviar aceptas que ${esc(D.org.nombre)} use estos datos solo para contactarte por esta consulta.</p>
     </form>`
   const c = capa(html, 'hoja', h => { if (!h && volver && location.hash) { /* vuelve al detalle */ setTimeout(volver, 270) } })
+  // fotos del auto en parte de pago: se achican aquí (1280 px, JPG) para que suban rápido
+  const fotosPP = []
+  const pintaFotos = () => { const g = $('#ppfg', c); if (!g) return; $$('.ppf-x', g).forEach(x => x.remove()); fotosPP.forEach((f, k) => g.insertAdjacentHTML('beforeend', `<span class="ppf-x"><img src="${f}" alt=""><button type="button" data-k="${k}" aria-label="Quitar foto">${ico('x', 14)}</button></span>`)); $$('.ppf-x button', g).forEach(b => b.addEventListener('click', () => { fotosPP.splice(+b.dataset.k, 1); pintaFotos() })); const add = $('.ppf-add', g); if (add) add.hidden = fotosPP.length >= 6 }
+  const fi = $('#ppfi', c)
+  if (fi) fi.addEventListener('change', async () => { for (const f of [...fi.files].slice(0, 6 - fotosPP.length)) { try { fotosPP.push(await achicar(f)) } catch (e) { aviso('Una foto no se pudo leer') } } fi.value = ''; pintaFotos() })
   $('#form', c).addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target, b = $('button[type=submit]', f), er = $('#err', f), v = Object.fromEntries(new FormData(f))
     if (String(v.nombre).trim().length < 2 || String(v.fono).replace(/\D/g, '').length < 8) { er.textContent = 'Escribe tu nombre y un teléfono válido.'; er.hidden = false; return }
-    b.disabled = true; b.textContent = 'Enviando…'; er.hidden = true
+    b.disabled = true; b.textContent = pp && fotosPP.length ? 'Enviando fotos…' : 'Enviando…'; er.hidden = true
     if (pp && String(v.ppm || '').trim().length < 3) { er.textContent = 'Cuéntanos la marca y el modelo de tu auto.'; er.hidden = false; b.disabled = false; b.textContent = 'Enviar'; return }
     const mensaje = pp ? `Quiere tasar su auto para parte de pago: ${String(v.ppm).trim()}${v.ppa ? ' ' + String(v.ppa).trim() : ''}${v.ppk ? ', ' + String(v.ppk).trim() + ' km' : ''}.` : [v.pp ? 'Tiene un auto para dejar en parte de pago.' : '', String(v.mensaje || '').trim()].filter(Boolean).join(' ')
     try {
-      const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: v.nombre, fono: v.fono, mensaje, web: v.web, s: S, v: V || undefined, i: it ? it.id : undefined }) }), j = await r.json()
+      const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: v.nombre, fono: v.fono, mensaje, web: v.web, s: S, v: V || undefined, i: it ? it.id : undefined, fotos: pp && fotosPP.length ? fotosPP : undefined }) }), j = await r.json()
       if (!r.ok) throw new Error(j.error || 'No se pudo enviar')
       f.innerHTML = `<div class="listo">${ico('ok', 30)}<h2>¡Listo, ${esc(String(v.nombre).trim().split(' ')[0])}!</h2><p>${pp ? 'Te enviamos la tasación muy pronto.' : vend && D.quien !== 'empresa' ? esc(vend.nombre.split(' ')[0]) + ' te va a contactar muy pronto.' : 'Te vamos a contactar muy pronto.'}</p><button type="button" class="btn ghost" data-cerrar>Seguir viendo</button></div>`
       $$('[data-cerrar]', f).forEach(x => x.addEventListener('click', () => cerrar()))
@@ -423,6 +429,15 @@ function abrirForm(it, vend, modo) {
   })
 }
 
+// achica una foto a 1280 px en JPG (las del celular pesan varios MB)
+function achicar(file, max = 1280) {
+  return new Promise((ok, mal) => {
+    const u = URL.createObjectURL(file), im = new Image()
+    im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(u); ok(cv.toDataURL('image/jpeg', 0.78)) }
+    im.onerror = () => { URL.revokeObjectURL(u); mal(new Error('foto')) }
+    im.src = u
+  })
+}
 function aviso(t) { const a = document.createElement('div'); a.className = 'aviso'; a.textContent = t; document.body.appendChild(a); requestAnimationFrame(() => a.classList.add('in')); setTimeout(() => { a.classList.remove('in'); setTimeout(() => a.remove(), 300) }, 1800) }
 
 // #i=<id> abre el detalle (enlace compartido o botón atrás)
