@@ -374,3 +374,10 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .cargando .skel i{background:linear-gradient(90deg,#15171A 30%,#1C1F23 50%,#15171A 70%) 0 0/300% 100%}
 .card.dis .ph,.gal.dis{background:#0A0B0C}
 .pp-i{color:var(--acc-ink)}
+.ppf{display:flex;flex-direction:column;gap:8px}
+.ppf-t{font:500 11px var(--m);letter-spacing:.1em;text-transform:uppercase;color:var(--soft)} .ppf-t em{font-style:normal;text-transform:none;letter-spacing:0}
+.ppf-g{display:flex;flex-wrap:wrap;gap:8px}
+.ppf-add,.ppf-x{width:78px;height:78px;border-radius:16px;flex:none;position:relative;overflow:hidden}
+.ppf-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1.5px dashed var(--line2);color:var(--acc-txt);cursor:pointer;background:var(--card)} .ppf-add b{font:600 12px var(--b);color:var(--soft)} .ppf-add[hidden]{display:none}
+.ppf-x img{width:100%;height:100%;object-fit:cover;animation:entra .4s var(--out)}
+.ppf-x button{position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:99px;background:rgba(0,0,0,.65);color:#fff;display:flex;align-items:center;justify-content:center}

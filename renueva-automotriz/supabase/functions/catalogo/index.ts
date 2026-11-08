@@ -138,8 +138,17 @@ Deno.serve(async req => {
       const now = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 16) // hora de Chile aproximada (UTC−3)
       const id = 'l' + crypto.randomUUID().replace(/-/g, '').slice(0, 20)
       const txt = it ? `Consulta desde el catálogo por ${limpio(it.nombre, 80)}` : 'Consulta general desde el catálogo'
-      const lead = { id, w, nombre, fono, itemId: it ? it.id : null, origen: 'Catálogo web', etapa: 'nuevo', ts: now, creado: now, vend: vend?.nombre ?? '', nota: mensaje, temp: 'caliente', motivo: null, nueva: true,
-        log: [{ ts: now, tipo: 'entrada', txt: txt + (mensaje ? ': ' + mensaje : '') }] }
+      // fotos del auto en parte de pago (solo JPG, hasta 6 y 2 MB cada una); se guardan en la carpeta de la empresa
+      const fotos: string[] = []
+      if (Array.isArray(b.fotos)) for (const f of b.fotos.slice(0, 6)) {
+        const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(f)); if (!m || m[1].length > 2_800_000) continue
+        const bin = Uint8Array.from(atob(m[1]), ch => ch.charCodeAt(0)); if (bin[0] !== 0xFF || bin[1] !== 0xD8) continue
+        const path = `${org.id}/${crypto.randomUUID()}.jpg`
+        const { error: eUp } = await db.storage.from('archivos').upload(path, bin, { contentType: 'image/jpeg', upsert: false })
+        if (!eUp) fotos.push(path); else console.error('foto parte de pago', eUp.message)
+      }
+      const lead = { id, w, nombre, fono, itemId: it ? it.id : null, origen: 'Catálogo web', ...(fotos.length ? { fotos } : {}), etapa: 'nuevo', ts: now, creado: now, vend: vend?.nombre ?? '', nota: mensaje, temp: 'caliente', motivo: null, nueva: true,
+        log: [{ ts: now, tipo: 'entrada', txt: txt + (mensaje ? ': ' + mensaje : '') + (fotos.length ? ` (${fotos.length} foto${fotos.length > 1 ? 's' : ''})` : '') }] }
       const { error } = await db.from('docs').insert({ org_id: org.id, col: 'leads', id, mundo: w, data: lead, dueno: vend?.email ? String(vend.email).toLowerCase() : null })
       if (error) throw error
       return json({ ok: true })
