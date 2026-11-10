@@ -1,111 +1,118 @@
-# Sistema de diseño · Renueva (catálogo público)
+# Sistema de diseño · Gestix / Renueva
 
-Basado en `design-systems/awesome-design-md/tesla/DESIGN.md` y adaptado a la marca Renueva.
-Rige las pantallas que ve el cliente final: inicio, catálogo, ficha del auto y "Cotizar mi auto"
-(`catalogo.html`, `src/catalogo.js`, `src/catalogo.css`).
+Rige **toda** la aplicación: las pantallas internas (panel, stock, ventas, caja, equipo, fichas,
+ajustes) y lo que ve el cliente final (catálogo público, ficha del auto, "Cotizar mi auto").
+
+Referencias: `design-systems/awesome-design-md/apple/DESIGN.md` (material, tipografía, cápsulas) y
+`.../tesla/DESIGN.md` (foto primero, un solo color de acción), adaptadas a la marca.
+
+Archivos: `src/glass.css` (capa de vidrio de la app, sobre `src/styles.css`) y `src/catalogo.css`.
 
 ## 1. Idea central
 
-Una sala de ventas digital: **la foto del auto es el diseño** y la interfaz casi desaparece.
-De Tesla se toma la resta radical (sin sombras, sin degradados decorativos, sin bordes en las
-tarjetas, un solo color de acción, tipografía contenida, transiciones de 0,33 s).
-De Renueva se toma la identidad: **grafito + lima**, el logo de la empresa y la cercanía de un
-vendedor con nombre y WhatsApp.
+**Vidrio sobre luz.** La interfaz es un material translúcido, al estilo de Apple, flotando sobre un
+fondo oscuro con luz ambiental del color de la marca. Lo que importa (la foto del auto, la cifra
+del mes) va grande y limpio; todo lo demás es vidrio que se aparta.
 
-Diferencias deliberadas con Tesla:
+Tres capas, siempre en este orden:
 
-| Tesla | Renueva | Por qué |
-|---|---|---|
-| Lienzo blanco | Lienzo grafito `#0D0E10` | Es el sello de la app y de la marca; las fotos de patio resaltan más sobre oscuro |
-| Azul eléctrico `#3E6AE1` | Lima `#C8F03C` (o el color que la empresa elija) | Color de marca; sigue siendo el único color cromático |
-| Universal Sans | Instrument Sans 400 / 500 | Fuente de la app; una sola familia, dos pesos |
-| Sin velo sobre las fotos | Un velo plano en la portada | Las fotos de los clientes son impredecibles; el texto debe leerse siempre |
-| Sin movimiento de transformación | Zoom 1,03 de la foto y presión 0,98 al tocar | La tarjeta debe responder al dedo y al cursor |
+1. **Fondo:** casi negro, con dos o tres luces suaves (el color de acción arriba a la derecha, una
+   luz fría a la izquierda). Es fijo: no se mueve ni se anima.
+2. **Vidrio:** tarjetas, paneles y controles con relleno translúcido y un filo de luz arriba.
+3. **Contenido:** texto, cifras, fotos y el color de acción.
 
-## 2. Color
+## 2. El material
+
+| Uso | Receta |
+|---|---|
+| Tarjeta / panel (dentro del scroll) | `linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.035))`, borde `rgba(255,255,255,.09)`, filo `inset 0 1px 0 rgba(255,255,255,.13)`. **Sin** `backdrop-filter`. |
+| Barra inferior, cabecera, avisos | Relleno translúcido oscuro + `backdrop-filter: blur(26px) saturate(1.8)` + filo de luz. |
+| Botones redondos y chips sobre fotos | `rgba(255,255,255,.10)` (o grafito al 45–55 % sobre fotos) + `blur(14–20px)`. |
+| Hojas y formularios | Opacas por defecto; translúcidas con `blur(34px)` solo en iOS y en computador. |
+
+Regla de rendimiento: **el desenfoque real va solo en lo fijo y chico.** Las tarjetas de una lista
+simulan el vidrio con transparencia y filo de luz, sin desenfoque, para que el scroll corra fluido
+en celulares de gama media. Con "reducir transparencia" todo pasa a superficies opacas.
+
+## 3. Color
 
 | Rol | Token | Valor |
 |---|---|---|
-| Lienzo | `--bg` | `#0D0E10` |
-| Superficie (paneles, campos) | `--s1` | `#15171A` |
-| Superficie elevada (hover, carga) | `--s2` | `#1C1F23` |
-| Texto principal | `--ink` | `#F5F2EB` |
-| Texto secundario | `--soft` | `#B4B1A9` |
-| Texto terciario, placeholders | `--faint` | `#85837D` |
-| Líneas divisorias | `--line` | `rgba(255,255,255,.10)` |
-| Borde de campos | `--line2` | `rgba(255,255,255,.18)` |
-| Acción (único color) | `--acc` | `#C8F03C` por defecto; lo reemplaza el color de la empresa |
-| Texto sobre acción | `--acc-ink` | `#141900` (o blanco si el color es oscuro) |
+| Fondo | `--bg` | `#08090B` (tema Grafito) |
+| Luz ambiental fría | `--amb` | `#3D7BFF` |
+| Vidrio 1 / 2 / 3 | `--s1` `--s2` `--s3` | blanco al 5,5 % / 9 % / 15 % |
+| Superficie opaca (hojas) | `--op1` | `#15171B` |
+| Texto | `--fg` / `--ink` | `#F5F5F7` |
+| Texto secundario | `--fg2` / `--soft` | `#B9BAC0` |
+| Texto terciario | `--fg3` / `--faint` | `#84868E` |
+| Líneas | `--line` / `--line2` | blanco al 9 % / 16 % |
+| Acción | `--accent` / `--acc` | el color del mundo o de la empresa |
 
-Reglas:
-- **Un solo color cromático.** El lima se usa solo en acciones primarias, estados activos y el
-  foco del teclado. WhatsApp también va en el color de marca, con su ícono; no se usa verde aparte.
-- Sin degradados, brillos ni manchas de color. El único velo permitido es el de la portada.
-- Sin sombras. La profundidad sale de las fotos, del velo de las capas y del vidrio esmerilado
-  de la cabecera (`rgba(13,14,16,.78)` + desenfoque).
-- Sin colores semánticos: "Reservado" y "Próximamente" son etiquetas neutras.
+**Un solo color de acción por pantalla.** Va en el botón principal, el estado activo, las cifras
+positivas destacadas y el foco. Los botones de acción llevan un degradado mínimo de arriba abajo
+(el color aclarado un 16 % → el color) y un filo de luz: es lo que los hace verse "de vidrio".
 
-## 3. Tipografía
+Colores de acción disponibles (Ajustes → Color de tu mundo), afinados para fondo oscuro:
+Lima `#C8F03C` · Menta `#34E0A1` · Cielo `#5AC8FA` · Azul `#4C9BFF` · Lavanda `#B7A6FF` ·
+Rosa `#FF7EB6` · Coral `#FF8A6B` · Ámbar `#FFC93C`.
 
-Una familia: **Instrument Sans**. Dos pesos: 400 (texto) y 500 (títulos, botones, precios).
-Sin mayúsculas forzadas, sin espaciado de letras, sin cursivas, sin fuentes monoespaciadas.
+Temas de fondo (Ajustes → Fondo de la app; se guarda en el equipo):
+
+| Tema | Fondo | Luz fría | Para quién |
+|---|---|---|---|
+| Grafito (por defecto) | `#08090B` | azul `#3D7BFF` | neutro, combina con cualquier color |
+| Medianoche | `#060A14` | azul `#4C7DFF` | más frío y profundo |
+| Bosque | `#06100D` | verde `#1FBF8F` | cálido, va bien con lima y menta |
+| Negro puro | `#000000` | gris `#8E8E93` | pantallas OLED, máximo contraste |
+
+Los colores de estado (verde bien, ámbar atención, rojo problema) se usan solo dentro de la app
+para datos del negocio; el catálogo público no usa colores de estado.
+
+## 4. Tipografía
+
+La del sistema: **San Francisco en iPhone y Mac** (`-apple-system`), con Instrument Sans como
+respaldo en Android y Windows. Sin fuentes condensadas, sin mayúsculas forzadas ni letras espaciadas
+en títulos y etiquetas. La patente y los códigos siguen en monoespaciada: son la pieza insignia.
 
 | Rol | Tamaño | Peso |
 |---|---|---|
-| Título de portada | 40 px (30 px en celular) | 500 |
-| Título de ficha | 32 px (26 px en celular) | 500 |
-| Título de sección | 24 px (22 px en celular) | 500 |
-| Precio en ficha | 26 px | 500 |
-| Nombre del auto en tarjeta, precio en tarjeta | 17 px | 500 |
-| Texto, botones, etiquetas | 14–15 px | 400 / 500 |
-| Campos de formulario | 16 px (evita el zoom de iOS) | 400 |
+| Título grande de pantalla | 32 px | 700, espaciado −0,022 em |
+| Cifra principal | 38–50 px | 700 |
+| Título de portada (catálogo) | 30–40 px | 600 |
+| Nombre de ítem, precio | 17 px | 600 |
+| Texto y botones | 15–16 px | 400 / 600 |
+| Etiquetas | 12 px | 500, color terciario |
 
-## 4. Forma y espacio
+## 5. Forma
 
-- Radios: **4 px** en botones, campos, chips y etiquetas; **12 px** en fotos y paneles; círculo
-  solo en avatar y puntos.
-- Base de 8 px. Márgenes laterales iguales: 20 px en celular, 32 px en tablet, 48 px en escritorio;
-  ancho máximo 1320 px.
-- Objetivos táctiles de 44 px como mínimo.
-- Tarjetas sin borde ni fondo: foto arriba, texto abajo, separadas por aire.
+- **Cápsulas** (radio completo) en botones, chips, selectores y la barra inferior.
+- Radio **22–28 px** en tarjetas, paneles y fotos; **14–16 px** en campos y miniaturas.
+- Objetivos táctiles de 44 px como mínimo. Márgenes laterales iguales.
 
-## 5. Componentes
+## 6. Componentes
 
-- **Botón primario:** fondo `--acc`, 48 px de alto, radio 4, peso 500. Máximo dos botones por pantalla.
-- **Botón secundario:** fondo `--ink` sobre fotos; `--s2` sobre el lienzo.
-- **Cabecera:** transparente sobre la portada; vidrio esmerilado al bajar. Logo + nombre a la
-  izquierda, favoritos y compartir a la derecha.
-- **Portada (inicio):** alto de pantalla completo con la foto del auto más reciente a sangre.
-  Título y una línea de datos arriba; par de botones abajo ("Ver los autos", "Cotizar mi auto").
-  Sin foto disponible, la portada es solo tipografía sobre grafito.
-- **Tarjeta de auto:** foto 4:3 con radio 12; nombre, línea de datos (año · km · transmisión),
-  precio y cuota. Corazón de favoritos sobre la foto.
-- **Ficha:** pantalla completa. Galería grande a la izquierda (arriba en celular), datos a la
-  derecha en filas con líneas finas, simulador de cuota, contacto. Barra fija de contacto en celular.
-- **Hojas (filtros, favoritos, formularios):** hoja inferior en celular, panel lateral derecho en
-  escritorio.
-- **Cotizar mi auto:** etiquetas visibles sobre cada campo, fotos en mosaico, un solo botón.
+- **Barra inferior:** cápsula de vidrio flotante; la pestaña activa es una cápsula de vidrio más
+  clara con el ícono en el color de acción.
+- **Cabecera:** vidrio esmerilado; botones redondos de vidrio.
+- **Tarjeta principal (cifra del mes):** vidrio con la luz del color de acción en una esquina.
+- **Botón principal:** cápsula en el color de acción con filo de luz. Uno por pantalla.
+- **Botón secundario:** cápsula de vidrio.
+- **Catálogo público:** portada con la foto a sangre, tarjetas de auto sin marco (foto, nombre,
+  datos, precio), ficha a pantalla completa, hojas de vidrio.
 
-## 6. Movimiento
+## 7. Movimiento
 
-- Tiempo universal: **0,33 s** con `cubic-bezier(.5,0,0,.75)`; entradas largas (portada, capas)
-  con `cubic-bezier(.16,1,.3,1)`.
-- **Portada:** entra una sola vez al cargar: la foto aclara y se asienta (escala 1,06 → 1) y el
-  texto sube en tres tiempos.
-- **Entre pantallas:** la ficha entra desde la derecha en celular y con un fundido en escritorio;
-  las hojas suben desde abajo (celular) o entran por la derecha (escritorio).
-- **Tarjetas:** con cursor, la foto hace zoom 1,03 dentro de su marco; al tocar, la tarjeta cede a 0,98.
-- **Carga:** esqueletos con un barrido suave hasta que llega cada foto; la foto aparece con un fundido.
-- Solo se animan `transform` y `opacity` (nada que recalcule el diseño), para que corra fluido en
-  celulares de gama media.
-- **Nada aparece "al hacer scroll"**: las tarjetas no se desvanecen ni suben al bajar la página.
-- Con "reducir movimiento" activado no hay animaciones ni transiciones y nada queda oculto.
+- Entradas con `cubic-bezier(.16,1,.3,1)`; cambios de estado en 0,2–0,35 s.
+- La portada del catálogo entra una sola vez; las pantallas entran desde la derecha y las hojas
+  suben desde abajo; al tocar, los elementos ceden (0,97).
+- Esqueletos con barrido mientras cargan las fotos.
+- Solo se animan `transform` y `opacity`. Nada aparece "al hacer scroll".
+- Con "reducir movimiento" no hay animaciones y nada queda oculto.
 
-## 7. Qué no hacer
+## 8. Qué no hacer
 
-- No agregar sombras, degradados, manchas de color ni bordes a las tarjetas.
-- No usar un segundo color cromático (ni verde WhatsApp, ni ámbar de aviso).
-- No usar mayúsculas forzadas, texto en negrita 700+ ni títulos sobre 40 px.
-- No poner el precio como etiqueta de color sobre la foto.
-- No usar carruseles automáticos, parallax ni animaciones ligadas al scroll.
-- No usar botones tipo píldora ni radios grandes.
+- No poner `backdrop-filter` en tarjetas de listas ni en elementos que se repiten muchas veces.
+- No usar superficies opacas grises donde corresponde vidrio, ni vidrio sin filo de luz.
+- No usar un segundo color de acción en la misma pantalla.
+- No animar el fondo ni las luces ambientales.
+- No usar mayúsculas forzadas, fuentes condensadas ni botones de esquinas rectas.
