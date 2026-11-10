@@ -106,6 +106,8 @@ async function acCover(src, w = 855, h = 555) {
   c.getContext('2d').drawImage(im, (im.width - sw) / 2, (im.height - sh) / 2, sw, sh, 0, 0, w, h);
   return c.toDataURL('image/jpeg', 0.8);
 }
+// color de la empresa (o del mundo) como RGB, para los detalles de los PDF
+const pdfAcc = w => { const h = (PREFS.accent && PREFS.accent[w]) || (WORLDS[w] && WORLDS[w].accent) || '#C8F03C'; return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); };
 async function acPdf(it) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true }), W = 210, H = 297, m = 16, ink = [21, 23, 26], soft = [110, 106, 98], line = [225, 221, 213];
@@ -115,7 +117,7 @@ async function acPdf(it) {
   const salto = h => { if (y + h > H - 18) { doc.addPage(); y = 18; } };
   const texto = (t, x, yy, opt) => doc.text(String(t), x, yy, opt);
   // cabecera
-  doc.setFillColor(...ink); doc.rect(0, 0, W, 34, 'F');
+  doc.setFillColor(...ink); doc.rect(0, 0, W, 34, 'F'); doc.setFillColor(...pdfAcc(it.w)); doc.rect(0, 34, W, 1.4, 'F');
   const lg = PREFS.logo ? await acPng(fotoSrc(PREFS.logo)) : null;
   if (lg) { doc.setFillColor(255, 255, 255); doc.roundedRect(m, 7, 20, 20, 3, 3, 'F'); const k = Math.min(18 / lg.w, 18 / lg.h); doc.addImage(lg.d, 'PNG', m + 1 + (18 - lg.w * k) / 2, 8 + (18 - lg.h * k) / 2, lg.w * k, lg.h * k, 'logo', 'FAST'); }
   color([255, 255, 255]); font('bold', 14); texto(orgNombre(), m + (lg ? 25 : 0), 16);
