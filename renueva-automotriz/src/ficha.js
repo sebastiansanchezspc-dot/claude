@@ -67,6 +67,7 @@ function pintar({ org, item: it, vend, cat }) {
     <footer class="pie">${esc(org.nombre)} · publicado con <b>gestix</b></footer>`
   // puntos de la galería
   const g = $('#fotos'), pts = document.querySelectorAll('#pts i')
+  { const im = g.querySelector('img'), ya = () => g.classList.add('ok'); !im || (im.complete && im.naturalWidth) ? ya() : (im.addEventListener('load', ya, { once: true }), im.addEventListener('error', ya, { once: true })) }
   if (pts.length) g.addEventListener('scroll', () => { const k = Math.round(g.scrollLeft / g.clientWidth); pts.forEach((p, j) => p.classList.toggle('on', j === k)) }, { passive: true })
   $('#compartir').addEventListener('click', async () => { try { if (navigator.share) await navigator.share({ title: document.title, url: location.href }); else { await navigator.clipboard.writeText(location.href); $('#compartir').classList.add('ok') } } catch (e) { } })
   $('#form').addEventListener('submit', async e => {
