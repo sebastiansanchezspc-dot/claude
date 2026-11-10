@@ -1,18 +1,27 @@
-:root{--bg:#0D0E10;--s1:#15171A;--fg:#F5F2EB;--fg2:#BAB7AE;--fg3:#85837D;--line:rgba(255,255,255,.09);--accent:#C8F03C;color-scheme:dark}
-@media (prefers-color-scheme: light){:root{--bg:#FAF8F3;--s1:#fff;--fg:#17181A;--fg2:#45464A;--fg3:#6B6C70;--line:rgba(0,0,0,.1);--accent:#4F6B00;color-scheme:light}}
+/* Páginas de privacidad, términos y soporte. Sistema de diseño: ver DESIGN.md (vidrio sobre luz). */
+:root{--bg:#08090B;--fg:#F5F5F7;--fg2:#B9BAC0;--fg3:#84868E;--line:rgba(255,255,255,.10);--accent:#C8F03C;--amb:rgba(61,123,255,.16);
+  --vidrio:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.04));--filo:inset 0 1px 0 rgba(255,255,255,.14);--barra:rgba(8,9,11,.58);color-scheme:dark}
+@media (prefers-color-scheme: light){:root{--bg:#F5F5F7;--fg:#1D1D1F;--fg2:#3F4045;--fg3:#6B6C70;--line:rgba(0,0,0,.09);--accent:#4F6B00;--amb:rgba(61,123,255,.10);
+  --vidrio:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.66));--filo:inset 0 1px 0 #fff,0 14px 34px -22px rgba(0,0,0,.25);--barra:rgba(245,245,247,.7);color-scheme:light}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 "Instrument Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-main{max-width:760px;margin:0 auto;padding:max(28px,env(safe-area-inset-top)) 20px 64px}
-header{display:flex;align-items:center;gap:10px;margin-bottom:28px}
-header a{color:var(--fg);text-decoration:none;font:800 22px/1 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.02em}
-h1{font:700 32px/1.1 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.02em;margin:0 0 6px}
-h2{font:700 19px/1.25 "Bricolage Grotesque",system-ui,sans-serif;margin:34px 0 8px}
-p,li{color:var(--fg2)} strong{color:var(--fg)}
-a{color:var(--accent)}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Instrument Sans","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  radial-gradient(70% 44% at 96% -6%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 72%),
+  radial-gradient(60% 40% at -12% 44%,var(--amb),transparent 72%)}
+main{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 20px 64px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;margin:0 -20px 28px;padding:max(14px,env(safe-area-inset-top)) 20px 14px;background:var(--barra);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);border-bottom:1px solid var(--line)}
+header a{color:var(--fg);text-decoration:none;font-weight:700;font-size:21px;line-height:1;letter-spacing:-.03em}
+h1{font-weight:700;font-size:32px;line-height:1.1;letter-spacing:-.022em;margin:0 0 6px}
+h2{font-weight:600;font-size:19px;line-height:1.25;letter-spacing:-.01em;margin:34px 0 8px}
+p,li{color:var(--fg2)} strong{color:var(--fg);font-weight:600}
+a{color:var(--accent);text-underline-offset:3px}
 .meta{color:var(--fg3);font-size:13px;margin-bottom:24px}
-.card{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:16px 0}
+.card{background:var(--vidrio);border:1px solid var(--line);box-shadow:var(--filo);border-radius:22px;padding:16px 18px;margin:16px 0}
 table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
 th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--fg);font-weight:600}
-footer{margin-top:48px;color:var(--fg3);font-size:13px;display:flex;gap:14px;flex-wrap:wrap}
+footer{margin-top:48px;color:var(--fg3);font-size:13px;display:flex;gap:10px;flex-wrap:wrap}
+footer a{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;background:var(--vidrio);border:1px solid var(--line);box-shadow:var(--filo);color:var(--fg);text-decoration:none;font-weight:500}
 [data-l]:empty::before{content:"(pendiente)";color:#ff6259}
+@media (prefers-reduced-transparency:reduce){header{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}}
