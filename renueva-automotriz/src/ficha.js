@@ -30,7 +30,14 @@ async function cargar() {
   pintar(d)
 }
 
+// color de la empresa: si es muy claro u oscuro, el texto encima cambia para que se lea
+function colores(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return
+  const n = parseInt(m[1], 16), lum = (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255, R = document.documentElement.style
+  R.setProperty('--acc', '#' + m[1]); R.setProperty('--acc-ink', lum > 0.55 ? '#141900' : '#FFFFFF')
+}
 function pintar({ org, item: it, vend, cat }) {
+  colores(org.accent || { auto: '#C8F03C', prop: '#B7A6FF', tienda: '#FF8A6B' }[it.w])
   const s = it.specs || {}, titulo = it.w === 'auto' && ok(s.marca) ? [s.marca, s.modelo].filter(ok).join(' ') : it.nombre
   const sub = it.w === 'auto' ? [s.anio, ok(s.km) && Number(s.km).toLocaleString('es-CL') + ' km'].filter(ok).join(' · ') : it.w === 'prop' ? [s.tipo, s.comuna].filter(ok).join(' · ') : s.categoria || ''
   const precio = it.precio ? fmt(it.precio) + (it.op === 'Arriendo' ? ' /mes' : '') : 'Consultar precio'
