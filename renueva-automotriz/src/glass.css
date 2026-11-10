@@ -110,3 +110,5 @@ html[data-tema="bosque"]{--bg:#06100D; --amb:#1FBF8F; --op1:#0F1B17; --op2:#1626
 .temas button.on{color:var(--fg);} .temas button.on i{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent);}
 .temas button:active i{transform:scale(.95);}
 @media (min-width:560px){.temas{max-width:380px}}
+/* vista previa de la ficha para el vidrio (igual que la hoja con QR) */
+.pubprev.vidrio canvas{width:100%;}

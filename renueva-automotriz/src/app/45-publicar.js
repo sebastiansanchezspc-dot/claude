@@ -8,7 +8,8 @@ ICONS.download = '<path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d
 ICONS.share = '<path d="M12 15V4"/><path d="M8 7.5 12 3.5l4 4"/><path d="M7 10.5H6a1.5 1.5 0 0 0-1.5 1.5v7A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5h-1"/>';
 ICONS.image = '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>';
 
-const PUB_FMT = { post: [1080, 1350], story: [1080, 1920], hoja: [1240, 1754] };   // hoja: A4 a 150 ppp
+const PUB_FMT = { post: [1080, 1350], story: [1080, 1920], hoja: [1240, 1754], vidrio: [1240, 1754] };   // hoja y vidrio: A4 a 150 ppp
+const PUB_PRINT = { hoja: 1, vidrio: 1 };   // formatos para imprimir (sin elegir diseño)
 const PUB_TPL_AUTO = [['vitrina', 'Vitrina'], ['ficha', 'Ficha'], ['oferta', 'Oferta'], ['galeria', 'Galería'], ['premium', 'Premium']];
 const PUB_TPL_PROP = [['portada', 'Portada'], ['catalogo', 'Catálogo'], ['mosaico', 'Mosaico'], ['cartel', 'Cartel'], ['residencial', 'Residencial']];
 const pubTpls = w => w === 'prop' ? PUB_TPL_PROP : PUB_TPL_AUTO;
@@ -381,6 +382,62 @@ function pubHoja(c, W, H, d) {
   pText(c, d.link.replace(/^https?:\/\//, '').split('?')[0].replace(/\/$/, ''), tx, qy + qs + 26, 500, 22, tw, 'm', soft);
 }
 
+/* ---------------- ficha para pegar en el vidrio: solo datos y QR, sin foto ---------------- */
+// todos los datos publicables del ítem (los mismos que muestra la página pública; nunca patente ni costos)
+function pubTodos(it) {
+  const s = it.specs || {}, ok = v => v != null && v !== '—' && v !== '' && v !== '-' && !(typeof v === 'number' && isNaN(v)), num = n => Number(n).toLocaleString('es-CL');
+  const L = it.w === 'auto' ? [['anio', 'Año'], ['km', 'Kilometraje', v => num(v) + ' km'], ['transmision', 'Transmisión'], ['combustible', 'Combustible'], ['motor', 'Motor'], ['tipo', 'Carrocería'], ['color', 'Color'], ['puertas', 'Puertas'], ['version', 'Versión']]
+    : it.w === 'prop' ? [['tipo', 'Tipo'], ['comuna', 'Comuna'], ['dorm', 'Dormitorios'], ['banos', 'Baños'], ['m2c', 'Construidos', v => num(v) + ' m²'], ['m2t', 'Terreno', v => num(v) + ' m²'], ['estac', 'Estacionamientos'], ['bodega', 'Bodega']]
+    : [['marca', 'Marca'], ['categoria', 'Categoría'], ['variante', 'Variante']];
+  return L.filter(([k]) => ok(s[k]) && !(k === 'dorm' && Number(s[k]) === 0)).map(([k, l, f]) => [l, String(f ? f(s[k]) : s[k])]);
+}
+function pubVidrio(c, W, H, d) {
+  const m = 80, ink = '#101114', soft = 'rgba(16,17,20,.58)', line = '#DEDBD3', band = d.accent === '#FFFFFF' ? ink : d.accent, onBand = pInk(band), cw = W - m * 2;
+  c.fillStyle = '#FFFFFF'; c.fillRect(0, 0, W, H);
+  // franja de la empresa
+  c.fillStyle = band; c.fillRect(0, 0, W, 170);
+  pLogo(c, d.logo ? d : { ...d, accent: onBand === '#FFFFFF' ? '#FFFFFF' : ink }, m, 37, 96); pText(c, d.org, m + 122, 102, 700, 44, 600, 'b', onBand);
+  const est = d.w === 'prop' ? (d.op === 'Arriendo' ? 'SE ARRIENDA' : 'SE VENDE') : (d.tag || 'EN VENTA').toUpperCase();
+  c.font = PF(700, 34, 'b'); c.letterSpacing = '3px'; const ew = c.measureText(est).width + 64; c.letterSpacing = '0px';
+  pRR(c, W - m - ew, 53, ew, 64, 32); c.fillStyle = onBand; c.fill(); pText(c, est, W - m - ew / 2, 97, 700, 34, ew, 'b', band, { align: 'center', ls: 3 });
+  // nombre grande (se lee desde la vereda)
+  let y = 320; const tf = pFit(c, d.titulo, 700, 132, cw, 'd', 2, 78);
+  c.fillStyle = ink; c.textAlign = 'left'; c.textBaseline = 'alphabetic'; c.font = PF(700, tf.s, 'd'); c.letterSpacing = pLs('d', tf.s, {});
+  tf.lines.forEach((l, k) => c.fillText(l, m, y + k * tf.s * 1.02)); c.letterSpacing = '0px'; y += (tf.lines.length - 1) * tf.s * 1.02;
+  const sub = d.w === 'auto' ? ((d.todos.find(t => t[0] === 'Versión') || [])[1] || '') : d.w === 'prop' ? [d.tipo, d.comuna].filter(Boolean).join(' · ') : '';
+  if (sub) { y += 66; pText(c, sub, m, y, 500, 46, cw, 'b', soft); }
+  y += 50;
+  // precio: bloque oscuro, lo más visible de la hoja
+  if (d.precio) {
+    pRR(c, m, y, cw, 210, 34); c.fillStyle = ink; c.fill(); c.fillStyle = band === ink ? '#FFFFFF' : band; pRR(c, m + 34, y + 44, 10, 122, 5); c.fill();
+    pText(c, d.w === 'prop' && d.op === 'Arriendo' ? 'ARRIENDO' : 'PRECIO', m + 76, y + 122, 600, 32, 260, 'm', 'rgba(255,255,255,.62)', { ls: 4 });
+    pText(c, d.precio, W - m - 44, y + 150, 700, 132, cw - 330, 'd', '#FFFFFF', { align: 'right', min: 70 }); y += 250;
+  }
+  // todos los datos en dos columnas
+  const qTop = H - 450, extras = d.extras || [], datos = d.todos.filter(([l]) => !(d.w === 'auto' && (l === 'Versión'))), libre = qTop - y - (extras.length ? 100 : 24);
+  const filas = Math.max(1, Math.min(Math.ceil(datos.length / 2), Math.floor(libre / 104))), rh = Math.max(104, Math.min(176, Math.floor(libre / filas))), k = rh / 112, col = cw / 2;
+  datos.slice(0, filas * 2).forEach(([et, v], i) => { const cx = m + (i % 2) * (col + 0), cy = y + Math.floor(i / 2) * rh;
+    pText(c, et.toUpperCase(), cx + (i % 2 ? 40 : 0), cy + 34 * Math.min(k, 1.25), 600, 26 * Math.min(k, 1.2), col - 60, 'm', soft, { ls: 3 }); pText(c, v, cx + (i % 2 ? 40 : 0), cy + rh - 26 * k, 700, 50 * Math.min(k, 1.5), col - 60, 'b', ink);
+    if (i % 2 === 0) { c.fillStyle = line; c.fillRect(m, cy + rh - 4, cw, 2); } });
+  if (datos.length > 1) { c.fillStyle = line; c.fillRect(m + col, y + 10, 2, Math.ceil(Math.min(datos.length, filas * 2) / 2) * rh - 28); }
+  y += Math.ceil(Math.min(datos.length, filas * 2) / 2) * rh + 22;
+  // lo que ofrece la empresa (financiamiento, parte de pago)
+  let ex = m; extras.forEach(t => { c.font = PF(600, 30, 'b'); const w = c.measureText(t).width + 86; if (ex + w > W - m) return;
+    pRR(c, ex, y, w, 60, 30); c.fillStyle = '#F1EFE9'; c.fill(); c.beginPath(); c.arc(ex + 32, y + 30, 13, 0, Math.PI * 2); c.fillStyle = ink; c.fill();
+    c.strokeStyle = '#fff'; c.lineWidth = 3.4; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); c.moveTo(ex + 26, y + 30.5); c.lineTo(ex + 30.5, y + 35); c.lineTo(ex + 38.5, y + 26); c.stroke();
+    pText(c, t, ex + 58, y + 41, 600, 30, w, 'b', ink); ex += w + 14; });
+  // QR y contacto
+  const qy = H - 420, qs = 320; c.fillStyle = line; c.fillRect(m, qy - 36, cw, 2);
+  pRR(c, m, qy, qs + 40, qs + 40, 28); c.fillStyle = '#fff'; c.fill(); c.strokeStyle = ink; c.lineWidth = 6; c.stroke();
+  pQR(c, d.link, m + 20, qy + 20, qs, ink);
+  const tx = m + qs + 90, tw = W - m - tx;
+  pText(c, 'Escanea y mira las fotos', tx, qy + 62, 700, 48, tw, 'd', ink);
+  pText(c, 'Apunta la cámara de tu celular al código', tx, qy + 112, 500, 30, tw, 'b', soft);
+  if (d.fono) { pWa(c, tx, qy + 172, 52, '#1FA855'); pText(c, d.fono, tx + 70, qy + 220, 700, 62, tw - 70, 'd', ink); }
+  if (d.vend) pText(c, d.vend, tx, qy + (d.fono ? 282 : 200), 600, 34, tw, 'b', soft);
+  pText(c, d.link.replace(/^https?:\/\//, '').split('?')[0].replace(/\/$/, ''), tx, qy + qs + 30, 500, 22, tw, 'b', soft);
+}
+
 /* ---------------- datos de la publicación ---------------- */
 function pubDatos(it) {
   const s = it.specs || {}, ok = v => v != null && v !== '—' && v !== '' && v !== '-' && !(typeof v === 'number' && isNaN(v)), num = n => Number(n).toLocaleString('es-CL');
@@ -411,8 +468,9 @@ async function pubRender(canvas, it, o) {
   const [fotos, logo] = await Promise.all([Promise.all(orden.slice(0, 3).map(i => pubImg(fotoSrc(it.fotos[i])))), pubImg(PREFS.logo ? fotoSrc(PREFS.logo) : '')]);
   const base = pubDatos(it);
   const d = { ...base, precio: o.precio ? base.precio : '', fotos: fotos.filter(Boolean), logo, org: orgNombre(), vend: o.vend, fono: o.fono, tag: o.tag, accent: o.color, w: it.w, empresa: !!o.empresa };
-  d.link = pubLink(it); d.op = base.op; d.stats = base.stats;
-  c.clearRect(0, 0, W, H); c.save(); (o.fmt === 'hoja' ? pubHoja : PUB_DRAW[o.tpl])(c, W, H, d); c.restore();
+  d.link = pubLink(it); d.op = base.op; d.stats = base.stats; d.todos = pubTodos(it);
+  if (o.fmt === 'vidrio') { const cf = typeof clCfg === 'function' ? clCfg(it.w) : {}; d.extras = it.w === 'auto' ? [cf.cuota && cf.cuota.on && 'Financiamiento', cf.pp !== false && 'Recibimos tu auto'].filter(Boolean) : []; }
+  c.clearRect(0, 0, W, H); c.save(); (o.fmt === 'hoja' ? pubHoja : o.fmt === 'vidrio' ? pubVidrio : PUB_DRAW[o.tpl])(c, W, H, d); c.restore();
   return canvas;
 }
 
@@ -431,9 +489,9 @@ function pubHtml(it) {
   const fotos = it.fotos.map((f, i) => `<button class="pubfoto ${i === pub.foto ? 'on' : ''}" data-act="pubFoto" data-i="${i}" aria-label="Usar foto ${i + 1}"><img src="${fotoSrc(f)}" alt=""></button>`).join('');
   return `<div class="px" style="padding-top:6px;display:flex;flex-direction:column;gap:16px">
     <div class="pubprev ${pub.fmt}"><canvas id="pub-c" width="1080" height="1350" aria-label="Vista previa de la publicación"></canvas><span class="pubload" id="pub-l">${icon('image', 22)}</span></div>
-    ${seg('seg-pub', [['post', 'Post'], ['story', 'Historia'], ['hoja', 'Hoja con QR']], pub.fmt, 'pubFmt')}
+    ${seg('seg-pub', [['post', 'Post'], ['story', 'Historia'], ['hoja', 'Hoja QR'], ['vidrio', 'Para el vidrio']], pub.fmt, 'pubFmt')}
     <div id="pub-link" class="card publink"><span class="grow"><b>Página ${it.w === 'prop' ? 'de la propiedad' : it.w === 'auto' ? 'del auto' : 'del producto'}</b><small>${window.RV && RV.mode === 'cloud' ? 'Fotos, precio, WhatsApp y formulario de contacto. Es la que abre el QR.' : 'En la demo el QR lleva a Gestix; con tu cuenta lleva a la página de este ítem.'}</small></span><button class="ibtn" data-act="pubCopiar" aria-label="Copiar enlace">${icon('copy', 17)}</button><a class="ibtn" href="${pubLink(it)}" target="_blank" rel="noopener" aria-label="Abrir página">${icon('arrowR', 17)}</a></div>
-    <div id="pub-dis" ${pub.fmt === 'hoja' ? 'hidden' : ''}><p class="kicker" style="margin-bottom:10px">Diseño</p><div class="pubtpls">${pubTpls(it.w).map(([k, t]) => `<button class="pubtpl ${k === pub.tpl ? 'on' : ''}" data-act="pubTpl" data-k="${k}"><canvas width="216" height="270" data-mini="${k}"></canvas><span>${t}</span></button>`).join('')}</div></div>
+    <div id="pub-dis" ${PUB_PRINT[pub.fmt] ? 'hidden' : ''}><p class="kicker" style="margin-bottom:10px">Diseño</p><div class="pubtpls">${pubTpls(it.w).map(([k, t]) => `<button class="pubtpl ${k === pub.tpl ? 'on' : ''}" data-act="pubTpl" data-k="${k}"><canvas width="216" height="270" data-mini="${k}"></canvas><span>${t}</span></button>`).join('')}</div></div>
     ${it.fotos.length ? `<div><p class="kicker" style="margin-bottom:10px">Foto principal</p><div class="pubfotos">${fotos}</div></div>` : `<div class="tip">${icon('camera')}<span>Este ${WORLDS[it.w].itemOne.toLowerCase()} aún no tiene fotos. Agrégalas en su ficha para que la publicación luzca.</span></div>`}
     <div><p class="kicker" style="margin-bottom:10px">Etiqueta</p><div class="optrow">${['', ...PUB_TAGS[it.w]].map(t => `<button class="opt ${t === pub.tag ? 'on' : ''}" data-act="pubTag" data-t="${clean(t)}">${t || 'Sin etiqueta'}</button>`).join('')}</div></div>
     <div><p class="kicker" style="margin-bottom:10px">Color</p><div class="pubcolors">${PUB_COLORS.map(c => `<button data-act="pubColor" data-c="${c}" class="${c === pub.color ? 'on' : ''}" style="--c:${c}" aria-label="Color ${c}"></button>`).join('')}</div></div>
@@ -460,7 +518,7 @@ async function pubMiniaturas() {
 }
 const pubRedibujar = (minis) => { pubGuardarPrefs(); pubDibujar(); if (minis) pubMiniaturas(); };
 ACT.publicar = d => openPublicar(d.id);
-ACT.pubFmt = d => { pub.fmt = d.k; $$('#seg-pub button').forEach(b => b.classList.toggle('active', b.dataset.k === d.k)); moveSeg('seg-pub'); $('.pubprev').className = 'pubprev ' + d.k; $('#pub-dis').hidden = d.k === 'hoja'; pubDibujar(); };
+ACT.pubFmt = d => { pub.fmt = d.k; $$('#seg-pub button').forEach(b => b.classList.toggle('active', b.dataset.k === d.k)); moveSeg('seg-pub'); $('.pubprev').className = 'pubprev ' + d.k; $('#pub-dis').hidden = !!PUB_PRINT[d.k]; pubDibujar(); };
 ACT.pubCopiar = async () => { const u = pubLink(getItem(pub.id)); try { await navigator.clipboard.writeText(u); toast('Enlace copiado', 'copy'); } catch (e) { prompt('Copia el enlace:', u); } };
 ACT.pubTpl = d => { pub.tpl = d.k; $$('.pubtpl').forEach(b => b.classList.toggle('on', b.dataset.k === d.k)); pubRedibujar(); };
 ACT.pubFoto = d => { pub.foto = +d.i; $$('.pubfoto').forEach((b, i) => b.classList.toggle('on', i === pub.foto)); pubRedibujar(true); };
@@ -482,7 +540,7 @@ async function pubArchivo() {
   const it = getItem(pub.id), c = document.createElement('canvas'); await pubFonts(); await pubRender(c, it, pub);
   const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.92));
   const slug = (it.nombre || 'publicacion').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  return new File([blob], `${slug}-${{ story: 'historia', hoja: 'hoja-qr' }[pub.fmt] || 'post'}.jpg`, { type: 'image/jpeg' });
+  return new File([blob], `${slug}-${{ story: 'historia', hoja: 'hoja-qr', vidrio: 'ficha-vidrio' }[pub.fmt] || 'post'}.jpg`, { type: 'image/jpeg' });
 }
 ACT.pubEnviar = async () => {
   try {
