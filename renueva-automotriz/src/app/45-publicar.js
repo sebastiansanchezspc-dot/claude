@@ -12,7 +12,7 @@ const PUB_FMT = { post: [1080, 1350], story: [1080, 1920], hoja: [1240, 1754] };
 const PUB_TPL_AUTO = [['vitrina', 'Vitrina'], ['ficha', 'Ficha'], ['oferta', 'Oferta'], ['galeria', 'Galería'], ['premium', 'Premium']];
 const PUB_TPL_PROP = [['portada', 'Portada'], ['catalogo', 'Catálogo'], ['mosaico', 'Mosaico'], ['cartel', 'Cartel'], ['residencial', 'Residencial']];
 const pubTpls = w => w === 'prop' ? PUB_TPL_PROP : PUB_TPL_AUTO;
-const PUB_COLORS = ['#C8F03C', '#FF6B35', '#2F80ED', '#E63946', '#F2C14E', '#1F6F5C', '#B7A6FF', '#FFFFFF'];
+const PUB_COLORS = ['#C8F03C', '#FFFFFF', '#D9B36C', '#FF7A3D', '#E5383B', '#3D7BFF', '#1FA97A', '#B7A6FF'];
 const PUB_TAGS = {
   auto: ['Disponible', 'Recién llegado', 'Oferta', 'Financiamiento', 'Único dueño', 'Precio conversable'],
   prop: ['Disponible', 'Nueva', 'Oportunidad', 'Exclusiva', 'Precio conversable'],
@@ -33,11 +33,13 @@ function pubImg(src) {
   })().catch(() => null);
   pubImgs.set(src, pr); return pr;
 }
-const pubFonts = () => Promise.all(['800 100px "Bricolage Grotesque"', '700 100px "Bricolage Grotesque"', '700 40px "Instrument Sans"', '600 40px "Instrument Sans"', '500 40px "Instrument Sans"', '500 30px "DM Mono"']
+const pubFonts = () => Promise.all(['700 100px "Instrument Sans"', '600 40px "Instrument Sans"', '500 40px "Instrument Sans"', '400 40px "Instrument Sans"']
   .map(f => document.fonts && document.fonts.load ? document.fonts.load(f).catch(() => null) : null));
 
 /* ---------------- ayudas de dibujo ---------------- */
-const PF = (w, s, fam) => `${w} ${Math.round(s)}px ${fam === 'm' ? '"DM Mono", ui-monospace, monospace' : fam === 'b' ? '"Instrument Sans", system-ui, sans-serif' : '"Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif'}`;
+const PF = (w, s, fam) => `${fam === 'm' ? 600 : Math.min(w, 700)} ${Math.round(fam === 'm' ? s * .94 : s)}px "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif`;
+// los títulos van apretados (como en la app); las etiquetas en mayúsculas traen su propio espaciado
+const pLs = (fam, size, opt) => opt.ls ? opt.ls + 'px' : fam === 'd' ? (-size * .02).toFixed(2) + 'px' : '0px';
 function pRR(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 // achica la letra hasta que el texto quepa en maxW (en hasta "lineas" líneas); devuelve líneas y tamaño
 function pFit(c, text, w, size, maxW, fam, lineas = 1, min = size * 0.45) {
@@ -53,9 +55,9 @@ function pFit(c, text, w, size, maxW, fam, lineas = 1, min = size * 0.45) {
 }
 function pText(c, text, x, y, w, size, maxW, fam, color, opt = {}) {
   const f = pFit(c, text, w, size, maxW, fam, opt.lines || 1, opt.min); c.fillStyle = color; c.textAlign = opt.align || 'left'; c.textBaseline = 'alphabetic';
-  if (opt.ls) c.letterSpacing = opt.ls + 'px';
+  c.letterSpacing = pLs(fam, f.s, opt);
   f.lines.forEach((l, i) => c.fillText(l, x, y + i * f.s * (opt.lh || 1.02)));
-  if (opt.ls) c.letterSpacing = '0px';
+  c.letterSpacing = '0px';
   return f.s * (opt.lh || 1.02) * f.lines.length;
 }
 // foto que cubre el área (recorte centrado, un poco hacia abajo, donde suele estar el auto)
@@ -98,6 +100,17 @@ function pStats(c, d, x, y, w, color, color2, size = 44, opt = {}) {
   });
   return size * (opt.labels ? 2.1 : 1.1);
 }
+// vidrio esmerilado: desenfoca lo que ya está dibujado debajo (donde el navegador lo permite), lo tiñe y le pone un filo de luz
+const P_BLUR = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype;
+function pGlass(c, x, y, w, h, r, dark = true) {
+  c.save(); pRR(c, x, y, w, h, r); c.clip();
+  if (P_BLUR) { try { c.filter = 'blur(20px) saturate(1.5)'; c.drawImage(c.canvas, x - 40, y - 40, w + 80, h + 80, x - 40, y - 40, w + 80, h + 80); } catch (e) { } c.filter = 'none'; }
+  c.fillStyle = dark ? `rgba(14,16,20,${P_BLUR ? .44 : .74})` : `rgba(255,255,255,${P_BLUR ? .74 : .93})`; c.fillRect(x, y, w, h);
+  const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, `rgba(255,255,255,${dark ? .2 : .5})`); g.addColorStop(.55, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(x, y, w, h);
+  c.restore(); pRR(c, x + 1, y + 1, w - 2, h - 2, r); c.strokeStyle = dark ? 'rgba(255,255,255,.24)' : 'rgba(255,255,255,.85)'; c.lineWidth = 2; c.stroke();
+}
+// brillo suave arriba de una pieza de color (cápsulas, sellos, avatar)
+function pShine(c, x, y, w, h, r) { c.save(); pRR(c, x, y, w, h, r); c.clip(); const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(255,255,255,.34)'); g.addColorStop(.6, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(x, y, w, h); c.restore(); }
 // logo de la empresa (o sus iniciales) dentro de un cuadro redondeado
 function pLogo(c, d, x, y, s) {
   c.save(); pRR(c, x, y, s, s, s * .24); c.clip();
@@ -108,21 +121,21 @@ function pLogo(c, d, x, y, s) {
 // cápsula con logo y nombre de la empresa
 function pBrand(c, d, x, y, h, dark, maxW = 600) {
   c.font = PF(700, h * .38, 'b'); const tw = Math.min(maxW - h - 34, c.measureText(d.org).width), w = h + 26 + tw + 22;
-  pRR(c, x, y, w, h, h / 2); c.fillStyle = dark ? 'rgba(12,13,16,.78)' : 'rgba(255,255,255,.94)'; c.fill();
+  pGlass(c, x, y, w, h, h / 2, dark);
   pLogo(c, d, x + 6, y + 6, h - 12);
   pText(c, d.org, x + h + 10, y + h * .63, 700, h * .38, tw + 4, 'b', dark ? '#fff' : '#121417');
   return w;
 }
 function pTag(c, d, x, y, h, align = 'left') {
   if (!d.tag) return 0; c.font = PF(700, h * .42, 'b'); c.letterSpacing = '2px'; const t = d.tag.toUpperCase(), w = c.measureText(t).width + h * .9; c.letterSpacing = '0px';
-  const X = align === 'right' ? x - w : x; pRR(c, X, y, w, h, h / 2); c.fillStyle = d.accent; c.fill();
+  const X = align === 'right' ? x - w : x; pRR(c, X, y, w, h, h / 2); c.fillStyle = d.accent; c.fill(); pShine(c, X, y, w, h, h / 2);
   pText(c, t, X + w / 2, y + h * .66, 700, h * .42, w, 'b', pInk(d.accent), { align: 'center', ls: 2 }); return w;
 }
 // fila del vendedor: iniciales, nombre, teléfono y botón "Escríbeme"
 function pSeller(c, d, x, y, w, h, dark) {
   const fg = dark ? '#FFFFFF' : '#121417', fg2 = dark ? 'rgba(255,255,255,.7)' : 'rgba(18,20,23,.62)', a = h * .82;
   if (d.empresa) pLogo(c, d, x, y + (h - a) / 2, a); // datos de la empresa: va su logo
-  else { c.beginPath(); c.arc(x + a / 2, y + h / 2, a / 2, 0, Math.PI * 2); c.fillStyle = d.accent; c.fill();
+  else { c.beginPath(); c.arc(x + a / 2, y + h / 2, a / 2, 0, Math.PI * 2); c.fillStyle = d.accent; c.fill(); pShine(c, x, y + (h - a) / 2, a, a, a / 2);
     pText(c, pIni(d.vend), x + a / 2, y + h / 2 + a * .15, 800, a * .38, a * .8, 'd', pInk(d.accent), { align: 'center' }); }
   const cta = 'Escríbeme'; c.font = PF(700, h * .3, 'b'); const cw = c.measureText(cta).width + h * .9 + h * .42;
   const tx = x + a + h * .3, maxT = w - a - cw - h * .6;
@@ -141,9 +154,9 @@ const pCap = s => s * 0.74;
 // título en 1-2 líneas cuya última línea queda en "base"; devuelve el borde superior
 function pTitleUp(c, text, x, base, w, size, maxW, color, opt = {}) {
   const f = pFit(c, text, w, size, maxW, opt.fam || 'd', opt.lines || 2, opt.min || size * .55), lh = f.s * (opt.lh || 1);
-  c.fillStyle = color; c.textAlign = opt.align || 'left'; c.textBaseline = 'alphabetic'; if (opt.ls) c.letterSpacing = opt.ls + 'px';
+  c.fillStyle = color; c.textAlign = opt.align || 'left'; c.textBaseline = 'alphabetic'; c.letterSpacing = pLs(opt.fam || 'd', f.s, opt);
   f.lines.forEach((l, k) => c.fillText(l, x, base - (f.lines.length - 1 - k) * lh));
-  if (opt.ls) c.letterSpacing = '0px';
+  c.letterSpacing = '0px';
   return base - (f.lines.length - 1) * lh - pCap(f.s);
 }
 const PUB_DRAW = {
@@ -157,7 +170,7 @@ const PUB_DRAW = {
     const sy = H - (st ? 250 : 150); pSeller(c, d, m, sy, W - m * 2, 104, true);
     let y = sy - 30; c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(m, y, W - m * 2, 2);
     if (d.precio) { y -= 40; const f = pFit(c, d.precio, 800, 128, W - m * 2, 'd'); pText(c, d.precio, m, y, 800, f.s, W - m * 2, 'd', d.accent); y -= pCap(f.s) + 36; }
-    if (d.specs.length) { y -= 62; c.font = PF(600, 32, 'b'); let x = m; d.specs.forEach(([, v]) => { const w = c.measureText(v).width + 44; if (x + w > W - m) return; pRR(c, x, y, w, 62, 31); c.fillStyle = 'rgba(255,255,255,.15)'; c.fill(); pText(c, v, x + 22, y + 42, 600, 32, w, 'b', '#fff'); x += w + 12; }); y -= 30; }
+    if (d.specs.length) { y -= 62; c.font = PF(600, 32, 'b'); let x = m; d.specs.forEach(([, v]) => { const w = c.measureText(v).width + 44; if (x + w > W - m) return; pGlass(c, x, y, w, 62, 31, true); pText(c, v, x + 22, y + 42, 600, 32, w, 'b', '#fff'); x += w + 12; }); y -= 30; }
     const tt = pTitleUp(c, d.titulo, m, y, 800, 112, W - m * 2, '#fff', { min: 60, lh: .98 });
     if (d.anio) pText(c, d.anio, m, tt - 24, 600, 44, 400, 'm', d.accent, { ls: 4 });
   },

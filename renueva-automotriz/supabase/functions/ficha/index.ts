@@ -61,13 +61,16 @@ Deno.serve(async req => {
       const { org, it } = r
       const { data: pr } = await db.from('docs').select('data').eq('org_id', org.id).eq('col', 'config').eq('id', 'prefs').maybeSingle()
       const logo = pr?.data?.logo ?? null, fotos = (it.fotos ?? []).slice(0, 12)
+      // color de la empresa: el del catálogo de ese mundo o, si no, el color del mundo en la app
+      const hex = (x: unknown) => typeof x === 'string' && /^#[0-9a-f]{6}$/i.test(x) ? x : null
+      const accent = hex(pr?.data?.cat?.[it.w]?.color) || hex(pr?.data?.accent?.[it.w])
       const urls = await firmar(org.id, [...fotos, ...(typeof logo === 'string' ? [logo] : [])])
       const v = await vendedor(org.id, it.w, it.gestor)
       const { data: cg } = await db.from('catalogos').select('slug').eq('org_id', org.id).eq('mundo', it.w).eq('activo', true).maybeSingle()
       const s: Record<string, unknown> = {}
       ;(PUB[it.w] ?? []).forEach(k => { const v = it.specs?.[k]; if (v != null && v !== '' && typeof v !== 'object') s[k] = typeof v === 'number' ? v : limpio(v, 60) })
       return json({
-        org: { nombre: org.nombre, logo: logo ? urls[logo] ?? null : null, mundo: MUNDO[it.w] ?? '' },
+        org: { nombre: org.nombre, logo: logo ? urls[logo] ?? null : null, mundo: MUNDO[it.w] ?? '', accent },
         item: { w: it.w, nombre: limpio(it.nombre, 80), sku: it.w === 'tienda' ? limpio(it.sku, 40) : null, precio: Number(it.precio) || null, op: it.op ?? null, estado: it.estado, specs: s, fotos: fotos.map((f: string) => urls[f]).filter(Boolean), notas: limpio(it.notasPub ?? '', 600) },
         vend: v ? { nombre: v.nombre, fono: v.fono || '' } : null,
         cat: cg?.slug ?? null,
