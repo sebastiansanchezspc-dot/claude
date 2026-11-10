@@ -364,7 +364,13 @@ function openAlerts() {
 }
 
 /* ---------------- ajustes ---------------- */
-const ACCENTS = ['#C8F03C', '#4BE3A0', '#6FD3FF', '#B7A6FF', '#FF8A6B', '#FFC93C'];
+const ACCENTS = ['#C8F03C', '#34E0A1', '#5AC8FA', '#4C9BFF', '#B7A6FF', '#FF7EB6', '#FF8A6B', '#FFC93C'];
+// fondo de la app: se elige en Ajustes y queda en este equipo
+const TEMAS = [['', 'Grafito', '#08090B', '#3D7BFF'], ['medianoche', 'Medianoche', '#060A14', '#4C7DFF'], ['bosque', 'Bosque', '#06100D', '#1FBF8F'], ['obsidiana', 'Negro puro', '#000000', '#8E8E93']];
+function temaActual() { try { return localStorage.getItem('gestix_tema') || ''; } catch (e) { return ''; } }
+function aplicarTema(k) { const t = TEMAS.find(x => x[0] === k) || TEMAS[0]; document.documentElement.dataset.tema = t[0]; const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = t[2]; }
+aplicarTema(temaActual());
+ACT.tema = (d, el) => { try { localStorage.setItem('gestix_tema', d.k || ''); } catch (e) { } aplicarTema(d.k || ''); $$('[data-act="tema"]').forEach(b => b.classList.toggle('on', b === el)); toast('Fondo actualizado'); };
 function setAccent(c) {
   const sh = $('#shell'); const rgb = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)).join(',');
   sh.style.setProperty('--accent', c); sh.style.setProperty('--accent-soft', `rgba(${rgb},.13)`); sh.style.setProperty('--accent-glow', `rgba(${rgb},.32)`); sh.style.setProperty('--accent-ink', '#121212');

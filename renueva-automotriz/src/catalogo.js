@@ -59,14 +59,15 @@ function togFav(id, btn) {
 function contarFavs() { const n = [...favs].filter(id => D.items.some(x => x.id === id)).length, b = $('#favs'); if (!b) return; b.hidden = !n; $('.n', b).textContent = n }
 const favBtn = (it, cls = '') => `<button class="fav ${cls} ${favs.has(it.id) ? 'on' : ''}" data-fav="${esc(it.id)}" aria-pressed="${favs.has(it.id)}" aria-label="Guardar en favoritos">${ico('heart', 18)}</button>`
 
-/* ---------------- movimiento: aparición al hacer scroll, fotos y números ---------------- */
+/* ---------------- movimiento: fotos que aparecen al cargar (con esqueleto) y números ---------------- */
 const QUIETO = matchMedia('(prefers-reduced-motion: reduce)').matches
-const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('vis'); io.unobserve(e.target) } }), { rootMargin: '0px 0px -6% 0px' }) : null
 function animar(root = document) {
-  $$('.rv:not(.vis), .card:not(.vis)', root).forEach(el => io && !QUIETO ? io.observe(el) : el.classList.add('vis'))
-  $$('img:not(.ok)', root).forEach(im => { if (im.complete && im.naturalWidth) im.classList.add('ok'); else { im.addEventListener('load', () => im.classList.add('ok'), { once: true }); im.addEventListener('error', () => im.classList.add('ok', 'mal'), { once: true }) } })
+  $$('img:not(.ok)', root).forEach(im => {
+    const caja = im.closest('.ph, .gal'), listo = mal => { im.classList.add('ok'); mal && im.classList.add('mal'); caja && caja.classList.remove('carga') }
+    if (im.complete && im.naturalWidth) listo(); else { caja && caja.classList.add('carga'); im.addEventListener('load', () => listo(), { once: true }); im.addEventListener('error', () => listo(true), { once: true }) }
+  })
   // seguro: ninguna foto queda invisible aunque se pierda el aviso de carga
-  setTimeout(() => $$('img:not(.ok)', root).forEach(im => im.classList.add('ok')), 2500)
+  setTimeout(() => $$('img:not(.ok)', root).forEach(im => { im.classList.add('ok'); const c = im.closest('.ph, .gal'); c && c.classList.remove('carga') }), 4000)
 }
 function contar(el, n, txt) {
   if (!el) return; if (QUIETO || n < 2) { el.textContent = txt(n); return }
@@ -150,87 +151,87 @@ const activos = () => Object.values(st.f).reduce((n, v) => n + (v instanceof Set
 
 /* ---------------- pantalla principal ---------------- */
 function tarjeta(it, k = 0) {
-  const c = cuota(it), s = sp(it), yr = anio(it), tag = it.dis ? null : it.estado === 'reservado' ? ['res', 'Reservado'] : it.estado === 'taller' ? ['res', 'Próximamente'] : nuevo(it) ? ['new', 'Recién llegado'] : null
+  const c = cuota(it), s = sp(it), yr = anio(it), tag = it.dis ? null : it.estado === 'reservado' ? 'Reservado' : it.estado === 'taller' ? 'Próximamente' : nuevo(it) ? 'Recién llegado' : null
   const props = it.w === 'prop' ? [ok(s.dorm) && Number(s.dorm) > 0 && [ico('bed', 15), s.dorm + 'D'], ok(s.banos) && [ico('bath', 15), s.banos + 'B'], ok(s.m2c) && [ico('area', 15), s.m2c + ' m²']].filter(Boolean) : []
-  return `<a class="card${it.dis ? ' dis' : ''}" href="#i=${encodeURIComponent(it.id)}" data-id="${esc(it.id)}" style="--k:${Math.min(k, 12)}">
-    <div class="ph">${it.foto ? `<img src="${esc(it.foto)}" alt="${esc(titulo(it))}" loading="${k < 4 ? 'eager' : 'lazy'}" decoding="async">` : `<div class="sinfoto">${marcaIni(30)}<span>Fotos pronto</span></div>`}
-      ${tag ? `<span class="tag ${tag[0]}">${tag[1]}</span>` : ''}${it.nf > 1 ? `<span class="nf">${ico('cam', 13)}${it.nf}</span>` : ''}${favBtn(it)}
-      ${it.dis ? '' : `<span class="pr">${esc(precioTxt(it))}</span>`}</div>
+  return `<a class="card${it.dis ? ' dis' : ''}" href="#i=${encodeURIComponent(it.id)}" data-id="${esc(it.id)}">
+    <div class="ph">${it.foto ? `<img src="${esc(it.foto)}" alt="${esc(titulo(it))}" loading="${k < 4 ? 'eager' : 'lazy'}" decoding="async">` : `<div class="sinfoto">${marcaIni(32)}<span>Fotos pronto</span></div>`}
+      ${tag ? `<span class="tag">${tag}</span>` : ''}${favBtn(it)}</div>
     <div class="bd">
-      <h3><span>${esc(titulo(it))}</span>${yr ? `<em>${esc(yr)}</em>` : ''}</h3>
+      <h3>${esc(titulo(it))}</h3>
+      <p class="sub">${esc([yr, ...lineas(it)].filter(Boolean).join(' · '))}</p>
       ${props.length ? `<p class="ic">${props.map(([i, t]) => `<span>${i}${esc(t)}</span>`).join('')}</p>` : ''}
-      <p class="sub">${esc(lineas(it).join(' · '))}</p>
-      ${c ? `<p class="cu">Cuota desde <b>${fmt(c)}</b><sup>*</sup></p>` : ''}
+      <p class="pc"><b>${esc(precioTxt(it))}</b>${c ? `<span>Cuota desde ${fmt(c)}<sup>*</sup></span>` : ''}</p>
     </div></a>`
 }
-function marcaIni(s = 38) { return D.org.logo ? `<img class="logo" src="${esc(D.org.logo)}" alt="" width="${s}" height="${s}">` : `<span class="ini" style="width:${s}px;height:${s}px">${esc(D.org.nombre.slice(0, 2).toUpperCase())}</span>` }
+function marcaIni(s = 32) { return D.org.logo ? `<img class="logo" src="${esc(D.org.logo)}" alt="" width="${s}" height="${s}">` : `<span class="ini" style="width:${s}px;height:${s}px">${esc(D.org.nombre.slice(0, 2).toUpperCase())}</span>` }
 
 // quién atiende: el vendedor que compartió el enlace, el dueño o la empresa
 function asesorHtml() {
   const con = D.contacto; if (!con) return ''
   const emp = D.quien === 'empresa', wa = waLink(con.fono, `Hola${!emp ? ' ' + con.nombre.split(' ')[0] : ''}, vi el catálogo de ${D.org.nombre} y quiero hacer una consulta.`)
-  return `<div class="asesor rv"><span class="av2">${emp ? marcaIni(54) : `<i>${esc(iniciales(con.nombre))}</i>`}<em class="punto" title="Disponible"></em></span>
-    <div class="as-t"><small>${emp ? 'Atención directa' : 'Te atiende'}</small><b>${esc(emp ? D.org.nombre : con.nombre)}</b><span>${emp ? 'Respondemos por WhatsApp' : esc(D.org.nombre)}</span></div>
-    <div class="as-b">${wa ? `<a class="ib wa" href="${wa}" target="_blank" rel="noopener" aria-label="WhatsApp">${ico('wa', 20)}</a>` : ''}<a class="ib" href="${telLink(con.fono)}" aria-label="Llamar">${ico('tel', 18)}</a></div></div>`
+  return `<section class="asesor"><div class="wrap"><span class="av">${emp ? marcaIni(44) : esc(iniciales(con.nombre))}</span>
+    <div class="as-t"><small>${emp ? 'Atención directa' : 'Te atiende'}</small><b>${esc(emp ? D.org.nombre : con.nombre)}</b></div>
+    <div class="as-b">${wa ? `<a class="btn acc" href="${wa}" target="_blank" rel="noopener">${ico('wa', 18)}WhatsApp</a>` : ''}<a class="ib s" href="${telLink(con.fono)}" aria-label="Llamar a ${esc(emp ? D.org.nombre : con.nombre)}">${ico('tel', 18)}</a></div></div></section>`
 }
-function cifrasHtml() {
-  const pr = base().map(x => x.precio).filter(Boolean), min = pr.length ? Math.min(...pr) : 0, nuevos = base().filter(nuevo).length
-  const c = [min && [ico('spark', 16), `Desde ${corto(min)}${st.op === 'Arriendo' ? ' /mes' : ''}`], D.fin && [ico('bank', 16), 'Financiamiento'], D.pp && [ico('car', 16), 'Recibimos tu auto'], nuevos > 1 && [ico('spark', 16), `${nuevos} recién llegados`]].filter(Boolean)
-  return c.map(([i, t], k) => `<span class="cifra rv" style="--k:${k}">${i}${t}</span>`).join('')
+// una línea de datos bajo el título de la portada
+function cifrasTxt() {
+  const pr = base().map(x => x.precio).filter(Boolean), min = pr.length ? Math.min(...pr) : 0
+  return [min && `Desde ${corto(min)}${st.op === 'Arriendo' ? ' al mes' : ''}`, D.fin && 'Financiamiento', D.pp && 'Recibimos tu auto'].filter(Boolean).join('\u00a0· ')
 }
-function nuevosHtml() {
-  const l = base().filter(x => x.foto).slice(0, 8)
-  if (base().length < 5 || l.length < 3) return ''
-  return `<section class="nuevos rv"><div class="wrap"><h2>Recién llegados</h2></div><div class="carrusel">${l.map((it, k) => `<a class="nv" href="#i=${encodeURIComponent(it.id)}" data-id="${esc(it.id)}" style="--k:${k}"><img src="${esc(it.foto)}" alt="${esc(titulo(it))}" loading="lazy"><span class="nv-t"><b>${esc(titulo(it))}${anio(it) ? ' ' + esc(anio(it)) : ''}</b><em>${esc(precioTxt(it))}</em></span></a>`).join('')}</div></section>`
-}
+// foto de la portada: la más reciente sin diseño encima (las portadas con diseño ya traen texto)
+function fotoPortada() { if (D.hero && D.hero.foto) return D.hero.foto; const it = D.items.find(x => x.foto && !x.dis); return it ? it.foto : '' }
 
 function pintar() {
   const org = D.org, con = D.contacto, ops = W === 'prop' ? ['Arriendo', 'Venta'].filter(o => D.items.some(it => it.op === o)) : []
   if (ops.length && !ops.includes(st.op)) st.op = ops[0]
   document.title = `${org.nombre} · Catálogo de ${T.varios}`
   const wa = con && waLink(con.fono, `Hola${con.nombre && D.quien !== 'empresa' ? ' ' + con.nombre.split(' ')[0] : ''}, vi el catálogo de ${org.nombre} y quiero hacer una consulta.`)
+  const hf = fotoPortada(), Tv = T.varios[0].toUpperCase() + T.varios.slice(1)
   $('#app').className = 'cat'
   $('#app').innerHTML = `
-    <header class="top"><div class="wrap"><div class="marca">${marcaIni()}<b>${esc(org.nombre)}</b></div>
-      <div class="acc"><button class="hbtn fv" id="favs" hidden aria-label="Mis favoritos">${ico('heart', 17)}<span class="n">0</span></button><button class="hbtn sh" id="compPag" aria-label="Compartir catálogo">${ico('share', 17)}</button></div></div></header>
-    <section class="hero"><i class="blob b1"></i><i class="blob b2"></i><div class="wrap">
-      <p class="kick rv">Catálogo en línea · ${new Date().toLocaleDateString('es-CL', { day: 'numeric', month: 'long' })}</p>
-      <h1 id="h1" class="rv"></h1>
-      <div class="cifras" id="cifras"></div>
-      ${asesorHtml()}
-      ${ops.length > 1 ? `<div class="ops rv" role="tablist">${ops.map(o => `<button role="tab" data-op="${o}" aria-selected="${st.op === o}">${o === 'Arriendo' ? 'En arriendo' : 'En venta'}</button>`).join('')}</div>` : ''}
-      <label class="buscar rv">${ico('search', 20)}<input id="q" type="search" placeholder="${T.buscar}" autocomplete="off" enterkeyhint="search" aria-label="Buscar"></label>
-    </div></section>
-    <div id="nuevos"></div>
-    <nav class="barra"><div class="wrap">
-      <button class="fbtn" id="abrirF">${ico('sliders', 17)}Filtros<span class="n" id="nf" hidden></span></button>
-      <div class="rap" id="rap"></div>
-      <label class="orden"><span class="sr">Ordenar</span><select id="orden" aria-label="Ordenar">${[['recientes', 'Más recientes'], ['menor', 'Menor precio'], ['mayor', 'Mayor precio'], ...(W === 'auto' ? [['anio', 'Año más nuevo'], ['km', 'Menos kilómetros']] : W === 'prop' ? [['m2', 'Más metros']] : [])].map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select>${ico('chev', 15)}</label>
-    </div></nav>
-    <main class="wrap"><p class="res" id="res"></p><section class="grid" id="grid"></section>
-      ${D.fin ? `<p class="nota">* Cuota referencial con pie de ${D.fin.pie}% a ${D.fin.plazo} meses y tasa ${String(D.fin.tasa).replace('.', ',')}% mensual. Sujeta a evaluación y aprobación de la financiera.</p>` : ''}
-      ${D.pp ? `<section class="ppago rv"><span class="pp-i">${ico('car', 26)}</span><div><h2>¿Tienes un auto para dejar en parte de pago?</h2><p>Cuéntanos cuál es y te damos una tasación sin compromiso.</p></div><button class="btn acc" id="tasar">Cotizar mi auto</button></section>` : ''}
-      <section class="busco rv"><div><h2>¿No encuentras lo que buscas?</h2><p>Cuéntanos qué ${W === 'prop' ? 'propiedad' : W === 'auto' ? 'auto' : 'producto'} necesitas y te avisamos apenas tengamos uno.</p></div><button class="btn dark" id="busco">Avísenme</button></section>
-    </main>
-    <footer class="pie"><div class="pie-m">${marcaIni(30)}<b>${esc(org.nombre)}</b></div>${con && con.fono ? `<a href="${telLink(con.fono)}">${esc(con.fono)}</a>` : ''}<span>Catálogo hecho con <b>gestix</b></span></footer>
-    ${wa ? `<a class="fab" id="fab" href="${wa}" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">${ico('wa', 26)}<span>${D.quien === 'empresa' ? 'Escríbenos' : 'Escríbeme'}</span></a>` : ''}
+    <header class="top"><div class="wrap"><a class="marca" href="#inicio">${marcaIni()}<b>${esc(org.nombre)}</b></a>
+      <div class="acc"><button class="ib hbtn fv" id="favs" hidden aria-label="Mis favoritos">${ico('heart', 20)}<span class="n">0</span></button><button class="ib hbtn" id="compPag" aria-label="Compartir catálogo">${ico('share', 20)}</button></div></div></header>
+    <section class="hero ${hf ? 'foto' : 'tipo'}" id="inicio" data-enter>${hf ? `<img class="hero-f" src="${esc(hf)}" alt="" fetchpriority="high" decoding="async">` : ''}
+      <div class="wrap hero-c">
+        <div><h1 id="h1" class="e1"></h1><p class="hero-s e2" id="cifras"></p></div>
+        <div class="hero-b e3"><a class="btn acc" href="#catalogo">Ver ${W === 'prop' ? 'las' : 'los'} ${T.varios}</a>${D.pp ? `<button class="btn claro js-tasar" id="tasar">Cotizar mi auto</button>` : wa ? `<a class="btn claro" href="${wa}" target="_blank" rel="noopener">Escribir por WhatsApp</a>` : ''}</div>
+      </div></section>
+    ${asesorHtml()}
+    <section class="cat-s" id="catalogo">
+      <div class="wrap cat-h"><h2>${Tv} disponibles</h2>
+        ${ops.length > 1 ? `<div class="ops" role="tablist">${ops.map(o => `<button role="tab" data-op="${o}" aria-selected="${st.op === o}">${o === 'Arriendo' ? 'En arriendo' : 'En venta'}</button>`).join('')}</div>` : ''}
+        <label class="buscar">${ico('search', 20)}<input id="q" type="search" placeholder="${T.buscar}" autocomplete="off" enterkeyhint="search" aria-label="Buscar"></label></div>
+      <nav class="barra" aria-label="Filtros"><div class="wrap">
+        <button class="fbtn" id="abrirF">${ico('sliders', 17)}Filtros<span class="n" id="nf" hidden></span></button>
+        <div class="rap" id="rap"></div>
+        <label class="orden"><span class="sr">Ordenar</span><select id="orden" aria-label="Ordenar">${[['recientes', 'Más recientes'], ['menor', 'Menor precio'], ['mayor', 'Mayor precio'], ...(W === 'auto' ? [['anio', 'Año más nuevo'], ['km', 'Menos kilómetros']] : W === 'prop' ? [['m2', 'Más metros']] : [])].map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select>${ico('chev', 15)}</label>
+      </div></nav>
+      <main class="wrap"><p class="res" id="res" aria-live="polite"></p><section class="grid" id="grid"></section>
+        ${D.fin ? `<p class="nota">* Cuota referencial con pie de ${D.fin.pie}% a ${D.fin.plazo} meses y tasa ${String(D.fin.tasa).replace('.', ',')}% mensual. Sujeta a evaluación y aprobación de la financiera.</p>` : ''}
+        ${D.pp ? `<section class="banda"><div><h2>¿Tienes un auto para dejar en parte de pago?</h2><p>Cuéntanos cuál es, súbele unas fotos y te enviamos una tasación sin compromiso.</p></div><button class="btn acc js-tasar">Cotizar mi auto</button></section>` : ''}
+        <section class="banda"><div><h2>¿No encuentras lo que buscas?</h2><p>Cuéntanos qué ${W === 'prop' ? 'propiedad' : W === 'auto' ? 'auto' : 'producto'} necesitas y te avisamos apenas llegue.</p></div><button class="btn ghost" id="busco">Avísenme cuando llegue</button></section>
+      </main></section>
+    <footer class="pie"><div class="pie-m">${marcaIni(28)}<b>${esc(org.nombre)}</b></div>${con && con.fono ? `<a href="${telLink(con.fono)}">${esc(con.fono)}</a>` : ''}<span>Catálogo hecho con <b>gestix</b></span></footer>
+    ${wa ? `<a class="fab" id="fab" href="${wa}" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">${ico('wa', 20)}<span>${D.quien === 'empresa' ? 'Escríbenos' : 'Escríbeme'}</span></a>` : ''}
     <div class="capa" id="capa" hidden></div>`
+  const hfi = $('.hero-f'); if (hfi) { const ya = () => hfi.classList.add('ok'); hfi.complete && hfi.naturalWidth ? ya() : (hfi.addEventListener('load', ya, { once: true }), hfi.addEventListener('error', () => { hfi.remove(); $('.hero').className = 'hero tipo' }, { once: true })) }
   $('#q').addEventListener('input', e => { st.texto = e.target.value; lista() })
   $('#orden').addEventListener('change', e => { st.orden = e.target.value; lista() })
   $$('.ops button').forEach(b => b.addEventListener('click', () => { st.op = b.dataset.op; st.f = {}; $$('.ops button').forEach(x => x.setAttribute('aria-selected', x === b)); lista(true) }))
   $('#abrirF').addEventListener('click', abrirFiltros)
   $('#busco').addEventListener('click', () => abrirForm(null))
-  $('#tasar') && $('#tasar').addEventListener('click', () => abrirForm(null, null, 'pp'))
+  $$('.js-tasar').forEach(b => b.addEventListener('click', () => abrirForm(null, null, 'pp')))
   $('#favs').addEventListener('click', abrirFavs)
   $('#compPag').addEventListener('click', async () => { const url = location.origin + location.pathname + location.search; try { if (navigator.share) await navigator.share({ title: document.title, url }); else { await navigator.clipboard.writeText(url); aviso('Enlace copiado') } } catch (e) { } })
   // clics: favorito (no abre la ficha), tarjeta o recién llegado (abre la ficha)
   $('#app').addEventListener('click', e => {
     const f = e.target.closest('.fav'); if (f && !e.target.closest('.capa')) { e.preventDefault(); e.stopPropagation(); togFav(f.dataset.fav, f); return }
-    const a = e.target.closest('#grid .card, .nuevos .nv'); if (!a) return; e.preventDefault(); abrir(a.dataset.id)
+    const a = e.target.closest('#grid .card'); if (!a) return; e.preventDefault(); abrir(a.dataset.id)
   })
-  // la cabecera se marca al bajar y el botón de WhatsApp aparece después de la portada
-  const fab = $('#fab'), hero = $('.hero')
-  addEventListener('scroll', () => { const y = scrollY; $('.top').classList.toggle('sombra', y > 8); if (fab) fab.classList.toggle('in', y > hero.offsetHeight - 80 && $('#capa').hidden) }, { passive: true })
+  // la cabecera se vuelve sólida al bajar y el botón de contacto aparece después de la portada
+  const fab = $('#fab'), hero = $('.hero'), top = $('.top'); let pend = false
+  const alBajar = () => { pend = false; const y = scrollY, fin = hero.offsetHeight - 64; top.classList.toggle('solida', y > 24); if (fab) fab.classList.toggle('in', y > fin && $('#capa').hidden) }
+  addEventListener('scroll', () => { if (!pend) { pend = true; requestAnimationFrame(alBajar) } }, { passive: true }); alBajar()
   lista(true)
   contarFavs()
   ruta()
@@ -240,12 +241,13 @@ function pintar() {
 function lista(portada) {
   const r = filtrados(), n = base().length, act = activos() + (st.texto ? 1 : 0)
   const h1 = k => W === 'prop' ? `${k} ${n === 1 ? 'propiedad' : 'propiedades'} ${st.op === 'Venta' ? 'en venta' : st.op === 'Arriendo' ? 'en arriendo' : 'disponibles'}` : `${k} ${n === 1 ? T.uno : T.varios} ${n === 1 ? 'disponible' : 'disponibles'}`
-  if (portada) { contar($('#h1'), n, h1); $('#cifras').innerHTML = cifrasHtml(); $('#nuevos').innerHTML = nuevosHtml() } else $('#h1').textContent = h1(n)
+  if (portada) { contar($('#h1'), n, h1); $('#cifras').textContent = cifrasTxt() } else $('#h1').textContent = h1(n)
   $('#res').innerHTML = act ? `<b>${r.length}</b> de ${n} ${T.varios} <button class="lnk" id="limpiar">Limpiar filtros</button>` : `Mostrando <b>${r.length}</b> ${r.length === 1 ? T.uno : T.varios}`
   $('#grid').innerHTML = r.length ? r.map(tarjeta).join('') : `<div class="vacio"><h3>${T.nada}</h3><p>Prueba quitando algún filtro o cuéntanos qué buscas.</p><button class="btn ghost" id="limpiar2">Ver todo el stock</button></div>`
   const nf = $('#nf'), a = activos(); nf.hidden = !a; nf.textContent = a
   const lim = () => { st.f = {}; st.texto = ''; $('#q').value = ''; lista() }
   $('#limpiar') && $('#limpiar').addEventListener('click', lim); $('#limpiar2') && $('#limpiar2').addEventListener('click', lim)
+  if (!portada) { const g = $('#grid'); g.classList.remove('cambio'); void g.offsetWidth; g.classList.add('cambio') }
   rapidos(); animar($('#app'))
 }
 // atajos: los valores más comunes del primer filtro (marca, tipo o categoría) como chips
@@ -278,7 +280,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape') cerrar() })
 function abrirFiltros() {
   const defs = filtrosDef()
   const borrador = Object.fromEntries(Object.entries(st.f).map(([k, v]) => [k, v instanceof Set ? new Set(v) : v]))
-  const html = `<div class="phd"><h2>Filtros</h2><button class="ib cerrar" data-cerrar aria-label="Cerrar">${ico('x', 18)}</button></div>
+  const html = `<div class="phd"><h2>Filtros</h2><button class="ib cerrar" data-cerrar aria-label="Cerrar">${ico('x', 20)}</button></div>
     <div class="pbody">${defs.map(d => `<section class="fg"><h3>${d.t}</h3><div class="chips">${d.op.map(([v, t, n]) => `<button class="chip" data-k="${d.k}" data-v="${esc(v)}">${typeof t === 'number' ? `${esc(v)}<small>${t}</small>` : esc(t || v)}</button>`).join('')}</div></section>`).join('') || '<p class="sub">No hay filtros para este stock.</p>'}</div>
     <div class="pft"><button class="btn ghost" id="fLimpiar">Limpiar</button><button class="btn dark" id="fVer"></button></div>`
   const c = capa(html, 'hoja')
@@ -290,7 +292,7 @@ function abrirFiltros() {
     marcar(); contar()
   }))
   $('#fLimpiar', c).addEventListener('click', () => { Object.keys(borrador).forEach(k => delete borrador[k]); marcar(); contar() })
-  $('#fVer', c).addEventListener('click', () => { st.f = borrador; cerrar(); lista(); scrollTo({ top: $('.barra').offsetTop - 60, behavior: 'smooth' }) })
+  $('#fVer', c).addEventListener('click', () => { st.f = borrador; cerrar(); lista(); $('#catalogo').scrollIntoView({ behavior: QUIETO ? 'auto' : 'smooth' }) })
   marcar(); contar()
 }
 
@@ -316,14 +318,14 @@ function detalleHtml(it, d) {
     prop: [['tipo', 'Tipo'], ['comuna', 'Comuna'], ['dorm', 'Dormitorios'], ['banos', 'Baños'], ['m2c', 'Construidos', v => v + ' m²'], ['m2t', 'Terreno', v => v + ' m²'], ['estac', 'Estacionamientos'], ['bodega', 'Bodega']],
     tienda: [['marca', 'Marca'], ['categoria', 'Categoría'], ['variante', 'Variante']],
   }[it.w]
-  const datos = CAMPOS.filter(([k]) => ok(s[k]) && !(k === 'dorm' && Number(s[k]) === 0)).map(([k, l, f]) => `<div><span>${l}</span><b>${esc(f ? f(s[k]) : s[k])}</b></div>`).join('')
+  const datos = CAMPOS.filter(([k]) => ok(s[k]) && !(k === 'dorm' && Number(s[k]) === 0)).map(([k, l, f]) => `<div><dt>${l}</dt><dd>${esc(f ? f(s[k]) : s[k])}</dd></div>`).join('')
   const yr = anio(it), tt = titulo(it) + (yr ? ' ' + yr : '')
   const wa = vend && waLink(vend.fono, `Hola${vend.nombre && D.quien !== 'empresa' ? ' ' + vend.nombre.split(' ')[0] : ''}, me interesa ${it.w === 'prop' ? 'la propiedad' : it.w === 'auto' ? 'el' : ''} ${tt} (${precioTxt(it)}) que vi en el catálogo de ${D.org.nombre}. ¿Sigue disponible?\n${itemUrl(it)}`)
   const otros = D.items.filter(x => x.id !== it.id && x.op === it.op && (sp(x).tipo === s.tipo || (it.w === 'auto' && sp(x).marca === s.marca))).slice(0, 4)
-  return `<div class="dhd"><button class="ib cerrar" data-cerrar aria-label="Volver al catálogo">${ico('l', 20)}</button><span class="dt">${esc(titulo(it))}</span><span class="dacc">${favBtn(it, 'ib')}<button class="ib" id="compartir" aria-label="Compartir">${ico('share', 18)}</button></span></div>
+  return `<div class="dhd"><button class="ib cerrar" data-cerrar aria-label="Volver al catálogo">${ico('l', 22)}</button><span class="dt">${esc(D.org.nombre)}</span><span class="dacc">${favBtn(it, 'ib')}<button class="ib" id="compartir" aria-label="Compartir">${ico('share', 20)}</button></span></div>
     <div class="pbody"><div class="dgrid">
-      <div class="galw"><div class="gal${it.dis ? ' dis' : ''}" id="gal">${fotos.length ? fotos.map((u, k) => `<img src="${esc(u)}" alt="Foto ${k + 1} de ${esc(tt)}" ${k > 1 ? 'loading="lazy"' : ''}>`).join('') : `<div class="sinfoto">${marcaIni(40)}<span>${d ? 'Fotos pronto' : ''}</span></div>`}</div>
-        ${fotos.length > 1 ? `<span class="cont" id="cont">1 / ${fotos.length}</span><button class="flecha l" id="gl" aria-label="Foto anterior">${ico('l', 20)}</button><button class="flecha r" id="gr" aria-label="Foto siguiente">${ico('r', 20)}</button>` : ''}
+      <div class="galw"><div class="gal${it.dis ? ' dis' : ''}${!fotos.length && !d ? ' carga' : ''}" id="gal">${fotos.length ? fotos.map((u, k) => `<img src="${esc(u)}" alt="Foto ${k + 1} de ${esc(tt)}" ${k > 1 ? 'loading="lazy"' : ''} decoding="async">`).join('') : d ? `<div class="sinfoto">${marcaIni(40)}<span>Fotos pronto</span></div>` : ''}</div>
+        ${fotos.length > 1 ? `<span class="cont" id="cont" aria-hidden="true">1 / ${fotos.length}</span><button class="flecha l" id="gl" aria-label="Foto anterior">${ico('l', 20)}</button><button class="flecha r" id="gr" aria-label="Foto siguiente">${ico('r', 20)}</button>` : ''}
         ${fotos.length > 1 ? `<div class="mini" id="mini">${fotos.map((u, k) => `<button data-k="${k}" class="${k ? '' : 'on'}" aria-label="Ver foto ${k + 1}"><img src="${esc(u)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}</div>
       <div class="dinfo">
         <span class="estado ${it.estado !== 'disponible' ? 'res' : ''}">${it.estado === 'reservado' ? 'Reservado' : it.estado === 'taller' ? 'En preparación · pronto disponible' : it.w === 'prop' ? (it.op === 'Arriendo' ? 'En arriendo' : 'En venta') : 'Disponible'}</span>
@@ -332,17 +334,17 @@ function detalleHtml(it, d) {
         <p class="precio">${esc(precioTxt(it))}</p>
         ${c ? simHtml(it) : ''}
         ${it.op === 'Arriendo' && it.precio ? `<div class="entrar"><span>Para entrar, aprox.</span><b>${fmt(it.precio * 2)}</b><small>Mes de garantía + primer mes de arriendo. Pregunta por los requisitos.</small></div>` : ''}
-        ${datos ? `<div class="datos">${datos}</div>` : ''}
+        ${datos ? `<dl class="datos">${datos}</dl>` : ''}
         ${full && full.notas ? `<p class="notas">${esc(full.notas)}</p>` : ''}
         <div class="contacto">
-          ${vend ? `<div class="vend"><span class="av">${D.quien === 'empresa' ? marcaIni(46) : esc(iniciales(vend.nombre))}</span><div><small>${D.quien === 'empresa' ? 'Atención directa' : 'Te atiende'}</small><b>${esc(vend.nombre)}</b>${D.quien === 'empresa' ? '' : `<small>${esc(D.org.nombre)}</small>`}</div></div>` : ''}
+          ${vend ? `<div class="vend"><span class="av">${D.quien === 'empresa' ? marcaIni(44) : esc(iniciales(vend.nombre))}</span><div><small>${D.quien === 'empresa' ? 'Atención directa' : 'Te atiende'}</small><b>${esc(vend.nombre)}</b>${D.quien === 'empresa' ? '' : `<small>${esc(D.org.nombre)}</small>`}</div></div>` : ''}
           ${wa ? `<a class="btn wa" href="${wa}" target="_blank" rel="noopener">${ico('wa')}Escribir por WhatsApp</a>` : ''}
           <div class="dos">${vend && vend.fono ? `<a class="btn ghost" href="${telLink(vend.fono)}">${ico('tel', 18)}Llamar</a>` : ''}<button class="btn ghost" id="meLlamen">Que me contacten</button></div>
         </div>
       </div></div>
       ${otros.length ? `<section class="otros"><h3>También te puede interesar</h3><div class="grid mini4">${otros.map(tarjeta).join('')}</div></section>` : ''}
     </div>
-    ${wa ? `<div class="dbar"><a class="btn wa" href="${wa}" target="_blank" rel="noopener">${ico('wa')}WhatsApp</a>${vend && vend.fono ? `<a class="ib" href="${telLink(vend.fono)}" aria-label="Llamar">${ico('tel', 18)}</a>` : ''}</div>` : ''}`
+    ${wa ? `<div class="dbar"><a class="btn wa" href="${wa}" target="_blank" rel="noopener">${ico('wa')}Escribir por WhatsApp</a>${vend && vend.fono ? `<a class="ib s" href="${telLink(vend.fono)}" aria-label="Llamar">${ico('tel', 20)}</a>` : ''}</div>` : ''}`
 }
 function activarDetalle(c, it, d) {
   $('.panel', c).dataset.id = it.id
@@ -375,15 +377,15 @@ function simHtml(it) {
     <div class="sim-pl">${[24, 36, 48, 60].map(n => `<button class="${n === f.plazo ? 'on' : ''}" data-n="${n}">${n} meses</button>`).join('')}</div>
     <small class="sim-n">Tasa ${String(f.tasa).replace('.', ',')}% mensual. Valores referenciales, sujetos a evaluación de la financiera.</small></div>`
 }
-function tween(el, de, a) { if (QUIETO) { el.textContent = fmt(a); return } const t0 = performance.now(); const p = t => { const k = Math.min(1, (t - t0) / 320), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(de + (a - de) * e); if (k < 1) requestAnimationFrame(p) }; requestAnimationFrame(p); el.classList.remove('salta'); void el.offsetWidth; el.classList.add('salta') }
+function tween(el, de, a) { if (QUIETO) { el.textContent = fmt(a); return } const t0 = performance.now(); const p = t => { const k = Math.min(1, (t - t0) / 320), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(de + (a - de) * e); if (k < 1) requestAnimationFrame(p) }; requestAnimationFrame(p); }
 
 // mis favoritos: lista y envío por WhatsApp a quien atiende
 function abrirFavs() {
   const l = D.items.filter(x => favs.has(x.id)), con = D.contacto
   const txt = `Hola${con && D.quien !== 'empresa' ? ' ' + con.nombre.split(' ')[0] : ''}, estos son los ${T.varios} que me gustaron del catálogo de ${D.org.nombre}:\n` + l.map(it => `• ${titulo(it)}${anio(it) ? ' ' + anio(it) : ''} · ${precioTxt(it)}\n  ${itemUrl(it)}`).join('\n')
   const wa = con && waLink(con.fono, txt)
-  const html = `<div class="phd"><h2>Mis favoritos</h2><button class="ib cerrar" data-cerrar aria-label="Cerrar">${ico('x', 18)}</button></div>
-    <div class="pbody"><div class="favl">${l.map(it => `<div class="favr" data-id="${esc(it.id)}"><span class="fr-f">${it.foto ? `<img src="${esc(it.foto)}" alt="">` : ''}</span><span class="fr-t"><b>${esc(titulo(it))}${anio(it) ? ' ' + esc(anio(it)) : ''}</b><em>${esc(precioTxt(it))}</em></span><button class="ib fr-x" data-x="${esc(it.id)}" aria-label="Quitar">${ico('x', 16)}</button></div>`).join('') || '<p class="sub">Toca el corazón en los que te gusten y aparecerán aquí.</p>'}</div></div>
+  const html = `<div class="phd"><h2>Mis favoritos</h2><button class="ib cerrar" data-cerrar aria-label="Cerrar">${ico('x', 20)}</button></div>
+    <div class="pbody"><div class="favl">${l.map(it => `<div class="favr" data-id="${esc(it.id)}"><span class="fr-f">${it.foto ? `<img src="${esc(it.foto)}" alt="">` : ''}</span><span class="fr-t"><b>${esc(titulo(it))}${anio(it) ? ' ' + esc(anio(it)) : ''}</b><em>${esc(precioTxt(it))}</em></span><button class="ib fr-x" data-x="${esc(it.id)}" aria-label="Quitar ${esc(titulo(it))}">${ico('x', 18)}</button></div>`).join('') || '<p class="sub">Toca el corazón en los que te gusten y aparecerán aquí.</p>'}</div></div>
     ${l.length && wa ? `<div class="pft"><a class="btn wa" href="${wa}" target="_blank" rel="noopener">${ico('wa')}Enviar mis favoritos</a></div>` : ''}`
   const c = capa(html, 'hoja')
   $$('.favr', c).forEach(r => r.addEventListener('click', e => { if (e.target.closest('.fr-x')) { favs.delete(r.dataset.id); guardaFavs(); contarFavs(); $$(`.fav[data-fav="${CSS.escape(r.dataset.id)}"]`).forEach(b => b.classList.remove('on')); r.remove(); return } cerrar(); setTimeout(() => abrir(r.dataset.id), 280) }))
@@ -392,12 +394,12 @@ function abrirFavs() {
 // formulario de contacto (de un ítem o general: "avísenme cuando llegue")
 function abrirForm(it, vend, modo) {
   const volver = it ? () => abrir(it.id, true) : null, pp = modo === 'pp'
-  const html = `<div class="phd"><h2>${pp ? 'Cotiza tu auto' : it ? 'Te contactamos' : '¿Qué estás buscando?'}</h2><button class="ib cerrar" data-cerrar aria-label="Cerrar">${ico('x', 18)}</button></div>
+  const html = `<div class="phd"><h2>${pp ? 'Cotiza tu auto' : it ? 'Te contactamos' : '¿Qué estás buscando?'}</h2><button class="ib cerrar" data-cerrar aria-label="Cerrar">${ico('x', 20)}</button></div>
     <form class="pbody form" id="form" novalidate>
       ${pp ? `<p class="sub">Cuéntanos qué auto tienes y te enviamos una tasación para dejarlo en parte de pago.</p>
       <div class="dos3"><label><span>Marca y modelo</span><input name="ppm" maxlength="40" placeholder="Ej: Suzuki Swift" required></label><label><span>Año</span><input name="ppa" inputmode="numeric" maxlength="4" placeholder="2018"></label></div>
       <label><span>Kilometraje</span><input name="ppk" inputmode="numeric" maxlength="9" placeholder="Ej: 85.000"></label>
-      <div class="ppf"><span class="ppf-t">Fotos de tu auto <em>(opcional, hasta 6)</em></span><div class="ppf-g" id="ppfg"><label class="ppf-add">${ico('cam', 22)}<b>Agregar</b><input type="file" accept="image/*" multiple hidden id="ppfi"></label></div></div>` : ''}
+      <div class="ppf"><span class="ppf-t">Fotos de tu auto <em>(opcional, hasta 6)</em></span><div class="ppf-g" id="ppfg"><label class="ppf-add">${ico('cam', 22)}<b>Agregar</b><input type="file" accept="image/*" multiple class="sr" id="ppfi" aria-label="Agregar fotos de tu auto"></label></div></div>` : ''}
       ${pp ? '' : it ? `<p class="sub">Déjanos tus datos y ${vend ? esc(vend.nombre.split(' ')[0]) : 'un ejecutivo'} te contacta por ${esc(titulo(it))}${anio(it) ? ' ' + esc(anio(it)) : ''}.</p>` : `<p class="sub">Cuéntanos qué necesitas y te avisamos apenas tengamos algo para ti.</p>`}
       <label><span>Nombre</span><input name="nombre" autocomplete="name" maxlength="60" required></label>
       <label><span>Teléfono</span><input name="fono" autocomplete="tel" inputmode="tel" maxlength="24" placeholder="+56 9 …" required></label>
@@ -405,7 +407,7 @@ function abrirForm(it, vend, modo) {
       ${W === 'auto' && !pp ? `<label class="check"><input type="checkbox" name="pp" value="1"><span>Tengo un auto para dejar en parte de pago</span></label>` : ''}
       <input name="web" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
       <p class="err" id="err" hidden></p>
-      <button class="btn dark" type="submit">Enviar</button>
+      <button class="btn acc" type="submit">${pp ? 'Pedir mi tasación' : 'Enviar'}</button>
       <p class="legal">Al enviar aceptas que ${esc(D.org.nombre)} use estos datos solo para contactarte por esta consulta.</p>
     </form>`
   const c = capa(html, 'hoja', h => { if (!h && volver && location.hash) { /* vuelve al detalle */ setTimeout(volver, 270) } })
@@ -418,14 +420,14 @@ function abrirForm(it, vend, modo) {
     e.preventDefault(); const f = e.target, b = $('button[type=submit]', f), er = $('#err', f), v = Object.fromEntries(new FormData(f))
     if (String(v.nombre).trim().length < 2 || String(v.fono).replace(/\D/g, '').length < 8) { er.textContent = 'Escribe tu nombre y un teléfono válido.'; er.hidden = false; return }
     b.disabled = true; b.textContent = pp && fotosPP.length ? 'Enviando fotos…' : 'Enviando…'; er.hidden = true
-    if (pp && String(v.ppm || '').trim().length < 3) { er.textContent = 'Cuéntanos la marca y el modelo de tu auto.'; er.hidden = false; b.disabled = false; b.textContent = 'Enviar'; return }
+    if (pp && String(v.ppm || '').trim().length < 3) { er.textContent = 'Cuéntanos la marca y el modelo de tu auto.'; er.hidden = false; b.disabled = false; b.textContent = pp ? 'Pedir mi tasación' : 'Enviar'; return }
     const mensaje = pp ? `Quiere tasar su auto para parte de pago: ${String(v.ppm).trim()}${v.ppa ? ' ' + String(v.ppa).trim() : ''}${v.ppk ? ', ' + String(v.ppk).trim() + ' km' : ''}.` : [v.pp ? 'Tiene un auto para dejar en parte de pago.' : '', String(v.mensaje || '').trim()].filter(Boolean).join(' ')
     try {
       const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: v.nombre, fono: v.fono, mensaje, web: v.web, s: S, v: V || undefined, i: it ? it.id : undefined, fotos: pp && fotosPP.length ? fotosPP : undefined }) }), j = await r.json()
       if (!r.ok) throw new Error(j.error || 'No se pudo enviar')
-      f.innerHTML = `<div class="listo">${ico('ok', 30)}<h2>¡Listo, ${esc(String(v.nombre).trim().split(' ')[0])}!</h2><p>${pp ? 'Te enviamos la tasación muy pronto.' : vend && D.quien !== 'empresa' ? esc(vend.nombre.split(' ')[0]) + ' te va a contactar muy pronto.' : 'Te vamos a contactar muy pronto.'}</p><button type="button" class="btn ghost" data-cerrar>Seguir viendo</button></div>`
+      f.innerHTML = `<div class="listo">${ico('ok', 36)}<h2>¡Listo, ${esc(String(v.nombre).trim().split(' ')[0])}!</h2><p>${pp ? 'Te enviamos la tasación muy pronto.' : vend && D.quien !== 'empresa' ? esc(vend.nombre.split(' ')[0]) + ' te va a contactar muy pronto.' : 'Te vamos a contactar muy pronto.'}</p><button type="button" class="btn ghost" data-cerrar>Seguir viendo</button></div>`
       $$('[data-cerrar]', f).forEach(x => x.addEventListener('click', () => cerrar()))
-    } catch (x) { er.textContent = x.message || 'No se pudo enviar. Inténtalo de nuevo.'; er.hidden = false; b.disabled = false; b.textContent = 'Enviar' }
+    } catch (x) { er.textContent = x.message || 'No se pudo enviar. Inténtalo de nuevo.'; er.hidden = false; b.disabled = false; b.textContent = pp ? 'Pedir mi tasación' : 'Enviar' }
   })
 }
 
@@ -444,7 +446,7 @@ function aviso(t) { const a = document.createElement('div'); a.className = 'avis
 function ruta() {
   const m = location.hash.match(/^#i=(.+)$/), id = m ? decodeURIComponent(m[1]) : ''
   const abierto = $('#capa .panel') && $('#capa .panel').dataset.id
-  if (id && D.items.some(x => x.id === id)) { if (abierto !== id) abrir(id, true) } else if (!$('#capa').hidden) cerrar(true)
+  if (id && D.items.some(x => x.id === id)) { if (abierto !== id) abrir(id, true) } else if (!$('#capa').hidden && $('#capa').classList.contains('det')) cerrar(true)
 }
 addEventListener('popstate', () => D && ruta())
 

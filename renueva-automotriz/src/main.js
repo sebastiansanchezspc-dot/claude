@@ -1,4 +1,5 @@
 import './styles.css'
+import './glass.css'
 import './cloud.js'
 import 'virtual:renueva-app'
 

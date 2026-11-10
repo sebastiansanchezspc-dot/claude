@@ -1,0 +1,112 @@
+/*
+  GESTIX — capa "vidrio" (ver DESIGN.md)
+  Material translúcido al estilo de Apple sobre un fondo con luz ambiental:
+  - superficies = vidrio (relleno translúcido + filo de luz arriba), no bloques opacos
+  - el desenfoque real (backdrop-filter) solo va en lo fijo y chico: barra inferior, cabecera,
+    botones redondos, avisos y hojas; las tarjetas de las listas simulan el vidrio sin desenfoque
+    para que el scroll corra fluido en celulares de gama media
+  - tipografía del sistema (San Francisco en iPhone), cifras limpias y botones cápsula
+*/
+:root{
+  --bg:#08090B; --amb:#3D7BFF;
+  --s1:rgba(255,255,255,.055); --s2:rgba(255,255,255,.09); --s3:rgba(255,255,255,.15);
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --op1:#15171B; --op2:#1D2025;
+  --fg:#F5F5F7; --fg2:#B9BAC0; --fg3:#84868E;
+  --vidrio:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.035));
+  --filo:inset 0 1px 0 rgba(255,255,255,.13),inset 0 0 0 1px rgba(255,255,255,.03);
+  --blur:blur(26px) saturate(1.8);
+  --r-xl:28px; --r-lg:22px; --r-md:16px; --r-sm:12px;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Instrument Sans","Segoe UI",system-ui,sans-serif;
+}
+/* temas de fondo (se elige en Ajustes y queda en este equipo) */
+html[data-tema="medianoche"]{--bg:#060A14; --amb:#4C7DFF; --op1:#111827; --op2:#182033;}
+html[data-tema="obsidiana"]{--bg:#000000; --amb:#8E8E93; --op1:#111113; --op2:#1A1A1D;}
+html[data-tema="bosque"]{--bg:#06100D; --amb:#1FBF8F; --op1:#0F1B17; --op2:#16261F;}
+
+/* ---------- luz ambiental: lo que el vidrio deja ver ---------- */
+.shell{background:
+  radial-gradient(70% 42% at 92% -6%, color-mix(in srgb,var(--accent) 26%, transparent), transparent 72%),
+  radial-gradient(60% 38% at -12% 34%, color-mix(in srgb,var(--amb) 20%, transparent), transparent 72%),
+  radial-gradient(70% 40% at 70% 108%, color-mix(in srgb,var(--accent) 10%, transparent), transparent 70%),
+  var(--bg);}
+.shell::after{display:none;}
+.lobby{background:
+  radial-gradient(80% 44% at 50% -12%, rgba(255,255,255,.10), transparent 70%),
+  radial-gradient(60% 40% at 110% 60%, color-mix(in srgb,var(--amb) 16%, transparent), transparent 70%),
+  var(--bg);}
+.push{background:var(--bg);}
+.push .pbg{background:
+  radial-gradient(70% 40% at 100% -8%, color-mix(in srgb,var(--accent) 22%, transparent), transparent 72%),
+  radial-gradient(60% 36% at -14% 46%, color-mix(in srgb,var(--amb) 16%, transparent), transparent 72%),
+  var(--bg);}
+.app::after{background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--bg) 70%,transparent) 55%,var(--bg) 92%);}
+
+/* ---------- tipografía: sistema, sin condensar ni espaciar ---------- */
+.kicker,.field>span,.orgname small,.notif .top{font-family:var(--body);font-weight:500;font-size:12px;letter-spacing:0;text-transform:none;}
+.stat3 .kicker{font-size:11px;letter-spacing:0;}
+.num,.odo,.wordmark,.lobby h1,.hd-large h1,.wcard .wname{font-variation-settings:normal;}
+.hd-large h1{font-weight:700;font-size:32px;letter-spacing:-.022em;}
+.lobby h1{font-weight:700;letter-spacing:-.025em;}
+.odo{font-weight:700;letter-spacing:-.01em;}
+.odo .c{width:.62em;}
+.hd-title,.pnav .ptitle{font-weight:600;font-size:16px;letter-spacing:-.01em;}
+
+/* ---------- vidrio: tarjetas y contenedores (sin desenfoque, para el scroll) ---------- */
+.card,.qa button,.plan,.wcard,.seg,.mesbar,.navcard,.pubcta{background:var(--vidrio);border-color:var(--line);box-shadow:var(--filo),0 16px 36px -22px rgba(0,0,0,.7);}
+.card{border-radius:var(--r-lg);}
+.hero{background:
+  radial-gradient(120% 90% at 100% 0%, color-mix(in srgb,var(--accent) 24%, transparent), transparent 62%),
+  var(--vidrio);border-color:var(--line2);box-shadow:var(--filo),0 26px 60px -30px rgba(0,0,0,.85);}
+.wcard{background:linear-gradient(135deg,color-mix(in srgb,var(--wc) 22%, transparent) 0%,rgba(255,255,255,.04) 64%);}
+.wcard:hover{box-shadow:var(--filo),0 18px 44px -16px color-mix(in srgb,var(--wc) 45%,transparent);}
+.plan.cur{box-shadow:var(--filo),0 0 0 1px var(--accent),0 20px 50px -26px var(--accent-glow);}
+.seg .ind{background:rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 4px 14px -4px rgba(0,0,0,.5);}
+.chip{background:rgba(255,255,255,.10);}
+.skel{background:linear-gradient(100deg,rgba(255,255,255,.05) 30%,rgba(255,255,255,.10) 50%,rgba(255,255,255,.05) 70%);background-size:220% 100%;}
+
+/* ---------- vidrio con desenfoque real: lo fijo y chico ---------- */
+.dock{background:rgba(34,36,42,.52);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-color:rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(255,255,255,.04),0 22px 50px -12px rgba(0,0,0,.75);}
+.dock .pill{background:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),inset 0 0 0 1px rgba(255,255,255,.05);}
+.hd::before{background:color-mix(in srgb,var(--bg) 58%,transparent);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);}
+.ibtn,.worldchip,.pnav .back{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.14);backdrop-filter:blur(20px) saturate(1.7);-webkit-backdrop-filter:blur(20px) saturate(1.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.16);}
+.ibtn:active{background:rgba(255,255,255,.2);}
+.ibtn.solid{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 86%,#fff),var(--accent));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 10px 26px -8px var(--accent-glow);}
+.toast,.notif{background:rgba(38,40,47,.62);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-color:rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 22px 50px -14px rgba(0,0,0,.7);}
+.sbackdrop.open{background:rgba(0,0,0,.42);}
+/* hojas: casi opacas por defecto; con desenfoque donde corre fluido (iOS y computador) */
+.sheet{background:linear-gradient(180deg,rgba(255,255,255,.05),transparent 120px),var(--op1);border-color:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 -30px 80px rgba(0,0,0,.6);}
+@supports (-webkit-touch-callout:none){
+  .sheet{background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 140px),color-mix(in srgb,var(--op1) 74%,transparent);backdrop-filter:blur(34px) saturate(1.8);-webkit-backdrop-filter:blur(34px) saturate(1.8);}
+}
+@media (hover:hover) and (min-width:900px){
+  .sheet{background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 140px),color-mix(in srgb,var(--op1) 74%,transparent);backdrop-filter:blur(34px) saturate(1.8);-webkit-backdrop-filter:blur(34px) saturate(1.8);}
+}
+
+/* ---------- botones cápsula ---------- */
+.btn{border-radius:999px;font-weight:600;font-size:15.5px;letter-spacing:-.01em;}
+.btn.small{border-radius:999px;}
+.btn.primary{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 84%,#fff),var(--accent));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 14px 34px -12px var(--accent-glow);}
+.btn.ghost{background:rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
+.qa button span.ic,.navrow .ni{border-radius:13px;}
+.qa button.main span.ic,.avatar,.worldchip .mk,.toast .ti,.notif .nicon{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 80%,#fff),var(--accent));box-shadow:inset 0 1px 0 rgba(255,255,255,.4);}
+
+/* ---------- quien prefiere menos transparencia o menos movimiento ---------- */
+@media (prefers-reduced-transparency:reduce){
+  .dock,.toast,.notif,.sheet,.ibtn,.worldchip,.pnav .back{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--op2)!important;}
+  .hd::before{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg);}
+  .card,.qa button,.plan,.seg,.mesbar{background:var(--op1);}
+}
+
+/* ---------- ajustes: colores y fondos ---------- */
+.swatches{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px;}
+.swatches button{width:36px;height:36px;border-radius:99px;border:0;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 78%,#fff),var(--c));box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 3px var(--bg),0 0 0 4px color-mix(in srgb,var(--c) 45%,transparent);transition:transform .2s var(--spring);}
+.swatches button:active{transform:scale(.88);}
+.temas{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.temas button{display:flex;flex-direction:column;gap:8px;align-items:stretch;background:none;border:0;padding:0;font:500 11.5px/1.2 var(--body);color:var(--fg2);text-align:center;}
+.temas button i{display:block;aspect-ratio:3/4;border-radius:14px;border:1px solid var(--line2);box-shadow:inset 0 1px 0 rgba(255,255,255,.14);transition:transform .2s var(--spring),box-shadow .2s;}
+.temas button.on{color:var(--fg);} .temas button.on i{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent);}
+.temas button:active i{transform:scale(.95);}
+@media (min-width:560px){.temas{max-width:380px}}

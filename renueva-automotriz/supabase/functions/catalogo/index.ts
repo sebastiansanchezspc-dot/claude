@@ -103,12 +103,14 @@ Deno.serve(async req => {
         .sort((a, b) => String(b.ingreso ?? '').localeCompare(String(a.ingreso ?? ''))).slice(0, 400)
       const logo = typeof prefs.logo === 'string' ? prefs.logo : null
       const portada = (it: Item) => dis(it) || (it.fotos ?? [])[0]
-      const urls = await firmar(org.id, [...items.map(portada), ...(logo ? [logo] : [])].filter(Boolean))
+      // foto de la portada del catálogo: la primera foto real (sin diseño encima) del ítem más reciente que tenga
+      const conFoto = items.find(it => typeof (it.fotos ?? [])[0] === 'string'), fotoHero = conFoto ? conFoto.fotos[0] : null
+      const urls = await firmar(org.id, [...items.map(portada), ...(logo ? [logo] : []), ...(fotoHero ? [fotoHero] : [])].filter(Boolean))
       const hex = (x: unknown) => typeof x === 'string' && /^#[0-9a-f]{6}$/i.test(x) ? x : null
       const acc = hex(cfg.color) || hex(prefs.accent?.[w])
       return json({
         org: { nombre: limpio(org.nombre, 80), logo: logo ? urls[logo] ?? null : null, accent: acc },
-        w, contacto: general, quien, fin, pp: w === 'auto' && cfg.pp !== false, diseno: !!(cfg.tpl && items.some(it => dis(it))),
+        w, contacto: general, quien, fin, hero: fotoHero && urls[fotoHero] ? { id: String(conFoto!.id), foto: urls[fotoHero] } : null, pp: w === 'auto' && cfg.pp !== false, diseno: !!(cfg.tpl && items.some(it => dis(it))),
         items: items.map(it => ({ ...publico(it, w), foto: urls[portada(it)] ?? null, dis: !!(dis(it) && urls[dis(it) as string]), nf: (it.fotos ?? []).length })),
       }, 200, true)
     }
