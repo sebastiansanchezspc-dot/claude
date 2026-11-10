@@ -58,7 +58,7 @@ ACT.cierrePdf = async () => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true }), Wd = 210, mg = 18, ink = [21, 23, 26], soft = [110, 106, 98], line = [225, 221, 213], verde = [31, 120, 80], rojo = [179, 38, 30];
     const T = (t, x, y, o) => doc.text(String(t), x, y, o), F = (st, sz) => { doc.setFont('helvetica', st); doc.setFontSize(sz); }, C = col => doc.setTextColor(...col);
     const m = v => `${v < 0 ? '-' : ''}${fmt(Math.abs(v))}`;
-    doc.setFillColor(...ink); doc.rect(0, 0, Wd, 32, 'F');
+    doc.setFillColor(...ink); doc.rect(0, 0, Wd, 32, 'F'); doc.setFillColor(...pdfAcc(w.key)); doc.rect(0, 32, Wd, 1.4, 'F');
     const lg = PREFS.logo ? await acPng(fotoSrc(PREFS.logo)) : null;
     if (lg) { doc.setFillColor(255, 255, 255); doc.roundedRect(mg, 7, 18, 18, 3, 3, 'F'); const k = Math.min(16 / lg.w, 16 / lg.h); doc.addImage(lg.d, 'PNG', mg + 1 + (16 - lg.w * k) / 2, 8 + (16 - lg.h * k) / 2, lg.w * k, lg.h * k, 'logo', 'FAST'); }
     C([255, 255, 255]); F('bold', 14); T(orgNombre(), mg + (lg ? 23 : 0), 16); F('normal', 8); C([190, 190, 190]); T(`CIERRE DE ${mesDe(mk).toUpperCase()} ${mk.slice(0, 4)} · ${w.name.toUpperCase()}`, mg + (lg ? 23 : 0), 23);

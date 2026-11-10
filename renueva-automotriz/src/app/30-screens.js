@@ -277,7 +277,7 @@ function renderPanel() {
     : w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
     : w.key === 'prop' ? [heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
       : [heroHtml, qaHtml, atencionHtml, pulsoHtml, saludHtml, accionHtml, equipoHtml];
-  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`).replace('<div class="hd-large px">', `<div class="hd-large px"><div class="orgline">${orgLogo(30)}<span>${clean(orgNombre())}</span></div>`).replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
+  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`).replace('<div class="hd-large px">', `<div class="hd-large px"><div class="orgline">${orgLogo(30)}<span>${clean(orgNombre())}</span></div>`).replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${indicHtml()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
 }
 ACT.alert = d => { const a = alertsFor(state.world)[+d.i]; if (a) runAlert(a); };
 function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'fincom') openFinCom(); else if (a.act === 'ventas') { while (pushes.length) popScreen(); go('ventas'); } else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }
@@ -288,7 +288,7 @@ ACT.agecell = d => { state.fBucket = +d.b; state.fFilter = 'todos'; renderStock(
 function stockResumen(w) {
   const act = activos(w.key), valor = sum(act, i => w.key === 'tienda' ? i.precio * i.stock : i.precio);
   const tercero = w.key === 'tienda' ? ['Unidades', odo(sum(act, i => i.stock), false)] : ['Días prom.', odo(act.length ? Math.round(sum(act, diasStock) / act.length) : 0, false)];
-  return `<div class="card reveal" style="padding:14px 16px"><div class="grid3" style="gap:10px">${[[w.key === 'tienda' ? 'Productos' : 'En stock', odo(act.length, false)], ['Valor publicado', odo(valor)], tercero].map(([k, v]) => `<div><span class="kicker" style="font-size:9px">${k}</span><div class="num" style="font-size:19px;margin-top:8px;white-space:nowrap">${v}</div></div>`).join('')}</div></div>`;
+  return `<div class="card reveal" style="padding:14px 16px"><div class="stk3">${[[w.key === 'tienda' ? 'Productos' : 'En stock', odo(act.length, false)], ['Valor publicado', odo(valor)], tercero].map(([k, v]) => `<div><span class="kicker">${k}</span><div class="num">${v}</div></div>`).join('')}</div></div>`;
 }
 function rowItem(it, k = 0) {
   const w = WORLDS[it.w], thumb = it.fotos && it.fotos[0] ? `<img src="${fotoSrc(it.fotos[0])}" alt="" loading="lazy">` : icon(w.icon, 22);
@@ -337,9 +337,10 @@ function renderStock() {
     <div class="seg" id="seg-f">${fl.map(([k, t]) => `<button data-act="fFilter" data-k="${k}" class="${state.fFilter === k ? 'active' : ''}">${t}</button>`).join('')}<span class="ind"></span></div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
       <div style="display:flex;gap:6px">${[['rec', 'Recientes'], ['dias', w.key === 'tienda' ? 'Sin venta' : 'Más días'], ['precio', 'Precio']].map(([k, t]) => `<button class="chip ${state.fSort === k ? 'accent' : ''}" data-act="fSort" data-k="${k}" style="height:30px;padding:0 12px;border:0">${t}</button>`).join('')}</div>
-      <span class="mono" style="font-size:11px;color:var(--fg3)">${l.length} resultados</span></div>
+      <span class="nres">${l.length} ${l.length === 1 ? 'resultado' : 'resultados'}</span></div>
     ${bl ? `<button class="chip accent" data-act="clearBucket" style="align-self:flex-start;height:30px;border:0">${icon('filter', 12)}Filtro ${bl} días ${icon('close', 12)}</button>` : ''}
     <div class="card tight" id="stock-list">${l.map((i, k) => rowItem(i, k)).join('') || `<div class="empty">${icon(w.icon, 30)}<p>Nada coincide con tu búsqueda</p></div>`}</div>
+    ${fichasBtn(w)}
   </div>`;
   moveSeg('seg-f');
 }
@@ -456,7 +457,7 @@ function renderCaja() {
     ${c.rows.length ? sec('Por cobrar', fmtM(c.pend)) + `<div class="card tight">${c.rows.map(({ v, p }, k) => `<button class="row" data-act="venta" data-id="${v.id}"><span class="thumb">${icon(METODO_ICON[p.m] || 'receipt', 20)}</span><span class="rm"><p class="rt">${p.m} · ${v.cliente}</p><p class="rs">Vence ${fechaCorta(p.v)}</p></span><span class="rr"><span class="p">${fmtM(p.a)}</span></span></button>`).join('')}</div>` : ''}
     ${sec('Gastos', '')}
     ${isVend() ? '' : `<button class="card pressable catcta" data-act="cierre"><span class="thumb">${icon('doc', 20)}</span><span class="grow"><b>Cierre de ${mesDe(MK()).toLowerCase()}</b><small>Utilidad, flujo de caja y capital en stock · envíalo en PDF</small></span>${icon('chevR', 16)}</button>`}
-    <button class="card pressable" data-act="gastos" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%"><span class="thumb">${icon('receipt', 22)}</span><span class="grow"><p class="rt">Gastos de ${mesDe(MK()).toLowerCase()}</p><p class="rs">${gastosMes(w.key).length} registros · ${gastosMes(w.key).filter(g => g.fijo).length} fijos</p></span><span class="num" style="font-size:19px">${fmtM(gs)}</span>${icon('chevR', 16)}</button>
+    <button class="card pressable" data-act="gastos" style="display:flex;align-items:center;gap:14px;text-align:left;width:100%"><span class="thumb">${icon('receipt', 22)}</span><span class="grow"><p class="rt">Gastos del mes</p><p class="rs">${gastosMes(w.key).length} registros · ${gastosMes(w.key).filter(g => g.fijo).length} fijos</p></span><span class="num" style="font-size:17px;flex:none">${fmtM(gs)}</span>${icon('chevR', 16)}</button>
   </div>`;
   moveSeg('seg-c');
 }
