@@ -294,9 +294,9 @@ function qaHtml(w) {
 }
 function renderPanel() {
   const w = W(), h = new Date().getHours(), saludo = `${h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'}, ${firstName(ME.nombre)}`;
-  const mods = isVend() ? [pulsoDiaHtml, heroVendHtml, qaHtml, atencionHtml, ...(w.key === 'tienda' ? [] : [funnelHtml]), cobrarHtml, accionHtml]
-    : w.key === 'auto' ? [pulsoDiaHtml, heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
-    : w.key === 'prop' ? [pulsoDiaHtml, heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
+  const mods = isVend() ? [heroVendHtml, qaHtml, atencionHtml, ...(w.key === 'tienda' ? [] : [funnelHtml]), cobrarHtml, accionHtml]
+    : w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
+    : w.key === 'prop' ? [heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
       : [heroHtml, qaHtml, atencionHtml, pulsoHtml, saludHtml, accionHtml, equipoHtml];
   $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`).replace('<div class="hd-large px">', `<div class="hd-large px"><div class="orgline">${orgLogo(30)}<span>${clean(orgNombre())}</span></div>`).replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
 }
