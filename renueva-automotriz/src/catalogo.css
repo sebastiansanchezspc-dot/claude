@@ -408,3 +408,37 @@ h1,h2,h3,.pc b,.precio,.sim-c b{font-weight:600;letter-spacing:-.018em}
   .capa.hoja .panel{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--op)!important}
   .banda,.sim,.contacto,.entrar,.asesor .wrap{background:var(--op)}
 }
+
+/* =====================  PORTADA v3: marca y vidrio, sin depender de la foto  =====================
+   Las fotos de un patio no siempre lucen a pantalla completa; aquí van chicas, en la grilla.
+   La portada es la marca: logo, nombre, cuántos hay y dos acciones, sobre la luz del color de la empresa. */
+.hero{height:auto;min-height:0;max-height:none;background:none;display:block;overflow:visible}
+.hero::after{display:none!important}
+.hero-c{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:22px;text-align:center;padding-top:calc(88px + env(safe-area-inset-top,0px));padding-bottom:28px}
+.hero-m .logo,.hero-m .ini{width:72px!important;height:72px!important;border-radius:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 1px var(--line2),0 24px 50px -18px color-mix(in srgb,var(--acc) 55%,transparent)}
+.hero-m .ini{font-size:26px;font-weight:600}
+.hero h1{font-size:30px;line-height:1.1;letter-spacing:-.025em}
+.hero-n{margin-top:10px;font-size:17px;font-weight:600;color:var(--ink)}
+.hero-s{margin-top:4px;font-size:14.5px;color:var(--soft);opacity:1}
+.hero-b{width:100%;max-width:420px}
+/* la marca de la cabecera aparece cuando la portada ya subió (arriba no se repite) */
+.top .marca{opacity:0;transform:translateY(6px);transition:opacity var(--t),transform var(--t);pointer-events:none}
+.top.solida .marca{opacity:1;transform:none;pointer-events:auto}
+.asesor .wrap{margin-top:0}
+.cat-s{padding-top:32px}
+/* carga */
+.cargando .sk-hero{height:auto;padding:88px var(--g) 28px;gap:22px;justify-content:flex-start}
+.cargando .sk-hero .sk-l{width:72px;height:72px;border-radius:20px}
+/* en celular las fotos van chicas, de a dos: se ve más stock y una foto regular no desentona */
+@media (max-width:639px) and (min-width:340px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 12px}
+  .ph{border-radius:16px}
+  .bd{padding-top:10px} .bd h3{font-size:15px} .bd .sub{font-size:12.5px}
+  .pc{flex-direction:column;align-items:flex-start;gap:2px;margin-top:6px} .pc b{font-size:15.5px} .pc span{font-size:12px}
+  .tag{left:8px;top:8px;padding:4px 8px;font-size:11px}
+  .fav{right:0;top:0} .ic{gap:8px;font-size:12.5px}
+  .cargando .sk-g{grid-template-columns:repeat(2,1fr);gap:26px 12px}
+}
+@media (min-width:640px){.hero-c{padding-top:112px;padding-bottom:40px} .hero h1{font-size:40px} .hero-n{font-size:18px} .hero-b{flex-direction:row;max-width:440px}}
+@media (max-width:639px) and (orientation:portrait){.hero-c{padding-top:calc(88px + env(safe-area-inset-top,0px));padding-bottom:28px} .hero-s{color:var(--soft)}}
+@media (max-width:639px){.as-t b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:15px} .as-b .btn{padding:0 14px}}

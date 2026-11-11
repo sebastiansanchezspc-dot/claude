@@ -178,22 +178,21 @@ function cifrasTxt() {
   const pr = base().map(x => x.precio).filter(Boolean), min = pr.length ? Math.min(...pr) : 0
   return [min && `Desde ${corto(min)}${st.op === 'Arriendo' ? ' al mes' : ''}`, D.fin && 'Financiamiento', D.pp && 'Recibimos tu auto'].filter(Boolean).join('\u00a0· ')
 }
-// foto de la portada: la más reciente sin diseño encima (las portadas con diseño ya traen texto)
-function fotoPortada() { if (D.hero && D.hero.foto) return D.hero.foto; const it = D.items.find(x => x.foto && !x.dis); return it ? it.foto : '' }
 
 function pintar() {
   const org = D.org, con = D.contacto, ops = W === 'prop' ? ['Arriendo', 'Venta'].filter(o => D.items.some(it => it.op === o)) : []
   if (ops.length && !ops.includes(st.op)) st.op = ops[0]
   document.title = `${org.nombre} · Catálogo de ${T.varios}`
   const wa = con && waLink(con.fono, `Hola${con.nombre && D.quien !== 'empresa' ? ' ' + con.nombre.split(' ')[0] : ''}, vi el catálogo de ${org.nombre} y quiero hacer una consulta.`)
-  const hf = fotoPortada(), Tv = T.varios[0].toUpperCase() + T.varios.slice(1)
+  const Tv = T.varios[0].toUpperCase() + T.varios.slice(1)
   $('#app').className = 'cat'
   $('#app').innerHTML = `
     <header class="top"><div class="wrap"><a class="marca" href="#inicio">${marcaIni()}<b>${esc(org.nombre)}</b></a>
       <div class="acc"><button class="ib hbtn fv" id="favs" hidden aria-label="Mis favoritos">${ico('heart', 20)}<span class="n">0</span></button><button class="ib hbtn" id="compPag" aria-label="Compartir catálogo">${ico('share', 20)}</button></div></div></header>
-    <section class="hero ${hf ? 'foto' : 'tipo'}" id="inicio" data-enter>${hf ? `<img class="hero-f" src="${esc(hf)}" alt="" fetchpriority="high" decoding="async">` : ''}
+    <section class="hero" id="inicio" data-enter>
       <div class="wrap hero-c">
-        <div><h1 id="h1" class="e1"></h1><p class="hero-s e2" id="cifras"></p></div>
+        <div class="hero-m e1">${marcaIni(72)}</div>
+        <div><h1 class="e1">${esc(org.nombre)}</h1><p class="hero-n e2" id="h1"></p><p class="hero-s e2" id="cifras"></p></div>
         <div class="hero-b e3"><a class="btn acc" href="#catalogo">Ver ${W === 'prop' ? 'las' : 'los'} ${T.varios}</a>${D.pp ? `<button class="btn claro js-tasar" id="tasar">Cotizar mi auto</button>` : wa ? `<a class="btn claro" href="${wa}" target="_blank" rel="noopener">Escribir por WhatsApp</a>` : ''}</div>
       </div></section>
     ${asesorHtml()}
@@ -214,7 +213,6 @@ function pintar() {
     <footer class="pie"><div class="pie-m">${marcaIni(28)}<b>${esc(org.nombre)}</b></div>${con && con.fono ? `<a href="${telLink(con.fono)}">${esc(con.fono)}</a>` : ''}<span>Catálogo hecho con <b>gestix</b></span></footer>
     ${wa ? `<a class="fab" id="fab" href="${wa}" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">${ico('wa', 20)}<span>${D.quien === 'empresa' ? 'Escríbenos' : 'Escríbeme'}</span></a>` : ''}
     <div class="capa" id="capa" hidden></div>`
-  const hfi = $('.hero-f'); if (hfi) { const ya = () => hfi.classList.add('ok'); hfi.complete && hfi.naturalWidth ? ya() : (hfi.addEventListener('load', ya, { once: true }), hfi.addEventListener('error', () => { hfi.remove(); $('.hero').className = 'hero tipo' }, { once: true })) }
   $('#q').addEventListener('input', e => { st.texto = e.target.value; lista() })
   $('#orden').addEventListener('change', e => { st.orden = e.target.value; lista() })
   $$('.ops button').forEach(b => b.addEventListener('click', () => { st.op = b.dataset.op; st.f = {}; $$('.ops button').forEach(x => x.setAttribute('aria-selected', x === b)); lista(true) }))
@@ -230,7 +228,7 @@ function pintar() {
   })
   // la cabecera se vuelve sólida al bajar y el botón de contacto aparece después de la portada
   const fab = $('#fab'), hero = $('.hero'), top = $('.top'); let pend = false
-  const alBajar = () => { pend = false; const y = scrollY, fin = hero.offsetHeight - 64; top.classList.toggle('solida', y > 24); if (fab) fab.classList.toggle('in', y > fin && $('#capa').hidden) }
+  const alBajar = () => { pend = false; const y = scrollY, fin = hero.offsetHeight - 64; top.classList.toggle('solida', y > hero.offsetHeight * .45); if (fab) fab.classList.toggle('in', y > fin && $('#capa').hidden) }
   addEventListener('scroll', () => { if (!pend) { pend = true; requestAnimationFrame(alBajar) } }, { passive: true }); alBajar()
   lista(true)
   contarFavs()
