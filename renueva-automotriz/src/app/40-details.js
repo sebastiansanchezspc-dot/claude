@@ -366,7 +366,7 @@ function openAlerts() {
 /* ---------------- ajustes ---------------- */
 const ACCENTS = ['#C8F03C', '#34E0A1', '#5AC8FA', '#4C9BFF', '#B7A6FF', '#FF7EB6', '#FF8A6B', '#FFC93C'];
 // fondo de la app: se elige en Ajustes; se guarda con la empresa y también en el equipo para que cargue al instante
-const TEMAS = [['', 'Grafito', '#08090B', '#3D7BFF'], ['medianoche', 'Medianoche', '#060A14', '#4C7DFF'], ['bosque', 'Bosque', '#06100D', '#1FBF8F'], ['obsidiana', 'Negro puro', '#000000', '#8E8E93'], ['claro', 'Claro', '#F4F4F2', '#FFFFFF']];
+const TEMAS = [['', 'Grafito', '#08090B', '#3D7BFF'], ['medianoche', 'Medianoche', '#060A14', '#4C7DFF'], ['bosque', 'Bosque', '#06100D', '#1FBF8F'], ['obsidiana', 'Negro puro', '#000000', '#8E8E93']];
 const TEMA_VIEJO = { oceano: 'medianoche', atardecer: '', grafito: '' };
 function temaActual() { let k = ''; try { k = localStorage.getItem('gestix_tema') || ''; } catch (e) { } return TEMA_VIEJO[k] || k; }
 function aplicarTema(k) { k = TEMA_VIEJO[k] || k || ''; const t = TEMAS.find(x => x[0] === k) || TEMAS[0]; document.documentElement.dataset.tema = t[0]; try { localStorage.setItem('gestix_tema', t[0]); } catch (e) { } const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = t[2]; }
