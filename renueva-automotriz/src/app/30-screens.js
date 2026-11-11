@@ -12,7 +12,7 @@ function renderLobby() {
     <h1>¿Dónde trabajamos hoy?</h1>
     <p class="sub">Cada mundo es un espacio separado: su inventario, su caja y su equipo. Nada se mezcla.</p>
     <div class="worlds">${Object.values(WORLDS).map((w, i) => `
-      <button class="wcard${puedeMundo(w.key) ? '' : ' locked'}" data-act="${puedeMundo(w.key) ? 'enter' : 'lockedWorld'}" data-world="${w.key}" style="--wc:${w.accent};--wink:${w.ink};animation-delay:${i * 90 + 120}ms" aria-label="Entrar a ${w.brand}">
+      <button class="wcard${puedeMundo(w.key) ? '' : ' locked'}" data-act="${puedeMundo(w.key) ? 'enter' : 'lockedWorld'}" data-world="${w.key}" style="--wc:${PREFS.accent[w.key] || w.accent};--wink:${PREFS.accent[w.key] ? '#121212' : w.ink};animation-delay:${i * 90 + 120}ms" aria-label="Entrar a ${w.brand}">
         <div class="art">${icon(art[w.key], 150, 1)}</div>
         <div class="go">${icon(puedeMundo(w.key) ? 'arrowR' : 'lock', 16, 2.2)}</div>
         ${sample[w.key]}
@@ -52,6 +52,7 @@ function enterWorld(key, x, y) {
     setTimeout(() => $('#app').classList.add('quieto'), 1800);
     try { localStorage.setItem('renueva_world', key); } catch (e) { }
     if (PREFS.accent[key]) setAccent(PREFS.accent[key]); else resetAccent();
+    if (PREFS.tema != null) aplicarTema(PREFS.tema);
     if (window.RV && RV.mode === 'demo' && key === 'auto' && !window._notified) { window._notified = 1; setTimeout(() => { const r = REMS.find(x => /Daniela Cort/.test(x.titulo)); notify('Recordatorio vencido', 'Enviar fotos del interior a Daniela Cortés', r ? () => abrirRecordatorio(r.id) : null); }, 4500); }
   }, 330);
   setTimeout(() => iris.classList.remove('go'), 900);
@@ -77,7 +78,7 @@ ACT.activarMundo = async (d, el) => {
 ACT.enter = (d, el, e) => enterWorld(d.world, e.clientX || 215, e.clientY || 400);
 ACT.worlds = () => openSheet('Cambiar de mundo', `
   <div class="stack" style="display:flex;flex-direction:column;gap:10px">${Object.values(WORLDS).map(w => `
-    <button class="card pressable" data-act="${puedeMundo(w.key) ? 'switchWorld' : 'lockedWorld'}" data-world="${w.key}" style="display:flex;align-items:center;gap:14px;text-align:left;border-color:${state.world === w.key ? w.accent : 'var(--line)'};--wc:${w.accent}">
+    <button class="card pressable" data-act="${puedeMundo(w.key) ? 'switchWorld' : 'lockedWorld'}" data-world="${w.key}" style="display:flex;align-items:center;gap:14px;text-align:left;border-color:${state.world === w.key ? (PREFS.accent[w.key] || w.accent) : 'var(--line)'};--wc:${PREFS.accent[w.key] || w.accent}">
       <span class="thumb" style="background:${w.accent};color:${w.ink}">${icon(w.icon, 22, 2)}</span>
       <span class="grow"><b style="font:700 16px var(--display);font-variation-settings:'wdth' 85">${w.brand}</b><br><span style="font-size:12.5px;color:var(--fg3)">${w.desc}</span></span>
       ${state.world === w.key ? `<span class="chip accent">Aquí</span>` : puedeMundo(w.key) ? icon('chevR', 16) : `<span class="chip">${icon('lock', 12)}${isAdmin() ? 'Activar' : 'Sin acceso'}</span>`}
@@ -169,6 +170,26 @@ function heroHtml(w) {
     <div class="stat3">${s3.map(([k, v]) => `<div><span class="kicker">${k}</span><span class="v">${v}</span></div>`).join('')}</div>
   </div>`;
 }
+// "Tu día": los cuatro frentes donde una automotora o corredora pierde plata si no mira a tiempo.
+// Cada cuadro dice cuánto hay y lleva directo a resolverlo.
+function pulsoDiaHtml(w) {
+  if (w.key === 'tienda') return '';
+  const nuevos = leadsOf(w.key).filter(l => l.etapa === 'nuevo'), espera = nuevos.length ? Math.max(...nuevos.map(leadMin)) : 0;
+  const lentos = itemsOf(w.key).filter(i => i.estado === 'disponible' && diasStock(i) >= 60), cap = sum(lentos, i => (+i.costo || 0) + (+i.recon || 0));
+  const pend = []; ventasOf(w.key).forEach(v => v.pagos.filter(p => p.s === 'pendiente').forEach(p => pend.push(p)));
+  const prox = pend.length ? Math.min(...pend.map(p => diffDays(p.v))) : null, al = alertsFor(w.key), urg = al.filter(a => a.sev === 'bad').length;
+  const mes = ventasOf(w.key, MK()).filter(v => !isVend() || v.vend === ME.nombre);
+  const T = [
+    { k: 'leads', act: 'leads', ic: 'chat', n: nuevos.length, t: 'Por responder', s: nuevos.length ? `esperan hasta ${minTxt(espera)}` : 'todo respondido', sev: !nuevos.length ? 'ok' : espera > 30 ? 'bad' : 'warn' },
+    { k: 'lentos', act: 'stockLento', ic: 'clock', n: lentos.length, t: 'Más de 60 días', s: !lentos.length ? 'stock sano' : isVend() || w.key === 'prop' || !cap ? 'revisa precio y fotos' : `${fmtM(cap)} parados`, sev: !lentos.length ? 'ok' : lentos.some(i => diasStock(i) >= 90) ? 'bad' : 'warn' },
+    isVend() ? { k: 'mes', act: 'tab', tab: 'ventas', ic: 'dollar', n: mes.length, t: 'Mis ventas del mes', s: mes.length ? fmtM(sum(mes, v => v.ingreso)) + ' vendidos' : 'aún sin cierres', sev: 'ok' }
+      : { k: 'cobrar', act: 'tab', tab: 'caja', ic: 'receipt', n: pend.length ? fmtM(sum(pend, p => p.a)) : '$0', t: 'Por cobrar', s: !pend.length ? 'nada pendiente' : prox < 0 ? `atrasado ${-prox} d` : prox === 0 ? 'vence hoy' : `próximo en ${prox} d`, sev: !pend.length ? 'ok' : prox <= 0 ? 'bad' : prox <= 7 ? 'warn' : 'ok' },
+    { k: 'alertas', act: 'alerts', ic: 'bell', n: al.length, t: 'Pendientes', s: !al.length ? 'nada pendiente' : urg ? `${urg} urgente${urg > 1 ? 's' : ''}` : 'ninguno urgente', sev: !al.length ? 'ok' : urg ? 'bad' : 'warn' },
+  ];
+  return `<div class="pulso reveal">${T.map((x, i) => `<button class="pt ${x.sev}" data-act="${x.act}"${x.tab ? ` data-tab="${x.tab}"` : ''} style="animation-delay:${.04 + i * .05}s" aria-label="${x.n} ${x.t}: ${x.s}">
+    <span class="pt-i">${icon(x.ic, 17)}</span><b class="num">${x.n}</b><span class="pt-t">${x.t}</span><span class="pt-s">${x.s}</span></button>`).join('')}</div>`;
+}
+ACT.stockLento = () => { state.fSort = 'dias'; state.fFilter = 'todos'; state.q = ''; go('stock', false, true); renderStock(); };
 function atencionHtml(w) {
   const al = alertsFor(w.key), top = al.slice(0, 4);
   return sec('Atención hoy', al.length, al.length > 4 ? `<button class="more" data-act="alerts">Ver todas</button>` : '') + `
@@ -273,11 +294,11 @@ function qaHtml(w) {
 }
 function renderPanel() {
   const w = W(), h = new Date().getHours(), saludo = `${h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches'}, ${firstName(ME.nombre)}`;
-  const mods = isVend() ? [heroVendHtml, qaHtml, atencionHtml, ...(w.key === 'tienda' ? [] : [funnelHtml]), cobrarHtml, accionHtml]
-    : w.key === 'auto' ? [heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
-    : w.key === 'prop' ? [heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
+  const mods = isVend() ? [pulsoDiaHtml, heroVendHtml, qaHtml, atencionHtml, ...(w.key === 'tienda' ? [] : [funnelHtml]), cobrarHtml, accionHtml]
+    : w.key === 'auto' ? [pulsoDiaHtml, heroHtml, qaHtml, atencionHtml, saludHtml, accionHtml, funnelHtml, cobrarHtml, equipoHtml]
+    : w.key === 'prop' ? [pulsoDiaHtml, heroHtml, qaHtml, atencionHtml, forecastHtml, saludHtml, funnelHtml, cobrarHtml, equipoHtml]
       : [heroHtml, qaHtml, atencionHtml, pulsoHtml, saludHtml, accionHtml, equipoHtml];
-  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`).replace('<div class="hd-large px">', `<div class="hd-large px"><div class="orgline">${orgLogo(30)}<span>${clean(orgNombre())}</span></div>`).replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${indicHtml()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
+  $('#scr-panel').innerHTML = hdr('Panel', `${hoyTxt()} · Torre de control`).replace('<div class="hd-large px">', `<div class="hd-large px"><div class="orgline">${orgLogo(30)}<span>${clean(orgNombre())}</span></div>`).replace('<h1>Panel</h1>', `<h1>${saludo}</h1>`) + `<div class="body px">${mesBar()}${mods.map(m => `<div class="mod">${m(w)}</div>`).join('')}</div>`;
 }
 ACT.alert = d => { const a = alertsFor(state.world)[+d.i]; if (a) runAlert(a); };
 function runAlert(a) { closeSheet(); if (a.act === 'item') openItem(a.id, a.tab); else if (a.act === 'leads') openLeads(); else if (a.act === 'venta') openVenta(a.id); else if (a.act === 'reminder') openReminder(a.id); else if (a.act === 'fincom') openFinCom(); else if (a.act === 'ventas') { while (pushes.length) popScreen(); go('ventas'); } else if (a.act === 'caja') { while (pushes.length) popScreen(); go('caja'); } }

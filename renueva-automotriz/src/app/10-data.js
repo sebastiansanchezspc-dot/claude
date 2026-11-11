@@ -156,4 +156,6 @@ function loadData(data) {
   Object.entries(COLS).forEach(([k, arr]) => { arr.length = 0; (data[k] || []).forEach(x => arr.push(x)); });
   const def = catDefaults(); Object.keys(def).forEach(k => { CAT[k] = data.cat && data.cat[k] ? data.cat[k] : def[k]; });
   PREFS.accent = (data.prefs && data.prefs.accent) || {}; PREFS.logo = (data.prefs && data.prefs.logo) || null; PREFS.cat = (data.prefs && data.prefs.cat) || {};
+  if (data.prefs && data.prefs.meta) PREFS.meta = data.prefs.meta;
+  if (data.prefs && data.prefs.tema != null) { PREFS.tema = data.prefs.tema; if (typeof aplicarTema === 'function') aplicarTema(PREFS.tema); }
 }

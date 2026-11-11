@@ -1,8 +1,5 @@
-/* ---------------- extras que ahorran trabajo ----------------
-   1) Fichas para el vidrio de todo el stock en un solo PDF (una hoja por ítem, lista para imprimir).
-   2) Indicadores del día en el Panel (UF, dólar y UTM), que se miran a diario para financiar y arrendar. */
-
-/* ---------- 1) fichas para el vidrio, todas juntas ---------- */
+/* ---------------- fichas para el vidrio de todo el stock en un solo PDF ----------------
+   Una hoja por ítem disponible, lista para imprimir. */
 ACT.fichasPdf = async () => {
   const w = W(), l = activos(w.key).filter(i => i.aprob !== 'pendiente' && (w.key === 'tienda' || i.estado !== 'taller')).slice(0, 60);
   if (!l.length) { toast('No hay ' + w.itemMany.toLowerCase() + ' disponibles para imprimir', 'warn'); return; }
@@ -28,26 +25,4 @@ function fichasBtn(w) {
   if (w.key === 'tienda' || !canWrite() || !activos(w.key).length) return '';
   return `<button class="btn ghost small" data-act="fichasPdf" style="align-self:center">${icon('doc', 15)}Fichas para el vidrio de todo el stock (PDF)</button>`;
 }
-
-/* ---------- 2) indicadores del día ---------- */
-// se piden una vez al día a mindicador.cl (fuente: Banco Central) y quedan guardados en el equipo
-let INDIC = null;
-try { const g = JSON.parse(localStorage.getItem('gestix_indic') || 'null'); if (g && g.uf) INDIC = g; } catch (e) { }
-function indicHtml() {
-  if (!INDIC || !INDIC.uf) return '<div id="indic" hidden></div>';
-  const n = (v, d = 0) => '$' + Number(v).toLocaleString('es-CL', { minimumFractionDigits: d, maximumFractionDigits: d });
-  const l = [['UF', n(INDIC.uf, 2)], INDIC.dolar && ['Dólar', n(INDIC.dolar)], INDIC.utm && ['UTM', n(INDIC.utm)]].filter(Boolean);
-  return `<div id="indic" class="indic" aria-label="Indicadores del día">${l.map(([k, v]) => `<span><small>${k}</small><b>${v}</b></span>`).join('')}<em>${INDIC.dia === TODAY ? 'hoy' : fechaCL(INDIC.dia).slice(0, 5)}</em></div>`;
-}
-async function indicCargar() {
-  if (INDIC && INDIC.dia === TODAY) return;
-  try {
-    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 6000);
-    const r = await fetch('https://mindicador.cl/api', { signal: ctl.signal }); clearTimeout(t); if (!r.ok) return;
-    const j = await r.json(), v = k => j[k] && typeof j[k].valor === 'number' ? j[k].valor : null; if (!v('uf')) return;
-    INDIC = { dia: TODAY, uf: v('uf'), dolar: v('dolar'), utm: v('utm') };
-    try { localStorage.setItem('gestix_indic', JSON.stringify(INDIC)); } catch (e) { }
-    const el = document.getElementById('indic'); if (el) el.outerHTML = indicHtml();
-  } catch (e) { /* sin conexión: se muestran los últimos guardados, o nada */ }
-}
-setTimeout(indicCargar, 1500);
+try { localStorage.removeItem('gestix_indic'); } catch (e) { }
