@@ -144,3 +144,27 @@ html[data-tema="bosque"]{--bg:#06100D; --amb:#1FBF8F; --op1:#0F1B17; --op2:#1626
 .pt{grid-template-columns:1fr;grid-template-areas:"i" "n" "t" "s";gap:0;}
 .pt-i{margin-bottom:12px;} .pt b{justify-self:start;font-size:25px;white-space:nowrap;} .pt-t{margin-top:6px;color:var(--fg2);font-weight:500;font-size:13px;} .pt-s{margin-top:2px;}
 .pt.bad::after{right:14px;top:14px;bottom:auto;}
+
+/* =====================  AUDITORÍA ui-ux-pro-max (accesibilidad y tacto)  =====================
+   No cambia la apariencia: agranda la zona que responde al dedo, sube las letras mínimas y agrega
+   la marca de foco. Reglas: touch-target-size (44 px), readable-font-size, focus-states, color-contrast. */
+/* 1) zona táctil de 44 px sin agrandar el dibujo: un área invisible alrededor del control */
+.ibtn,.worldchip,.pnav .back,.more,.mesl,.seg button,.chip[data-act],button.chip,.toggle{position:relative;}
+.ibtn::after,.worldchip::after,.pnav .back::after,.mesl::after{content:"";position:absolute;inset:-4px;}
+.seg button::after{content:"";position:absolute;inset:-6px 0;}
+.more::after{content:"";position:absolute;inset:-13px -8px;}
+.chip[data-act]::after,button.chip::after{content:"";position:absolute;inset:-8px -2px;}
+.opt,.pub{min-height:44px;}
+/* 2) letra mínima legible: nada bajo 11 px */
+.kicker[style*="font-size:9px"],.kicker[style*="font-size:10px"],.stat3 .kicker{font-size:11px!important;}
+.mesl small,.mono[style*="font-size:10px"],.chip.mono{font-size:11px;}
+.ibtn .badge,.count,.agecell .h{font-size:11px;}
+/* 3) contraste del número de avisos (blanco sobre rojo llegaba a 2,9:1; ahora supera 4,5:1) */
+.ibtn .badge{background:#D92D20;}
+/* 4) marca de foco visible al navegar con teclado (no aparece al tocar) */
+:focus{outline:none;}
+:is(button,a,input,select,textarea,[tabindex],[role="button"]):focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+:is(input,select,textarea):focus-visible{outline-offset:0;}
+/* 5) respuesta inmediata al toque y sin el retraso de 300 ms */
+button,a,[data-act],[role="button"]{touch-action:manipulation;}
+.metrics3 .kicker,.sec .count{font-size:11px;}
