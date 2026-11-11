@@ -6,13 +6,13 @@ const gate = { view: 'login', busy: false, err: '', info: '', ctx: null, user: n
 
 function gateShell(inner) {
   return `<div class="brandbar">${logo(34, 'var(--fg)')}<span class="wordmark">gestix</span></div>${inner}
-    <div class="lobby-foot" style="margin-top:auto;padding-top:26px"><span><button type="button" data-act="legal" data-p="privacidad" style="all:unset;cursor:pointer">Privacidad</button> · <button type="button" data-act="legal" data-p="terminos" style="all:unset;cursor:pointer">Términos</button> · <button type="button" data-act="legal" data-p="soporte" style="all:unset;cursor:pointer">Soporte</button></span><a href="?demo" style="color:var(--accent);font-weight:700;text-decoration:none">Ver demo</a></div>`;
+    <div class="lobby-foot" style="margin-top:auto;padding-top:26px"><span><button type="button" data-act="legal" data-p="privacidad" style="all:unset;cursor:pointer">Privacidad</button> · <button type="button" data-act="legal" data-p="terminos" style="all:unset;cursor:pointer">Términos</button> · <button type="button" data-act="legal" data-p="soporte" style="all:unset;cursor:pointer">Soporte</button></span><a href="?demo" style="color:var(--accent-t);font-weight:700;text-decoration:none">Ver demo</a></div>`;
 }
 const gErr = () => gate.err ? `<div class="tip" style="margin:0">${icon('warn')}<span>${clean(gate.err)}</span></div>` : '';
 const gInfo = () => gate.info ? `<div class="tip good" style="margin:0">${icon('check')}<span>${clean(gate.info)}</span></div>` : '';
 const gField = (id, label, type = 'text', ph = '', extra = '') => `<label class="field"><span>${label}</span><input id="${id}" type="${type}" placeholder="${ph}" ${extra}></label>`;
 const gBtn = (act, txt, ic = 'arrowR') => `<button type="button" class="btn primary" data-act="${act}" ${gate.busy ? 'disabled' : ''}>${gate.busy ? 'Un momento…' : icon(ic) + txt}</button>`;
-const gLink = (act, txt) => `<button type="button" data-act="${act}" style="background:none;border:0;color:var(--accent);font:700 13px var(--body);padding:6px 0">${txt}</button>`;
+const gLink = (act, txt) => `<button type="button" data-act="${act}" style="background:none;border:0;color:var(--accent-t);font:700 13px var(--body);padding:6px 0">${txt}</button>`;
 
 function renderGate(view) {
   if (view) { gate.view = view; gate.err = ''; }
@@ -24,7 +24,7 @@ function renderGate(view) {
   else if (v === 'registro') h = `<h1>${pendingInv() || enIOS() ? 'Únete a tu equipo' : 'Prueba Gestix 14 días'}</h1><p class="sub">${pendingInv() || enIOS() ? 'Crea tu cuenta con el mismo correo al que te llegó la invitación de tu empresa.' : 'Sin tarjeta. Todos los mundos y hasta 7 usuarios durante la prueba.'}</p>
     <form class="gform">${gErr()}${gField('g-n', 'Tu nombre', 'text', 'Nombre y apellido', 'autocomplete="name"')}${gField('g-e', 'Correo', 'email', 'tu@empresa.cl', 'autocomplete="email" inputmode="email"')}${gField('g-p', 'Contraseña', 'password', 'Mínimo 8 caracteres', 'autocomplete="new-password"')}
     ${gBtn('gRegistro', 'Crear cuenta')}<div>${gLink('gToLogin', 'Ya tengo cuenta')}</div>
-    <p style="font-size:11.5px;color:var(--fg3)">Al crear tu cuenta aceptas los <button type="button" data-act="legal" data-p="terminos" style="all:unset;color:var(--accent);cursor:pointer">términos del servicio</button> y la <button type="button" data-act="legal" data-p="privacidad" style="all:unset;color:var(--accent);cursor:pointer">política de privacidad</button>.</p></form>`;
+    <p style="font-size:11.5px;color:var(--fg3)">Al crear tu cuenta aceptas los <button type="button" data-act="legal" data-p="terminos" style="all:unset;color:var(--accent-t);cursor:pointer">términos del servicio</button> y la <button type="button" data-act="legal" data-p="privacidad" style="all:unset;color:var(--accent-t);cursor:pointer">política de privacidad</button>.</p></form>`;
   else if (v === 'verifica') h = `<h1>Revisa tu correo</h1><p class="sub">Te enviamos un enlace para confirmar tu cuenta. Ábrelo desde este mismo dispositivo y vuelves aquí.</p>
     <div class="gform">${gInfo()}${gLink('gToLogin', 'Ya confirmé, entrar')}</div>`;
   else if (v === 'recuperar') h = `<h1>Recupera tu acceso</h1><p class="sub">Te enviamos un enlace para crear una contraseña nueva.</p>
