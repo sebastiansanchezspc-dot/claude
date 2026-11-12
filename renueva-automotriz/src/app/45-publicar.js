@@ -112,6 +112,14 @@ function pGlass(c, x, y, w, h, r, dark = true) {
 }
 // brillo suave arriba de una pieza de color (cápsulas, sellos, avatar)
 function pShine(c, x, y, w, h, r) { c.save(); pRR(c, x, y, w, h, r); c.clip(); const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(255,255,255,.34)'); g.addColorStop(.6, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(x, y, w, h); c.restore(); }
+// ¿el logo tiene transparencia? (se mide una vez por imagen: si le sobran píxeles transparentes no lleva cuadro blanco)
+const pTransp = new WeakMap();
+function pEsTransp(img) {
+  if (!img) return false; if (pTransp.has(img)) return pTransp.get(img);
+  let t = false;
+  try { const n = 48, cv = document.createElement('canvas'); cv.width = cv.height = n; const g = cv.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, n, n); const a = g.getImageData(0, 0, n, n).data; let k = 0; for (let i = 3; i < a.length; i += 4) if (a[i] < 200) k++; t = k > n * n * .06; } catch (e) { }
+  pTransp.set(img, t); return t;
+}
 // logo de la empresa (o sus iniciales) dentro de un cuadro redondeado
 function pLogo(c, d, x, y, s) {
   c.save(); pRR(c, x, y, s, s, s * .24); c.clip();
@@ -121,10 +129,14 @@ function pLogo(c, d, x, y, s) {
 }
 // cápsula con logo y nombre de la empresa
 function pBrand(c, d, x, y, h, dark, maxW = 600) {
-  c.font = PF(700, h * .38, 'b'); const tw = Math.min(maxW - h - 34, c.measureText(d.org).width), w = h + 26 + tw + 22;
+  if (d.marca === false) return 0;   // el usuario eligió publicar sin logo ni nombre
+  const libre = d.logo && pEsTransp(d.logo) && !dark;   // logo sin fondo sobre cápsula clara: va entero, sin cuadro blanco
+  const lh = h - 12, lw = libre ? Math.min(lh * 2.4, Math.max(lh, lh * d.logo.width / d.logo.height)) : lh;
+  c.font = PF(700, h * .38, 'b'); const tw = Math.min(maxW - lw - 56, c.measureText(d.org).width), w = 6 + lw + 14 + tw + 24;
   pGlass(c, x, y, w, h, h / 2, dark);
-  pLogo(c, d, x + 6, y + 6, h - 12);
-  pText(c, d.org, x + h + 10, y + h * .63, 700, h * .38, tw + 4, 'b', dark ? '#fff' : '#121417');
+  if (libre) { const k = Math.min(lw / d.logo.width, lh / d.logo.height); c.drawImage(d.logo, x + 12 + (lw - d.logo.width * k) / 2, y + 6 + (lh - d.logo.height * k) / 2, d.logo.width * k, d.logo.height * k); }
+  else pLogo(c, d, x + 6, y + 6, lh);
+  pText(c, d.org, x + 6 + lw + 14, y + h * .63, 700, h * .38, tw + 4, 'b', dark ? '#fff' : '#121417');
   return w;
 }
 function pTag(c, d, x, y, h, align = 'left') {
@@ -235,8 +247,8 @@ const PUB_DRAW = {
   premium(c, W, H, d) {
     const st = H > 1500, gold = d.accent === '#C8F03C' ? '#C9A961' : d.accent, m = 70, lg = 88, lt = st ? 110 : 52;
     c.fillStyle = '#0A0A0B'; c.fillRect(0, 0, W, H);
-    pLogo(c, d, W / 2 - lg / 2, lt, lg);
-    pText(c, d.org.toUpperCase(), W / 2, lt + lg + 46, 500, 26, W - 200, 'm', 'rgba(255,255,255,.75)', { align: 'center', ls: 6 });
+    if (d.marca !== false) { pLogo(c, d, W / 2 - lg / 2, lt, lg);
+    pText(c, d.org.toUpperCase(), W / 2, lt + lg + 46, 500, 26, W - 200, 'm', 'rgba(255,255,255,.75)', { align: 'center', ls: 6 }); }
     const py = lt + lg + 84;
     let y = H - (st ? 130 : 70);
     pText(c, 'AGENDA TU VISITA', W / 2, y, 500, 24, W - m * 2, 'm', gold, { align: 'center', ls: 6 }); y -= 50;
@@ -326,8 +338,8 @@ Object.assign(PUB_DRAW, {
   residencial(c, W, H, d) {
     const st = H > 1500, m = 80, ink = '#2B241D', soft = '#8A7B69', acc = pInk(d.accent) === '#101114' ? '#A8794B' : d.accent;
     c.fillStyle = '#EFE8DD'; c.fillRect(0, 0, W, H);
-    const lg = 70, lt = st ? 100 : 46; pLogo(c, d, W / 2 - lg / 2, lt, lg);
-    pText(c, d.org.toUpperCase(), W / 2, lt + lg + 40, 500, 22, W - 200, 'm', soft, { align: 'center', ls: 6 });
+    const lg = 70, lt = st ? 100 : 46; if (d.marca !== false) { pLogo(c, d, W / 2 - lg / 2, lt, lg);
+    pText(c, d.org.toUpperCase(), W / 2, lt + lg + 40, 500, 22, W - 200, 'm', soft, { align: 'center', ls: 6 }); }
     let y = H - (st ? 140 : 70);
     pText(c, (d.vend || '') + (d.fono ? '  ·  ' + d.fono : ''), W / 2, y, 600, 32, W - m * 2, 'b', ink, { align: 'center' }); y -= 54;
     c.fillStyle = soft; c.fillRect(W / 2 - 40, y, 80, 2); y -= 40;
@@ -356,7 +368,7 @@ function pubHoja(c, W, H, d) {
   // cabecera del color elegido (el blanco usa grafito para que no se pierda en la hoja)
   const band = d.accent === '#FFFFFF' ? ink : d.accent, onBand = pInk(band);
   c.fillStyle = band; c.fillRect(0, 0, W, 190);
-  pLogo(c, d.logo ? d : { ...d, accent: onBand === '#FFFFFF' ? '#FFFFFF' : ink }, m, 47, 96); pText(c, d.org, m + 122, 112, 700, 44, 640, 'b', onBand);
+  if (d.marca !== false) { pLogo(c, d.logo ? d : { ...d, accent: onBand === '#FFFFFF' ? '#FFFFFF' : ink }, m, 47, 96); pText(c, d.org, m + 122, 112, 700, 44, 640, 'b', onBand); }
   const est = d.w === 'prop' ? (d.op === 'Arriendo' ? 'SE ARRIENDA' : 'SE VENDE') : (d.tag || 'DISPONIBLE').toUpperCase();
   c.font = PF(800, 34, 'b'); c.letterSpacing = '3px'; const ew = c.measureText(est).width + 64; c.letterSpacing = '0px';
   pRR(c, W - m - ew, 63, ew, 64, 14); c.fillStyle = onBand; c.fill(); pText(c, est, W - m - ew / 2, 107, 800, 34, ew, 'b', band, { align: 'center', ls: 3 });
@@ -396,7 +408,7 @@ function pubVidrio(c, W, H, d) {
   c.fillStyle = '#FFFFFF'; c.fillRect(0, 0, W, H);
   // franja de la empresa
   c.fillStyle = band; c.fillRect(0, 0, W, 170);
-  pLogo(c, d.logo ? d : { ...d, accent: onBand === '#FFFFFF' ? '#FFFFFF' : ink }, m, 37, 96); pText(c, d.org, m + 122, 102, 700, 44, 600, 'b', onBand);
+  if (d.marca !== false) { pLogo(c, d.logo ? d : { ...d, accent: onBand === '#FFFFFF' ? '#FFFFFF' : ink }, m, 37, 96); pText(c, d.org, m + 122, 102, 700, 44, 600, 'b', onBand); }
   const est = d.w === 'prop' ? (d.op === 'Arriendo' ? 'SE ARRIENDA' : 'SE VENDE') : (d.tag || 'EN VENTA').toUpperCase();
   c.font = PF(700, 34, 'b'); c.letterSpacing = '3px'; const ew = c.measureText(est).width + 64; c.letterSpacing = '0px';
   pRR(c, W - m - ew, 53, ew, 64, 32); c.fillStyle = onBand; c.fill(); pText(c, est, W - m - ew / 2, 97, 700, 34, ew, 'b', band, { align: 'center', ls: 3 });
@@ -467,7 +479,7 @@ async function pubRender(canvas, it, o) {
   const orden = it.fotos.length ? [o.foto, ...it.fotos.map((_, i) => i).filter(i => i !== o.foto)] : [];
   const [fotos, logo] = await Promise.all([Promise.all(orden.slice(0, 3).map(i => pubImg(fotoSrc(it.fotos[i])))), pubImg(PREFS.logo ? fotoSrc(PREFS.logo) : '')]);
   const base = pubDatos(it);
-  const d = { ...base, precio: o.precio ? base.precio : '', fotos: fotos.filter(Boolean), logo, org: orgNombre(), vend: o.vend, fono: o.fono, tag: o.tag, accent: o.color, w: it.w, empresa: !!o.empresa };
+  const d = { ...base, precio: o.precio ? base.precio : '', fotos: fotos.filter(Boolean), logo, org: orgNombre(), vend: o.vend, fono: o.fono, tag: o.tag, accent: o.color, w: it.w, empresa: !!o.empresa, marca: o.marca !== false };
   d.link = pubLink(it); d.op = base.op; d.stats = base.stats; d.todos = pubTodos(it);
   if (o.fmt === 'vidrio') { const cf = typeof clCfg === 'function' ? clCfg(it.w) : {}; d.extras = it.w === 'auto' ? [cf.cuota && cf.cuota.on && 'Financiamiento', cf.pp !== false && 'Recibimos tu auto'].filter(Boolean) : []; }
   c.clearRect(0, 0, W, H); c.save(); (o.fmt === 'hoja' ? pubHoja : o.fmt === 'vidrio' ? pubVidrio : PUB_DRAW[o.tpl])(c, W, H, d); c.restore();
@@ -476,12 +488,12 @@ async function pubRender(canvas, it, o) {
 
 /* ---------------- pantalla del editor ---------------- */
 function pubPrefs() { try { return JSON.parse(localStorage.getItem('gestix_pub') || '{}'); } catch (e) { return {}; } }
-function pubGuardarPrefs() { try { localStorage.setItem('gestix_pub', JSON.stringify({ ...pubPrefs(), ...(pub.empresa ? { fonoEmp: pub.fono } : { vend: pub.vend, fono: pub.fono }), ['tpl_' + getItem(pub.id).w]: pub.tpl, color: pub.color })); } catch (e) { } }
+function pubGuardarPrefs() { try { localStorage.setItem('gestix_pub', JSON.stringify({ ...pubPrefs(), ...(pub.empresa ? { fonoEmp: pub.fono } : { vend: pub.vend, fono: pub.fono }), ['tpl_' + getItem(pub.id).w]: pub.tpl, color: pub.color, marca: pub.marca !== false })); } catch (e) { } }
 function openPublicar(id) {
   const it = getItem(id); if (!it) return; const w = WORLDS[it.w], pr = pubPrefs(), yo = miEquipo(it.w);
   const tpls = pubTpls(it.w), tplPref = pr['tpl_' + it.w];
   pub = { id, fmt: 'post', tpl: tpls.some(t => t[0] === tplPref) ? tplPref : tpls[0][0], foto: 0, precio: !!it.precio, tag: PUB_TAGS[it.w][0], color: pr.color || (PREFS.accent[it.w] || w.accent),
-    vend: pr.vend || (yo && yo.nombre) || ME.nombre || '', fono: pr.fono || (yo && yo.fono) || '' };
+    vend: pr.vend || (yo && yo.nombre) || ME.nombre || '', fono: pr.fono || (yo && yo.fono) || '', marca: pr.marca !== false };
   const el = pushScreen('Publicación', pubHtml(it), { cta: `<button class="btn ghost" data-act="pubBajar">${icon('download')}Descargar</button><button class="btn primary" data-act="pubEnviar">${icon('share')}Enviar</button>` });
   el.dataset.pub = id; pubDibujar(); pubMiniaturas();
 }
@@ -495,6 +507,7 @@ function pubHtml(it) {
     ${it.fotos.length ? `<div><p class="kicker" style="margin-bottom:10px">Foto principal</p><div class="pubfotos">${fotos}</div></div>` : `<div class="tip">${icon('camera')}<span>Este ${WORLDS[it.w].itemOne.toLowerCase()} aún no tiene fotos. Agrégalas en su ficha para que la publicación luzca.</span></div>`}
     <div><p class="kicker" style="margin-bottom:10px">Etiqueta</p><div class="optrow">${['', ...PUB_TAGS[it.w]].map(t => `<button class="opt ${t === pub.tag ? 'on' : ''}" data-act="pubTag" data-t="${clean(t)}">${t || 'Sin etiqueta'}</button>`).join('')}</div></div>
     <div><p class="kicker" style="margin-bottom:10px">Color</p><div class="pubcolors">${PUB_COLORS.map(c => `<button data-act="pubColor" data-c="${c}" class="${c === pub.color ? 'on' : ''}" style="--c:${c}" aria-label="Color ${c}"></button>`).join('')}</div></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:14px"><span class="grow"><b style="font:600 14.5px var(--body)">Logo y nombre de la empresa</b><br><span style="font-size:12px;color:var(--fg3)">Arriba de la publicación. Desactívalo si no lo quieres ahí.</span></span><button class="toggle ${pub.marca !== false ? 'on' : ''}" data-act="pubMarca" role="switch" aria-checked="${pub.marca !== false}" aria-label="Mostrar logo y nombre de la empresa"></button></div>
     <div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="kicker">Datos de contacto</span>
       <div class="seg2">${[['yo', 'Mis datos'], ['empresa', 'Datos de la empresa']].map(([k, t]) => `<button class="opt ${(pub.empresa ? 'empresa' : 'yo') === k ? 'on' : ''}" data-act="pubQuien" data-k="${k}">${t}</button>`).join('')}</div>
       <div class="grid2"><label class="field"><span>Nombre</span><input id="pub-v" value="${clean(pub.vend)}" maxlength="40" data-change="pubDatos" autocomplete="name"></label><label class="field"><span>WhatsApp</span><input id="pub-f" value="${clean(pub.fono)}" maxlength="20" inputmode="tel" placeholder="+56 9 …" data-change="pubDatos" autocomplete="tel"></label></div>
@@ -532,6 +545,7 @@ ACT.pubQuien = d => {
   pubRedibujar(true);
 };
 ACT.pubColor = d => { pub.color = d.c; $$('.pubcolors button').forEach(b => b.classList.toggle('on', b.dataset.c === d.c)); pubRedibujar(true); };
+ACT.pubMarca = (d, el) => { pub.marca = pub.marca === false; el.classList.toggle('on', pub.marca); el.setAttribute('aria-checked', pub.marca); pubRedibujar(true); };
 ACT.pubPrecio = (d, el) => { pub.precio = !pub.precio; el.classList.toggle('on', pub.precio); pubRedibujar(true); };
 ACT.pubDatos = () => { pub.vend = ($('#pub-v').value || '').trim().replace(/[<>"'`]/g, '').slice(0, 40); pub.fono = ($('#pub-f').value || '').trim().replace(/[^\d+ ()-]/g, '').slice(0, 20); pubRedibujar(true); };
 ACT.pubTexto = async () => { const t = pubTextoPost(getItem(pub.id)); try { await navigator.clipboard.writeText(t); toast('Texto copiado: pégalo en tu publicación', 'copy'); } catch (e) { prompt('Copia el texto:', t); } };
