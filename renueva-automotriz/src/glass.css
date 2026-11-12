@@ -168,3 +168,13 @@ html[data-tema="bosque"]{--bg:#06100D; --amb:#1FBF8F; --op1:#0F1B17; --op2:#1626
 /* 5) respuesta inmediata al toque y sin el retraso de 300 ms */
 button,a,[data-act],[role="button"]{touch-action:manipulation;}
 .metrics3 .kicker,.sec .count{font-size:11px;}
+
+/* ---------- foto de perfil del equipo ---------- */
+.avatar.foto{padding:0;overflow:hidden;background:var(--s2);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--accent) 55%,transparent),0 8px 20px -8px rgba(0,0,0,.6);}
+.avatar.foto img{width:100%;height:100%;object-fit:cover;display:block;}
+.avfoto{position:relative;display:inline-flex;flex:none;cursor:pointer;}
+.avfoto .avatar{width:84px;height:84px;}
+.avcam{position:absolute;right:-4px;bottom:-4px;width:30px;height:30px;border-radius:99px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 3px var(--bg),0 6px 14px -4px rgba(0,0,0,.6);}
+.avfoto:active .avatar{transform:scale(.96);}
+.nvph{display:flex;align-items:center;justify-content:center;background:var(--s2);color:var(--fg2);border:1.5px dashed var(--line2);}
+.nvph.foto{border:0;}

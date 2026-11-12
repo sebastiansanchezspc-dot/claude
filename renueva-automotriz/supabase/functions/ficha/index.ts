@@ -72,7 +72,7 @@ Deno.serve(async req => {
       return json({
         org: { nombre: org.nombre, logo: logo ? urls[logo] ?? null : null, mundo: MUNDO[it.w] ?? '', accent },
         item: { w: it.w, nombre: limpio(it.nombre, 80), sku: it.w === 'tienda' ? limpio(it.sku, 40) : null, precio: Number(it.precio) || null, op: it.op ?? null, estado: it.estado, specs: s, fotos: fotos.map((f: string) => urls[f]).filter(Boolean), notas: limpio(it.notasPub ?? '', 600) },
-        vend: v ? { nombre: v.nombre, fono: v.fono || '' } : null,
+        vend: v ? { nombre: v.nombre, fono: v.fono || '', foto: typeof v.foto === 'string' ? (await firmar(org.id, [v.foto]))[v.foto] ?? null : null } : null,
         cat: cg?.slug ?? null,
       }, 200, true)
     }

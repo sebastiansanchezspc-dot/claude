@@ -289,7 +289,7 @@ function openVendor(id) {
   const e = EQUIPO.find(x => x.id === id), s = vendStats(e), meses = mesesVend(e), mx = Math.max(1, ...meses.map(m => m.n));
   const cierres = ventasOf(e.w, MK()).filter(v => v.vend === e.nombre);
   pushScreen('Vendedor', `<div class="px" style="padding-top:10px;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;align-items:center;gap:16px"><span class="avatar xl">${initials(e.nombre)}</span><div><h2 style="font:700 24px/1.05 var(--display);font-variation-settings:'wdth' 82;letter-spacing:-.02em">${e.nombre}</h2><div style="margin-top:9px"><span class="chip ${e.activo ? 'good' : ''}">${e.activo ? 'Activo' : 'Inactivo'}</span></div></div></div>
+    <div style="display:flex;align-items:center;gap:16px"><label class="avfoto" aria-label="${e.foto ? 'Cambiar la foto de ' + clean(e.nombre) : 'Agregar foto de ' + clean(e.nombre)}">${vAv(e, 84, 28, 28, 'xl')}<span class="avcam">${icon('camera', 15)}</span><input type="file" accept="image/*" hidden data-change="vFoto" data-id="${e.id}"></label><div><h2 style="font:700 24px/1.05 var(--display);font-variation-settings:'wdth' 82;letter-spacing:-.02em">${e.nombre}</h2><div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="chip ${e.activo ? 'good' : ''}">${e.activo ? 'Activo' : 'Inactivo'}</span>${e.foto ? `<button class="chip" data-act="vFotoRm" data-id="${e.id}" style="border:0">Quitar foto</button>` : ''}</div></div></div>
     <div style="display:grid;grid-template-columns:.7fr 1.7fr 1fr;gap:10px">${kpi('Cierres', s.n)}${kpi('Comisión', fmtM(s.com), '', 'var(--good)')}${kpi('Particip.', s.part + '%')}</div>
     <div class="card"><span class="kicker">${e.w === 'tienda' ? 'Tickets' : 'Cierres'} últimos 6 meses</span><div class="bars6">${meses.map((m, i) => `<div class="b"><i class="${i === 5 ? 'cur' : ''}" style="height:${Math.max(8, m.n / mx * 100)}%;--i:${i}" title="${m.n}"></i><span>${mesDe(m.mk).slice(0, 3)}</span></div>`).join('')}</div></div>
     <div class="card"><div class="grid2"><label class="field"><span>Teléfono</span><input value="${e.fono || ''}" inputmode="tel" data-change="vDatos" data-id="${e.id}" data-k="fono"></label><label class="field"><span>Correo (para usar la app)</span><input value="${e.email || ''}" inputmode="email" data-change="vDatos" data-id="${e.id}" data-k="email"></label></div>
@@ -301,6 +301,15 @@ function openVendor(id) {
     <div class="card" style="display:flex;justify-content:space-between;align-items:center"><span style="font:600 14px var(--body)">Vendedor activo</span><button class="toggle ${e.activo ? 'on' : ''}" data-act="togVend" data-id="${e.id}" aria-label="Activo"></button></div>
   </div>`);
 }
+// foto de perfil de un vendedor: se achica a 640 px, se sube y el perfil se vuelve a pintar
+ACT.vFoto = async (d, el) => {
+  const e = EQUIPO.find(x => x.id === d.id), f = el.files[0]; el.value = ''; if (!e || !f) return;
+  let img; try { img = await readImage(f, 640, 0.86); } catch (x) { toast(x.message || 'No se pudo leer la imagen', 'warn'); return; }
+  toast('Subiendo foto…', 'camera');
+  try { e.foto = await storeImage(img); saved(); popScreen(); setTimeout(() => { openVendor(e.id); renderEquipo(); renderPanel(); }, 260); toast('Foto actualizada'); }
+  catch (x) { console.error(x); toast('No se pudo subir la foto. Revisa tu conexión e inténtalo de nuevo.', 'warn'); }
+};
+ACT.vFotoRm = d => { const e = EQUIPO.find(x => x.id === d.id); if (!e) return; delete e.foto; saved(); popScreen(); setTimeout(() => { openVendor(e.id); renderEquipo(); renderPanel(); }, 260); toast('Foto quitada'); };
 ACT.vDatos = (d, el) => { const e = EQUIPO.find(x => x.id === d.id); if (!e) return; const v = el.value.trim(); if (d.k === 'email' && v && !/.+@.+\..+/.test(v)) { toast('Correo no válido', 'warn'); return; } e[d.k] = d.k === 'email' ? lc(v) : v; toast('Datos guardados'); };
 ACT.vCom = (d, el) => {
   const e = EQUIPO.find(x => x.id === d.id), t = $('#vc-t').value, inp = $('#vc-v');
@@ -560,19 +569,27 @@ ACT.delItem = d => {
 };
 
 /* ---------------- vendedores ---------------- */
-ACT.nuevoVendedor = () => openSheet('Agregar vendedor', `<div style="display:flex;flex-direction:column;gap:14px">
+ACT.nuevoVendedor = () => { nvFoto = null; return openSheet('Agregar vendedor', `<div style="display:flex;flex-direction:column;gap:14px">
+  <div style="display:flex;align-items:center;gap:14px"><label class="avfoto" id="nv-av" aria-label="Agregar foto"><span class="avatar xl nvph" style="width:72px;height:72px;border-radius:24px">${icon('camera', 24)}</span><input type="file" accept="image/*" hidden data-change="nvFoto"></label><span style="font-size:13px;color:var(--fg3);line-height:1.35">Foto de perfil (opcional).<br>Sin foto se ven sus iniciales.</span></div>
   <label class="field"><span>Nombre</span><input id="nv-n" placeholder="Nombre y apellido" autocomplete="off"></label>
   <div class="grid2"><label class="field"><span>Teléfono</span><input id="nv-f" inputmode="tel" placeholder="+56 9 …"></label><label class="field"><span>Email</span><input id="nv-e" inputmode="email" placeholder="correo@…"></label></div>
   <div class="grid2"><label class="field"><span>Comisión base</span><select id="nv-t" data-change="nvTipo"><option value="pct">% Porcentaje</option><option value="monto">$ Monto fijo</option></select></label><label class="field"><span id="nv-l">Porcentaje (%)</span><input id="nv-v" inputmode="decimal" value="${W().key === 'prop' ? 40 : W().key === 'tienda' ? 3 : 2}"></label></div>
   <p style="font-size:12px;color:var(--fg3);margin-top:-4px">Es la comisión que aparece por defecto al registrar una venta de esta persona. Se puede cambiar en cada venta. Para que use la app, invítalo en Ajustes → Usuarios.</p>
-  <button class="btn primary" data-act="saveVendedor">${icon('check')}Guardar vendedor</button></div>`);
+  <button class="btn primary" data-act="saveVendedor">${icon('check')}Guardar vendedor</button></div>`); };
+let nvFoto = null;   // foto elegida al crear (ya achicada); se sube al guardar
+ACT.nvFoto = async (d, el) => {
+  const f = el.files[0]; el.value = ''; if (!f) return;
+  try { nvFoto = await readImage(f, 640, 0.86); const ph = $('#nv-av .nvph'); if (ph) { ph.classList.add('foto'); ph.innerHTML = `<img src="${nvFoto}" alt="">`; } } catch (e) { toast(e.message || 'No se pudo leer la imagen', 'warn'); }
+};
 ACT.nvTipo = (d, el) => { const i = $('#nv-v'), m = el.value === 'monto'; i.toggleAttribute('data-money', m); i.inputMode = m ? 'numeric' : 'decimal'; i.value = m ? '' : '0'; i.placeholder = m ? '$0' : ''; $('#nv-l').textContent = m ? 'Monto (CLP)' : 'Porcentaje (%)'; };
 ACT.saveVendedor = () => {
   const n = $('#nv-n').value.trim(); if (!n) { toast('Falta el nombre', 'warn'); return; }
   if (EQUIPO.some(e => e.w === state.world && e.nombre.toLowerCase() === n.toLowerCase())) { toast('Ya existe un vendedor con ese nombre', 'warn'); return; }
   const t = $('#nv-t').value, raw = $('#nv-v').value;
-  EQUIPO.push({ id: nuevoId('e'), w: state.world, nombre: n, fono: $('#nv-f').value.trim(), email: $('#nv-e').value.trim(), comTipo: t, comVal: t === 'pct' ? Math.min(100, Math.max(0, parseFloat(String(raw).replace(',', '.')) || 0)) : money(raw), activo: true });
+  const nuevo = { id: nuevoId('e'), w: state.world, nombre: n, fono: $('#nv-f').value.trim(), email: $('#nv-e').value.trim(), comTipo: t, comVal: t === 'pct' ? Math.min(100, Math.max(0, parseFloat(String(raw).replace(',', '.')) || 0)) : money(raw), activo: true };
+  EQUIPO.push(nuevo); const foto = nvFoto; nvFoto = null;
   closeSheet(); renderEquipo(); renderPanel(); toast('Vendedor agregado', 'userplus');
+  if (foto) storeImage(foto).then(p => { nuevo.foto = p; saved(); renderEquipo(); renderPanel(); }).catch(() => toast('No se pudo subir la foto. Agrégala desde el perfil del vendedor.', 'warn'));
 };
 
 /* ---------------- formulario: nueva venta ---------------- */

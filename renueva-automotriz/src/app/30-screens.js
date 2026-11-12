@@ -283,7 +283,7 @@ function equipoHtml(w) {
   const eq = EQUIPO.filter(e => e.w === w.key && e.activo), ut = e => sum(ventasOf(w.key, MK()).filter(v => v.vend === e.nombre), utilidad), mx = Math.max(1, ...eq.map(ut));
   if (!eq.length) return '';
   return sec('Equipo del mes', '', `<button class="more" data-act="tab" data-tab="equipo">Ver equipo</button>`) + `<div class="card tight reveal" style="animation-delay:.3s">${eq.sort((a, b) => ut(b) - ut(a)).map((e, k) => `
-    <button class="row" data-act="vendor" data-id="${e.id}" style="animation-delay:${.34 + k * .06}s"><span class="avatar" style="width:40px;height:40px;border-radius:13px;font-size:14px">${initials(e.nombre)}</span>
+    <button class="row" data-act="vendor" data-id="${e.id}" style="animation-delay:${.34 + k * .06}s">${vAv(e, 40, 13, 14)}
     <span class="rm"><p class="rt">${k === 0 ? icon('trophy', 14) + ' ' : ''}${e.nombre}</p><div class="pbar" style="margin-top:8px;--w:${Math.max(4, ut(e) / mx * 100)}%"><i></i></div></span>
     <span class="rr"><span class="p">${fmtM(ut(e))}</span><span class="rs" style="margin:0">${(() => { const n = ventasOf(w.key, MK()).filter(v => v.vend === e.nombre).length; return n + ' ' + (w.key === 'tienda' ? (n === 1 ? 'ticket' : 'tickets') : (n === 1 ? 'cierre' : 'cierres')); })()}</span></span></button>`).join('')}</div>`;
 }
@@ -498,7 +498,7 @@ function renderEquipo() {
     <div class="card reveal"><span class="kicker">Comisiones${esMesActual() ? ' por pagar' : ''} · ${mesDe(MK())}</span><span class="big" style="display:block;font-size:38px;margin-top:10px;line-height:1">${odo(tot)}</span></div>
     ${eq.length ? '' : `<div class="card"><div class="empty">${icon('people', 30)}<p>Agrega a tus vendedores para calcular sus comisiones en cada venta.</p></div><button class="btn primary" data-act="nuevoVendedor">${icon('userplus')}Agregar vendedor</button></div>`}
     ${eq.map((e, i) => { const s = vendStats(e); return `<button class="card pressable reveal" data-act="vendor" data-id="${e.id}" style="text-align:left;animation-delay:${i * .07 + .06}s;width:100%">
-      <div style="display:flex;align-items:center;gap:13px"><span class="avatar">${initials(e.nombre)}</span><span class="grow"><p class="rt" style="font-size:15px">${e.nombre}</p><p class="rs">${e.comTipo === 'pct' ? e.comVal + '%' : fmt(e.comVal)} comisión base ${e.activo ? '' : '<span class="chip">Inactivo</span>'}</p></span>${icon('chevR', 16)}</div>
+      <div style="display:flex;align-items:center;gap:13px">${vAv(e, 44, 15, 15)}<span class="grow"><p class="rt" style="font-size:15px">${e.nombre}</p><p class="rs">${e.comTipo === 'pct' ? e.comVal + '%' : fmt(e.comVal)} comisión base ${e.activo ? '' : '<span class="chip">Inactivo</span>'}</p></span>${icon('chevR', 16)}</div>
       <div style="display:grid;grid-template-columns:.7fr 1.6fr 1fr;gap:10px;margin-top:14px;text-align:left"><div><span class="kicker" style="font-size:9px">Cierres</span><b class="num" style="display:block;font-size:20px;margin-top:6px">${s.n}</b></div><div><span class="kicker" style="font-size:9px">Comisión</span><b class="num" style="display:block;font-size:19px;margin-top:6px;color:var(--good);white-space:nowrap">${fmtM(s.com)}</b></div><div><span class="kicker" style="font-size:9px">Participación</span><b class="num" style="display:block;font-size:20px;margin-top:6px">${s.part}%</b></div></div></button>`; }).join('')}
   </div>`;
 }

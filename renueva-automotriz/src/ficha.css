@@ -69,3 +69,5 @@ h1{font:600 28px/1.12 var(--b);letter-spacing:-.02em;margin-top:8px;text-wrap:ba
 @media (min-width:700px){#f{padding-top:8px} .fotos{border-radius:var(--r);margin:16px 16px 0}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (prefers-reduced-transparency:reduce){.top{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)} .datos div,.contacto{background:var(--op)}}
+
+.av{overflow:hidden}.av img{width:100%;height:100%;object-fit:cover}
