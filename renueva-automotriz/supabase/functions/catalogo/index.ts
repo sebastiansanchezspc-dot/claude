@@ -82,9 +82,11 @@ Deno.serve(async req => {
       const dis = typeof cfg.tpl === 'string' && cfg.tpl !== '' ? (it: Item) => (typeof it.catImg === 'string' ? it.catImg : null) : () => null
       // el contacto de toda la página es quien compartió el enlace: un vendedor (v=<id>), el dueño (v=adm) o la empresa
       const eq = await equipo(org.id, w), delLink = ID.test(v) && v !== 'emp' && v !== 'adm' ? eq.find(x => x.id === v) : null
-      const contacto = (x?: { nombre?: string, fono?: string } | null) => x && x.fono ? { nombre: limpio(x.nombre, 40), fono: limpio(x.fono, 24) } : null
+      const contacto = (x?: { nombre?: string, fono?: string, foto?: string } | null) => x && x.fono ? { nombre: limpio(x.nombre, 40), fono: limpio(x.fono, 24), foto: typeof x.foto === 'string' ? x.foto : null } : null
       const empresa = { nombre: org.nombre, fono: cfg.fono }, dueno = { nombre: cfg.admNombre || org.nombre, fono: cfg.admFono || cfg.fono }
-      const general = contacto(delLink) || (v === 'adm' ? contacto(dueno) : null) || contacto(empresa) || contacto(eq.find(x => x.fono)) || null
+      const general0 = contacto(delLink) || (v === 'adm' ? contacto(dueno) : null) || contacto(empresa) || contacto(eq.find(x => x.fono)) || null
+      const fotoV = general0 && general0.foto ? (await firmar(org.id, [general0.foto]))[general0.foto] ?? null : null
+      const general = general0 && { nombre: general0.nombre, fono: general0.fono, foto: fotoV }
       const quien = delLink ? 'vendedor' : v === 'adm' && cfg.admFono ? 'dueno' : contacto(empresa) || !general ? 'empresa' : 'vendedor'
       const cu = prefs.cat?.[w]?.cuota
       const fin = w === 'auto' && cu && cu.on ? { pie: num(cu.pie) ?? 30, tasa: num(cu.tasa) ?? 1.6, plazo: num(cu.plazo) ?? 48 } : null

@@ -292,8 +292,8 @@ const topPush = () => pushes[pushes.length - 1];
 /* ---------------- delegación de eventos ---------------- */
 const ACT = {};
 // acciones que cambian datos (solo lectura no puede) y las que son solo del administrador
-const WRITE_ACTS = new Set('recSetTime ventaBorrar crFcp crFcs saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
-const ADMIN_ACTS = new Set('itemAprobar itemDescartar activarMundo ventaAprobar ventaRechazar ventaRechazarOk vaCt leadVend vDatos catFinCom catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
+const WRITE_ACTS = new Set('vFoto vFotoRm nvFoto recSetTime ventaBorrar crFcp crFcs saveItem saveVenta saveGasto delGasto togFijo setPermiso setDoc togContrib togPub addFotos rmFoto reponer editarItem nuevaVentaItem nuevaVenta nuevoItem nuevoGasto crFin crStep cobrar tramiteOk addBoleta gastoBoleta itemNota gastoNota addVisita saveContacto nuevoContacto delContacto nuevaConsulta saveConsulta leadStage leadTemp leadNote leadWon leadReopen leadLost lostSave recDone recDone2 recDel recSnooze nuevoRecordatorio saveRecordatorio consultaContacto recContacto recLead hubAdd delItem'.split(' '));
+const ADMIN_ACTS = new Set('vFoto vFotoRm itemAprobar itemDescartar activarMundo ventaAprobar ventaRechazar ventaRechazarOk vaCt leadVend vDatos catFinCom catToggle catDel catAdd catQuick catQuickSave planPick planConfirm addon userInvite userInviteSave userSave userDel vCom togVend nuevoVendedor saveVendedor accent delVendedor'.split(' '));
 function allowAct(name) {
   if (ADMIN_ACTS.has(name) && !isAdmin()) { toast('Solo el administrador puede cambiar esto', 'lock'); return false; }
   if ((WRITE_ACTS.has(name) || ADMIN_ACTS.has(name)) && !canWrite()) { toast(ME.rol === 'lectura' ? 'Tu usuario es de solo lectura' : enIOS() ? 'Tu cuenta está en solo lectura' : 'Tu cuenta está en solo lectura: elige un plan para seguir', 'lock'); return false; }
@@ -356,6 +356,11 @@ async function achicarImagen(file, max, tipo, q = 0.85) {
 }
 // en la nube la foto sube al almacenamiento y se guarda su ruta; en demo queda en memoria
 const storeImage = async dataUrl => (window.RV && RV.upload) ? RV.upload(dataUrl) : dataUrl;
+// avatar de una persona del equipo: su foto si tiene (recortada al centro) o sus iniciales de siempre
+const vAv = (e, s = 44, r = 15, fs = 15, cls = '') => {
+  const src = e && e.foto ? fotoSrc(e.foto) : '', est = `width:${s}px;height:${s}px;border-radius:${r}px;font-size:${fs}px`;
+  return src ? `<span class="avatar foto ${cls}" style="${est}"><img src="${src}" alt="${clean(e.nombre)}" loading="lazy"></span>` : `<span class="avatar ${cls}" style="${est}">${initials(e.nombre)}</span>`;
+};
 const fotoSrc = f => !f ? '' : /^(data:|https?:|blob:)/.test(f) ? f : ((window.RV && RV.fileUrl && RV.fileUrl(f)) || '');
 
 // Escape cierra lo que esté arriba (hoja o pantalla), como en cualquier app de computador

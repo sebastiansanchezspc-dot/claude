@@ -169,7 +169,7 @@ function marcaIni(s = 32) { return D.org.logo ? `<img class="logo" src="${esc(D.
 function asesorHtml() {
   const con = D.contacto; if (!con) return ''
   const emp = D.quien === 'empresa', wa = waLink(con.fono, `Hola${!emp ? ' ' + con.nombre.split(' ')[0] : ''}, vi el catálogo de ${D.org.nombre} y quiero hacer una consulta.`)
-  return `<section class="asesor"><div class="wrap"><span class="av">${emp ? marcaIni(44) : esc(iniciales(con.nombre))}</span>
+  return `<section class="asesor"><div class="wrap"><span class="av">${emp ? marcaIni(44) : con.foto ? `<img src="${esc(con.foto)}" alt="" loading="eager">` : esc(iniciales(con.nombre))}</span>
     <div class="as-t"><small>${emp ? 'Atención directa' : 'Te atiende'}</small><b>${esc(emp ? D.org.nombre : con.nombre)}</b></div>
     <div class="as-b">${wa ? `<a class="btn acc" href="${wa}" target="_blank" rel="noopener">${ico('wa', 18)}WhatsApp</a>` : ''}<a class="ib s" href="${telLink(con.fono)}" aria-label="Llamar a ${esc(emp ? D.org.nombre : con.nombre)}">${ico('tel', 18)}</a></div></div></section>`
 }
@@ -335,7 +335,7 @@ function detalleHtml(it, d) {
         ${datos ? `<dl class="datos">${datos}</dl>` : ''}
         ${full && full.notas ? `<p class="notas">${esc(full.notas)}</p>` : ''}
         <div class="contacto">
-          ${vend ? `<div class="vend"><span class="av">${D.quien === 'empresa' ? marcaIni(44) : esc(iniciales(vend.nombre))}</span><div><small>${D.quien === 'empresa' ? 'Atención directa' : 'Te atiende'}</small><b>${esc(vend.nombre)}</b>${D.quien === 'empresa' ? '' : `<small>${esc(D.org.nombre)}</small>`}</div></div>` : ''}
+          ${vend ? `<div class="vend"><span class="av">${D.quien === 'empresa' ? marcaIni(44) : vend.foto ? `<img src="${esc(vend.foto)}" alt="" loading="eager">` : esc(iniciales(vend.nombre))}</span><div><small>${D.quien === 'empresa' ? 'Atención directa' : 'Te atiende'}</small><b>${esc(vend.nombre)}</b>${D.quien === 'empresa' ? '' : `<small>${esc(D.org.nombre)}</small>`}</div></div>` : ''}
           ${wa ? `<a class="btn wa" href="${wa}" target="_blank" rel="noopener">${ico('wa')}Escribir por WhatsApp</a>` : ''}
           <div class="dos">${vend && vend.fono ? `<a class="btn ghost" href="${telLink(vend.fono)}">${ico('tel', 18)}Llamar</a>` : ''}<button class="btn ghost" id="meLlamen">Que me contacten</button></div>
         </div>

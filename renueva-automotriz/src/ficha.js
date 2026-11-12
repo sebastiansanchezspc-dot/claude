@@ -58,7 +58,7 @@ function pintar({ org, item: it, vend, cat }) {
       ${it.notas ? `<p class="notas">${esc(it.notas)}</p>` : ''}
     </section>
     <section class="contacto">
-      ${vend ? `<div class="vend"><span class="av">${esc((vend.nombre || 'G').split(' ').map(x => x[0]).slice(0, 2).join(''))}</span><div><b>${esc(vend.nombre)}</b><small>${esc(org.nombre)}</small></div></div>` : ''}
+      ${vend ? `<div class="vend"><span class="av">${vend.foto ? `<img src="${esc(vend.foto)}" alt="">` : esc((vend.nombre || 'G').split(' ').map(x => x[0]).slice(0, 2).join(''))}</span><div><b>${esc(vend.nombre)}</b><small>${esc(org.nombre)}</small></div></div>` : ''}
       ${wa ? `<a class="btn wa" href="${wa}" target="_blank" rel="noopener">${ico('wa')}Escribir por WhatsApp</a><a class="btn ghost" href="tel:+${fono.length === 9 ? '56' + fono : fono}">${ico('tel')}Llamar</a>` : ''}
       <form id="form" class="form" novalidate>
         <h2>¿Te interesa? Te contactamos</h2>
